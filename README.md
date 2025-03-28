@@ -117,7 +117,7 @@ Each component is a single statically-linked binary.
 
 `./uem-server install` will install the server as a service. On Windows, configuration information is stored in the registry and a data directory is created in ProgramData. On macOS and Linux, configuration information is written to /etc/uem-server.conf and a data directory is created in /opt/uem-server.
 
-By default, the server will listen on http://127.0.0.1:8080. If you encourter difficulties, you can temporarily bypass the configured listen address and start uem-server in the foreground (i.e. not as a deamon/service) using `uem-server listen 127.0.0.1:8080` or another suitable address. This is useful in the event that a mistake in the configuration prevents uem-server from starting.
+By default, the server will listen on http://127.0.0.1:8080. If you encounter difficulties, you can temporarily bypass the configured listen address and start uem-server in the foreground (i.e. not as a deamon/service) using `uem-server listen 127.0.0.1:8080` or another suitable address. This is useful in the event that a mistake in the configuration prevents uem-server from starting.
 
 To change the listen URL, the external URL, or other configuration, update them using `uem-cli config server`, stop the service and change the registry or /etc/uem-server.conf file as appropriate.
 
