@@ -1,0 +1,19 @@
+//
+// Copyright (c) 2024-2025 Tenebris Technologies Inc.
+// Please see the LICENSE file for details
+//
+
+//go:build linux || darwin
+
+package common
+
+import (
+	"os/exec"
+	"syscall"
+)
+
+func setProcessAttributes(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+}

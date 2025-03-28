@@ -135,14 +135,14 @@ By default, logs are written to /var/log/uem-server.log on Linux and macOS. On W
 
 ### uem-cli installation
 
-uem-cli is a command-line interface for administration use only. Authentication and server information from the environment is used to authenticate with the server and obtain an access and refresh token. If a file in the user's home directory named `.openuem` exists, it will be loaded into the environment.
+uem-cli is a command-line interface for administration use only. Authentication and server information from the environment is used to authenticate with the server and obtain an access and refresh token. If a file in the user's home directory named `.uem` exists, it will be loaded into the environment.
 
 The following environment variables are required:
 
 ```
-OPENUEM_USER: The administrator's username
-OPENUEM_PASS: The administrator's password
-OPENUEM_SERVER: The protocol, FQDN, and port of the server (i.e. https://uem.example.com:443)
+UEM_USER: The administrator's username
+UEM_PASS: The administrator's password
+UEM_SERVER: The protocol, FQDN, and port of the server (i.e. https://uem.example.com:443)
 ```
 
 Additional administrator accounts, along with managing them via the API, will be added in the near future. Until this occurs, the only admin-level credentials are usernames and passwords set from the uem-server command line.

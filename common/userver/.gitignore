@@ -1,3 +1,4 @@
+# Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
@@ -5,15 +6,7 @@
 *.dylib
 *.test
 *.out
-*.env
 vendor/
 private/
-bin/
 .idea
 .idea/*
-.DS*
-build/
-*.swp
-uem-agent
-uem-server
-uem-cli
