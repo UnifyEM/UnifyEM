@@ -6,10 +6,11 @@
 package global
 
 import (
-	"github.com/UnifyEM/UnifyEM/common/interfaces"
-	"github.com/UnifyEM/UnifyEM/common/schema"
 	"os"
 	"runtime"
+
+	"github.com/UnifyEM/UnifyEM/common/interfaces"
+	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	ConfigAgentID      = "agent_id"
 	ConfigServerURL    = "server_url"
 	ConfigRefreshToken = "refresh_token"
+	ConfigCAHash       = "ca_hash"
 )
 
 // setDefaults makes sure the sets exist, sets default values, and constraints
@@ -36,6 +38,7 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	ap.SetConstraint(ConfigAgentDataDir, 0, 0, "")
 	ap.SetConstraint(ConfigAgentID, 0, 0, "")
 	ap.SetConstraint(ConfigServerURL, 0, 0, "")
+	ap.SetConstraint(ConfigCAHash, 0, 0, "")
 
 	// Return the sets
 	return ac, ap
