@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"go.etcd.io/bbolt"
 
+	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -65,7 +66,7 @@ func (d *DB) GetEvents(agentID string, startTime, endTime int64, eventType strin
 		// Get the child bucket for the agent
 		childBucket := parentBucket.Bucket([]byte(agentID))
 		if childBucket == nil {
-			return fmt.Errorf("child bucket not found")
+			return fmt.Errorf("agent bucket not found")
 		}
 
 		// Iterate over the events in the child bucket
@@ -166,7 +167,10 @@ func (d *DB) PruneEvents(days int) error {
 		return parentBucket.ForEach(func(agentID, _ []byte) error {
 			childBucket := parentBucket.Bucket(agentID)
 			if childBucket == nil {
-				return fmt.Errorf("child bucket not found")
+
+				// Log the error but continue
+				d.logger.Warningf(3021, "child bucket not found for agent %s", string(agentID))
+				return nil
 			}
 
 			// Collect keys to delete
@@ -175,7 +179,12 @@ func (d *DB) PruneEvents(days int) error {
 				var eventTime int64
 				_, err := fmt.Sscanf(string(k), "%d-", &eventTime)
 				if err != nil {
-					return fmt.Errorf("failed to parse event time: %w", err)
+
+					// Log the error
+					d.logger.Warningf(3022, "failed to parse event time for agent %s key %s: %s", string(agentID), string(k), err.Error())
+
+					// Attempt to delete the bad record
+					_ = childBucket.Delete(k)
 				}
 
 				if eventTime < cutoffTime {
@@ -190,7 +199,17 @@ func (d *DB) PruneEvents(days int) error {
 			// Delete the collected keys
 			for _, k := range keysToDelete {
 				if err := childBucket.Delete(k); err != nil {
-					return fmt.Errorf("failed to delete event: %w", err)
+
+					// Log the error but continue so that one bad record doesn't stop the whole process
+					d.logger.Warning(3023, "pruning failed to delete event",
+						fields.NewFields(
+							fields.NewField("agent_id", string(agentID)),
+							fields.NewField("key", string(k)),
+							fields.NewField("error", err.Error())))
+				} else {
+					d.logger.Info(3020, "pruned event", fields.NewFields(
+						fields.NewField("agent_id", string(agentID)),
+						fields.NewField("key", string(k))))
 				}
 			}
 			return nil

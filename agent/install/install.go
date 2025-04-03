@@ -54,6 +54,12 @@ func (i *Install) Install(key string) error {
 	return i.ReKey(key)
 }
 
+// Stop the service, but do not disable or uninstall it
+func (i *Install) Stop() error {
+	// Call the private function for os specific stop
+	return i.stopService()
+}
+
 func (i *Install) Uninstall() error {
 	// Call the private function for os specific uninstall
 	return i.uninstallService(true)

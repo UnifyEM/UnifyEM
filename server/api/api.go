@@ -255,3 +255,8 @@ func (a *API) startAPI() error {
 func (a *API) Close() {
 	a.data.Close()
 }
+
+// PruneDB provides a way for the app to trigger database pruning
+func (a *API) PruneDB() {
+	a.data.PruneDB()
+}

@@ -8,6 +8,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"github.com/UnifyEM/UnifyEM/common/fields"
 	"time"
 
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -97,6 +98,44 @@ func (d *DB) DeleteAgentRequests(agentID string) error {
 
 	})
 	return err
+}
+
+// PruneAgentRequests deletes all request older than the specified number of days
+func (d *DB) PruneAgentRequests(days int) error {
+	cutoffTime := time.Now().AddDate(0, 0, -days).Unix()
+
+	return d.ForEach(BucketAgentRequests, func(key, value []byte) error {
+		var request schema.AgentRequestRecord
+		err := d.deserialize(value, &request)
+		if err != nil {
+			d.logger.Warning(3032, fmt.Sprintf("failed to deserialize request record: %s", err.Error()),
+				fields.NewFields(
+					fields.NewField("key", string(key)),
+					fields.NewField("error", err.Error())))
+
+			// Attempt to delete the bad record
+			_ = d.DeleteData(BucketAgentRequests, string(key))
+			return nil
+		}
+
+		if request.LastUpdated.Unix() < cutoffTime {
+			err = d.DeleteData(BucketAgentRequests, string(key))
+			if err != nil {
+				// Log the error but continue so that one bad record doesn't stop the whole process
+				d.logger.Warning(3031, "pruning failed to delete request",
+					fields.NewFields(
+						fields.NewField("key", string(key)),
+						fields.NewField("last_updated", request.LastUpdated),
+						fields.NewField("error", err.Error())))
+			} else {
+				d.logger.Info(3030, "pruned request", fields.NewFields(
+					fields.NewField("key", string(key)),
+					fields.NewField("last_updated", request.LastUpdated)))
+			}
+		}
+
+		return nil
+	})
 }
 
 // RequestExists checks if a request exists in the database

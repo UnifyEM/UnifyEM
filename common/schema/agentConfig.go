@@ -25,6 +25,9 @@ const (
 	ConfigAgentLogMacOSDisk     = "log_macos_disk"
 	ConfigAgentLogLinuxDisk     = "log_linux_disk"
 	ConfigAgentDebug            = "log_debug"
+	ConfigAgentPinCA            = "pin_ca"
+	ConfigAgentVerification     = "verification"
+	configAgentVerificationKey  = "verification_key"
 )
 
 func SetAgentDefaults(c interfaces.Config) interfaces.Parameters {
@@ -41,5 +44,8 @@ func SetAgentDefaults(c interfaces.Config) interfaces.Parameters {
 	s.SetConstraint(ConfigAgentLogMacOSDisk, 0, 0, true)
 	s.SetConstraint(ConfigAgentLogLinuxDisk, 0, 0, true)
 	s.SetConstraint(ConfigAgentDebug, 0, 0, false)
+	s.SetConstraint(ConfigAgentPinCA, 0, 0, false)
+	s.SetConstraint(ConfigAgentVerification, 0, 0, false)
+	s.SetConstraint(configAgentVerificationKey, 0, 0, "")
 	return s
 }

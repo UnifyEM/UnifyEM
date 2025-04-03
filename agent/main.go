@@ -127,9 +127,19 @@ func console() int {
 		return 0
 
 	case "reset":
+		// Attempt to stop agent
+		installer := install.New(conf, logger)
+		err = installer.Stop()
+		if err != nil {
+			fmt.Printf("\nError stopping agent: %s\n", err.Error())
+		}
+
+		// Reset the configuration
 		conf.AP.Delete(global.ConfigAgentID)
 		conf.AP.Delete(global.ConfigRefreshToken)
 		conf.AP.Delete(global.ConfigLost)
+
+		// Checkpoint the configuration
 		err = conf.Checkpoint()
 		if err != nil {
 			fmt.Printf("\nError resetting configuration: %s\n", err.Error())

@@ -41,6 +41,7 @@ import (
 var conf *global.ServerConfig
 var logger interfaces.Logger
 var apiInstance *api.API
+var lastDBPrune time.Time
 
 func main() {
 
@@ -61,6 +62,9 @@ func main() {
 
 	// Set debug mode to on
 	global.Debug = true
+
+	// To avoid triggering database pruning on startup, set the last time to now
+	lastDBPrune = time.Now()
 
 	// launch() provides OS-specific functionality and then calls startService() or console() below
 	launch()
@@ -277,9 +281,19 @@ func ServiceBackground(logger interfaces.Logger) {
 
 // ServiceTasks will be called at the interval specified by TaskTicker
 func ServiceTasks(_ interfaces.Logger) {
+
 	// Process any messages in the queue
 	if queue.Size() > 0 {
 		apiInstance.ProcessMessageQueue()
+	}
+
+	// Prune the database every 6 hours
+	if time.Since(lastDBPrune) > 6*time.Hour {
+		lastDBPrune = time.Now()
+
+		// Send the request through the API layer because it
+		// owns the data layer
+		apiInstance.PruneDB()
 	}
 }
 
