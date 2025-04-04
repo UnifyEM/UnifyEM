@@ -129,8 +129,10 @@ func init() {
 	}
 
 	// Add the standard parameters to all functions
+	// Allows allow adding a hash. Administrators don't need to specify it, but the server will
+	// add it where required
 	for _, cmd := range cmds.Commands {
-		cmd.OptionalArgs = append(cmd.OptionalArgs, AgentID, RequestID)
+		cmd.OptionalArgs = append(cmd.OptionalArgs, AgentID, RequestID, "hash")
 		cmds.Commands[cmd.Name] = cmd
 	}
 }
