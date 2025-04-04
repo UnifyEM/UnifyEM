@@ -8,6 +8,7 @@ package upgrade
 import (
 	"errors"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 
@@ -81,6 +82,10 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, err
 	}
 
+	// Delete the file
+	_ = os.Remove(infoFile)
+
+	// Get the hash for our desired upgrade
 	hash, ok = upgradeInfo[requestFile]
 	if !ok {
 		if global.DisableHash {
