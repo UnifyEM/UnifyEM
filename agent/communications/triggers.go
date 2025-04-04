@@ -8,6 +8,8 @@ package communications
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/UnifyEM/UnifyEM/agent/execute"
+	"os"
 
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -99,8 +101,18 @@ func (c *Communications) triggerUninstall() {
 		return
 	}
 
-	// Initiate uninstallation // TODO
+	prog, err := os.Executable()
+	if err != nil {
+		c.logger.Errorf(8045, "error getting executable path: %s", err.Error())
+		return
+	}
 
+	args := []string{"uninstall"}
+	err = execute.Execute(c.logger, prog, args)
+	if err != nil {
+		c.logger.Errorf(8046, "error executing uninstall: %s", err.Error())
+		return
+	}
 }
 
 func (c *Communications) triggerWipe() {

@@ -45,8 +45,19 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	// Check for the required URL parameter
 	url, ok := request.Parameters["url"]
 	if !ok {
-		response.Response = fmt.Sprintf("url parameter is empty or not specified")
+		response.Response = fmt.Sprintf("url parameter is not specified")
 		return response, errors.New(response.Response)
+	}
+
+	// Check for the hash parameter
+	hash, ok := request.Parameters["hash"]
+	if !ok {
+		if global.DisableHash {
+			hash = ""
+		} else {
+			response.Response = fmt.Sprintf("hash parameter is not specified")
+			return response, errors.New(response.Response)
+		}
 	}
 
 	// Collect options from params in the correct order
@@ -60,7 +71,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		args = append(args, value)
 	}
 
-	err := common.DownloadExecute(h.logger, h.comms, url, args)
+	err := common.DownloadExecute(h.logger, h.comms, url, args, hash)
 	if err != nil {
 		response.Response = fmt.Sprintf("error downloading and executing %s: %s", url, err.Error())
 		return response, err

@@ -22,6 +22,7 @@ const (
 	EndpointRegToken     = "/api/v1/regtoken"
 	EndpointEvents       = "/api/v1/events"
 	EndpointFiles        = "/files"
+	UpgradeInfoFile      = "deploy.json"
 )
 
 //goland:noinspection ALL

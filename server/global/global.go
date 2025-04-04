@@ -20,6 +20,7 @@ const (
 	TaskTicker        = 10        // seconds between task checks
 	ConsoleExitDelay  = 10        // seconds to wait so that user can read the console output when exiting
 	TokenLength       = 64        // Length of registration token and JWT authentication key prior to base-64 encoding
+	MemoryCacheTTL    = 600       // Time to live for memory cache items in seconds
 )
 
 var (

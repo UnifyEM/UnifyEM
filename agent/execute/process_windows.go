@@ -5,7 +5,7 @@
 
 //go:build windows
 
-package common
+package execute
 
 import (
 	"os/exec"

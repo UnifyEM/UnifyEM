@@ -5,7 +5,7 @@
 
 //go:build linux || darwin
 
-package common
+package execute
 
 import (
 	"os/exec"

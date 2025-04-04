@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common/hasher"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/server/db"
 	"github.com/UnifyEM/UnifyEM/server/global"
@@ -20,6 +21,7 @@ type Data struct {
 	logger            interfaces.Logger
 	conf              *global.ServerConfig
 	database          *db.DB
+	hasher            *hasher.Hasher
 	jwtKey            []byte
 	BucketAuth        string
 	BucketRequests    string
@@ -61,6 +63,7 @@ func New(conf *global.ServerConfig, logger interfaces.Logger) (*Data, error) {
 		conf:            conf,
 		database:        dbInstance,
 		jwtKey:          jwtKey,
+		hasher:          hasher.New(hasher.WithCache(global.MemoryCacheTTL)),
 		BucketAuth:      db.BucketAuth,
 		BucketRequests:  db.BucketAgentRequests,
 		BucketAgentMeta: db.BucketAgentMeta,

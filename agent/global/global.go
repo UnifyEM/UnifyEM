@@ -23,10 +23,12 @@ const (
 	Description       = "UnifyEM Agent"
 	WindowsBinaryName = "uem-agent.exe"
 	UnixBinaryName    = "uem-agent"
-	Unsafe            = true // Allows self-signed certificates and HTTP for testing purposes only
-	TaskTicker        = 5    // seconds between task checks
-	ConsoleExitDelay  = 10   // seconds to wait so that user can read the console output when exiting
-	TaskQueueSize     = 100  // maximum number of tasks to queue
+	TaskTicker        = 5   // seconds between task checks
+	ConsoleExitDelay  = 10  // seconds to wait so that user can read the console output when exiting
+	TaskQueueSize     = 100 // maximum number of tasks to queue
+
+	Unsafe      = true // Allows self-signed certificates and HTTP
+	DisableHash = true // Don't require hash verification on file downloads
 )
 
 // Global values that either can or should not be constants

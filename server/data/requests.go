@@ -7,6 +7,8 @@ package data
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -85,7 +87,6 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 		// Check if the request is pending, hasn't been sent for at least global.RequestRetryTime minutes,
 		// and hasn't failed more than global.RequestRetries times
 		if request.Status == schema.RequestStatusPending {
-
 			if request.LastUpdated.Before(time.Now().Add(-retryDelay*time.Minute)) && request.SendCount < retryLimit {
 				selected = true
 			}
@@ -93,7 +94,7 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 
 		if selected {
 			// Validate the command before sending it to the agent
-			err := commands.Validate(request.Request, request.Parameters)
+			err = commands.Validate(request.Request, request.Parameters)
 			if err != nil {
 				// Log the error and do not include the request in the list
 				d.logger.Error(2703, "command validation failed",
@@ -118,7 +119,48 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 							fields.NewField("requester", request.Requester),
 						))
 				}
+
 			} else {
+
+				// If the request involves downloading a file add a hash if the file exist in our server
+				if request.Request == commands.DownloadExecute {
+					dlURL, ok := request.Parameters["url"]
+					if !ok {
+						d.logger.Error(2705, "download_execute command missing url parameter",
+							fields.NewFields(
+								fields.NewField("id", agentID),
+								fields.NewField("requestID", request.RequestID),
+								fields.NewField("requester", request.Requester),
+							))
+						continue
+					}
+
+					// Obtain the filename from the URL
+					var filename string
+					filename, err = getFilename(dlURL)
+					if err != nil {
+						d.logger.Error(2705, "error parsing filename from download URL",
+							fields.NewFields(
+								fields.NewField("error", err.Error()),
+								fields.NewField("id", agentID),
+								fields.NewField("requestID", request.RequestID),
+								fields.NewField("requester", request.Requester),
+							))
+						continue
+					}
+
+					// If the file does not exist, GetHash will return an empty
+					// string. We'll let the agent follow its policy
+					request.Parameters["hash"] = d.getHashOfFile(filename)
+				}
+
+				// if the request is an upgrade, sent the hash of the upgrade information file
+				// If the file doesn't exist, this will add an empty string and the agent can
+				// follow it's policy with respect to downloading the file
+				if request.Request == commands.Upgrade {
+					request.Parameters["hash"] = d.getHashOfFile(schema.UpgradeInfoFile)
+				}
+
 				// Add the request to the list
 				requestList = append(requestList, schema.AgentRequest{
 					Created:    request.TimeCreated,
@@ -221,4 +263,14 @@ func (d *Data) AddAgentRequest(request schema.AgentRequest) (string, error) {
 func (d *Data) generateRequestID() string {
 	// This should always be a unique ID
 	return "R-" + uuid.New().String()
+}
+
+// Get the filename from a download URL
+func getFilename(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	parts := strings.Split(u.Path, "/")
+	return parts[len(parts)-1], nil
 }
