@@ -16,6 +16,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/cli/functions/agent"
 	"github.com/UnifyEM/UnifyEM/cli/functions/cmd"
 	"github.com/UnifyEM/UnifyEM/cli/functions/events"
+	"github.com/UnifyEM/UnifyEM/cli/functions/files"
 	"github.com/UnifyEM/UnifyEM/cli/functions/ping"
 	"github.com/UnifyEM/UnifyEM/cli/functions/regToken"
 	"github.com/UnifyEM/UnifyEM/cli/functions/report"
@@ -50,6 +51,7 @@ func main() {
 	rootCmd.AddCommand(cmd.Register())
 	rootCmd.AddCommand(configCmd.Register())
 	rootCmd.AddCommand(events.Register())
+	rootCmd.AddCommand(files.Register())
 	rootCmd.AddCommand(ping.Register())
 	rootCmd.AddCommand(report.Register())
 	rootCmd.AddCommand(request.Register())

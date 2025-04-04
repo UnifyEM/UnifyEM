@@ -21,7 +21,7 @@ The `main` branch is intended to be stable. All other branches are for developme
 
 Supported operating systems:
 
-- **Linux:** Developed and tested on Ubuntu 24.04 amd64 (server and CLI, agent pending)
+- **Linux:** Server and CLI developed and tested on Ubuntu 24.04 amd64 (agent soon)
 - **macOS:** Developed and tested on macOS Sequoia 15, arm64.
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
 - **Future development:** Android, iOS, iPadOS.
@@ -96,6 +96,22 @@ Each time the agent checks in with the server it retrieves a list of pending com
 If the agent's record is deleted from the server database, access will be denied even though the tokens may still be valid. This will cause the agent to attempt re-registration using the registration token it was provided at installation.
 
 To remove an agent, the preferable method is to send an uninstall command. This will cause the agent to uninstall itself as a service and stop running. However, in the event of a security issue, changing the registration token (`uem-cli regtoken new`) and then deleting the agent record from the server (`uem-cli agent delete <agent ID>`) will prevent the agent from being able to re-register.
+
+## Security Model Summary
+
+The security model is quickly evolving and will be more fully documented at a later date.
+
+Agents register to the server using the installaton key and are given an access key and a refresh key. By default, the refresh key does not expire. The agent stores the refresh key. The access key is kept in RAM and is used to authenticate to the server. If it expires or the agent restarts, the refresh key is used to obtain a new access key. If the configuration is changed such that the refresh key expires, the agent will attempt a new registation. Note that a new registration gives the agent a new identity since it would be unwise to allow an agent to re-register with an unproven identity.
+
+If the CA pinning feature is enabled, when the agent next connects to the server, it retains a hash of the CA public key (the last certificate in a verify chain). From that point forward, it will refuse to connect to the server if the server's SSL/TLS certificate does not chain to the same CA. This allows certificates from services such as LetsEncrypt to be used while providing some MITM attack mitigation.
+
+When the server requests an agent to download an execute a file, it includes an SHA265 hash of the file in the request. When the server instructs the agent to upgrade, it includes the SHA256 hash of a deployment file which, in turn, lists the SHA256 hashes of all agents available for download. The agent will discard any file that can not be verified. (For development and transition this can be disabled in agent/global/global.go.
+
+When updated clients are placed in the download directory, the administrator must initiate a refresh of the deployment file. This can be done using the CLI (`uem-cli files deploy`). Failure to update the hashes in the deployment file will prevent the agents from upgrading unless hash verification is disabled.
+
+A transition is in process to all requests being digitally signed by the server. Once the agent receives a configuration containing the server's public signing key, it will refuse to accept any request that is not digitally signed. (For development purposes this can be disabled in agent/global/global.go)
+
+Administrators authenticate to the server using their username and password, and receive a refresh and access token. The refresh token lifetime for users ("refresh_token_life_users") defaults to 1440 minutes, after which the user will need to re-authenticate. This is configurable. At this point only one administrator is allowed. Expanding this and adding MFA is on the short-term roadmap.
 
 ## Build and deploy
 

@@ -26,9 +26,14 @@ const (
 	TaskTicker        = 5   // seconds between task checks
 	ConsoleExitDelay  = 10  // seconds to wait so that user can read the console output when exiting
 	TaskQueueSize     = 100 // maximum number of tasks to queue
+)
 
+// These constants are used for development and testing purposes only and disable important security features.
+// For production use, the following constants should all be false.
+const (
 	Unsafe      = true // Allows self-signed certificates and HTTP
 	DisableHash = true // Don't require hash verification on file downloads
+	DisableSig  = true // Don't require signed requests from the server
 )
 
 // Global values that either can or should not be constants

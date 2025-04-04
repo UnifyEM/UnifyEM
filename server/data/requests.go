@@ -158,7 +158,7 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 				// If the file doesn't exist, this will add an empty string and the agent can
 				// follow it's policy with respect to downloading the file
 				if request.Request == commands.Upgrade {
-					request.Parameters["hash"] = d.getHashOfFile(schema.UpgradeInfoFile)
+					request.Parameters["hash"] = d.getHashOfFile(schema.DeployInfoFile)
 				}
 
 				// Add the request to the list

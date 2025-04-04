@@ -67,7 +67,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	}
 
 	// Download the information file
-	url := strings.ToLower(fmt.Sprintf("%s%s/%s", serverURL, schema.EndpointFiles, schema.UpgradeInfoFile))
+	url := strings.ToLower(fmt.Sprintf("%s%s/%s", serverURL, schema.EndpointFiles, schema.DeployInfoFile))
 	infoFile, err := common.Download(h.logger, h.comms, url, hash)
 	if err != nil {
 		response.Response = fmt.Sprintf("error downloading %s: %s", url, err.Error())

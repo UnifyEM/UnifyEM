@@ -243,6 +243,13 @@ func (a *API) startAPI() error {
 		JHandler: a.putConfigServer,
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
+	s.AddRoute(userver.Route{
+		Name:     "createDeployFile",
+		Methods:  []string{"PUT", "POST"},
+		Pattern:  schema.EndpointCreateDeployFile,
+		JHandler: a.createDeployFile,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
 	// Start the server
 	err = s.Start()
 	if err != nil {
