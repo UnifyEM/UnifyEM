@@ -837,6 +837,51 @@ paths:
       summary: Retrieve events
       tags:
       - Events
+  /files/list:
+    post:
+      description: Creates deploy.json containing names and hashes of uem-* files
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.APIGenericResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: Generate deploy.json
+      tags:
+      - Files
+    put:
+      description: Creates deploy.json containing names and hashes of uem-* files
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.APIGenericResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: Generate deploy.json
+      tags:
+      - Files
   /login:
     post:
       consumes:
