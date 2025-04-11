@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	serviceName = "uem-server"
+	serviceName = "uem-agent"
 	binaryPath  = "/usr/local/bin/"
 	servicePath = "/etc/systemd/system"
-	serviceFile = "uem-server.service"
+	serviceFile = "uem-agent.service"
 )
 
 // This must also be changed if binaryPath or serviceName are changed
 const serviceContent = `
 [Unit]
-Description=uem-server
+Description=uem-agent
 After=network.target
 StartLimitIntervalSec=0
 
@@ -35,11 +35,11 @@ User=root
 Group=root
 Restart=always
 RestartSec=1
-ExecStart=/usr/local/bin/uem-server
+ExecStart=/usr/local/bin/uem-agent
 
 [Install]
 WantedBy=multi-user.target
-Alias=uem-server.service
+Alias=uem-agent.service
 `
 
 // Install the service
