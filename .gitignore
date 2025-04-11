@@ -18,3 +18,4 @@ build/
 uem-agent
 uem-server
 uem-cli
+test.sh
