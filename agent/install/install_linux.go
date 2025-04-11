@@ -191,3 +191,16 @@ func (i *Install) startService() error {
 	}
 	return nil
 }
+
+// restart the service
+func (i *Install) restartService() error {
+	err := i.stopService()
+	if err != nil {
+		return err
+	}
+
+	// Delay 3 seconds
+	time.Sleep(3 * time.Second)
+
+	return i.startService()
+}

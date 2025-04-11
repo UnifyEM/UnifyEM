@@ -34,8 +34,8 @@ func password() string {
 	return "unknown"
 }
 
-func screenLock() string {
-	return "unknown"
+func screenLock() (string, error) {
+	return "unknown", nil
 }
 
 func screenLockDelay() string {
