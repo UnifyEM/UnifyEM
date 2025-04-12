@@ -15,6 +15,7 @@ const (
 	EndpointCmd              = "/api/v1/cmd"
 	EndpointReport           = "/api/v1/report"
 	EndpointAgent            = "/api/v1/agent"
+	EndpointUser             = "/api/v1/user"
 	EndpointConfigAgents     = "/api/v1/config/agent"
 	EndpointConfigServer     = "/api/v1/config/server"
 	EndpointReset            = "/api/v1/reset"

@@ -24,10 +24,10 @@ func GenericResp(statusCode int, data []byte, err error) error {
 	}
 
 	// Print the response code
-	fmt.Printf("Server response: HTTP %d\n", statusCode)
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
 
 	// Unmarshal the response body into a generic response object
-	var resp schema.APIAnyResponse
+	var resp schema.APIGenericResponse
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)

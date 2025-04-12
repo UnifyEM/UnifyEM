@@ -1,4 +1,3 @@
-//
 // Copyright (c) 2024-2025 Tenebris Technologies Inc.
 // See LICENSE file for details
 //
@@ -14,19 +13,18 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
-// TagsResp handles schema.APIRequestStatusResponse from the server.
-func TagsResp(statusCode int, data []byte, err error) error {
-
+// UserResp handles schema.UserList responses from the server.
+func UserResp(statusCode int, data []byte, err error) error {
 	// Check for errors
 	if err != nil {
-		return fmt.Errorf("HTTP post failed: %w", err)
+		return fmt.Errorf("HTTP request failed: %w", err)
 	}
 
 	// Print the response code
 	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
 
 	// Unmarshal the response body into the correct object
-	var resp schema.AgentTagsResponse
+	var resp schema.UserList
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)

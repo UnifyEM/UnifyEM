@@ -7,9 +7,10 @@ package main
 
 import (
 	"fmt"
-	configCmd "github.com/UnifyEM/UnifyEM/cli/functions/config"
 	"os"
 	"strings"
+
+	configCmd "github.com/UnifyEM/UnifyEM/cli/functions/config"
 
 	"github.com/spf13/cobra"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/cli/functions/regToken"
 	"github.com/UnifyEM/UnifyEM/cli/functions/report"
 	"github.com/UnifyEM/UnifyEM/cli/functions/request"
+	"github.com/UnifyEM/UnifyEM/cli/functions/user"
 	"github.com/UnifyEM/UnifyEM/cli/functions/version"
 	"github.com/UnifyEM/UnifyEM/cli/global"
 )
@@ -57,6 +59,7 @@ func main() {
 	rootCmd.AddCommand(request.Register())
 	rootCmd.AddCommand(version.Register())
 	rootCmd.AddCommand(regToken.Register())
+	rootCmd.AddCommand(user.Register())
 
 	// Execute the CLI
 	err = rootCmd.Execute()

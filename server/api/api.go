@@ -278,6 +278,35 @@ func (a *API) startAPI() error {
 		JHandler: a.createDeployFile,
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
+	// --- User management endpoints ---
+	s.AddRoute(userver.Route{
+		Name:     "user-list",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointUser,
+		JHandler: a.getUsers,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-get",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointUser + "/{id}",
+		JHandler: a.getUser,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-add",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointUser,
+		JHandler: a.postUser,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-delete",
+		Methods:  []string{"DELETE"},
+		Pattern:  schema.EndpointUser + "/{id}",
+		JHandler: a.deleteUser,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
 	// Start the server
 	err = s.Start()
 	if err != nil {
