@@ -7,12 +7,13 @@ package status
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
-	"time"
 )
 
 // Status collects and reports status information
@@ -32,30 +33,12 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
-	responseData := make(map[string]string)
+	responseData := CollectStatusData(h.logger)
 	response := schema.NewAgentResponse()
 	response.Cmd = request.Request
 	response.RequestID = request.RequestID
 	response.Response = "collected"
 	response.Success = true
-
-	// Collect compliance information
-	// Each function will report yes, no, or error plus additional details if required
-	responseData["uem_agent"] = fmt.Sprintf("%s-%d", global.Version, global.Build)
-	responseData["collected"] = time.Now().Format("2006-01-02T15:04:05-07:00")
-	responseData["os"] = osName()
-	responseData["os_version"] = osVersion()
-	responseData["firewall"] = firewall()
-	responseData["antivirus"] = antivirus()
-	responseData["auto_updates"] = autoUpdates()
-	responseData["full_disk_encryption"] = fde()
-	responseData["password"] = password()
-	responseData["screen_lock"] = h.trapError(screenLock())
-	responseData["screen_lock_delay"] = screenLockDelay()
-	responseData["hostname"] = hostname()
-	responseData["last_user"] = lastUser()
-	responseData["boot_time"] = bootTime()
-	responseData["ip"] = ip()
 	response.Data = responseData
 
 	// Log the response data
@@ -69,6 +52,33 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	// Log the response using separate fields
 	h.logger.Info(2703, "status data", f)
 	return response, nil
+}
+
+// CollectStatusData gathers all status items into a map for reporting or testing.
+func CollectStatusData(logger interfaces.Logger) map[string]string {
+	responseData := make(map[string]string)
+	responseData["uem_agent"] = fmt.Sprintf("%s-%d", global.Version, global.Build)
+	responseData["collected"] = time.Now().Format("2006-01-02T15:04:05-07:00")
+	responseData["os"] = osName()
+	responseData["os_version"] = osVersion()
+	responseData["firewall"] = firewall()
+	responseData["antivirus"] = antivirus()
+	responseData["auto_updates"] = autoUpdates()
+	responseData["full_disk_encryption"] = fde()
+	responseData["password"] = password()
+	lock, err := screenLock()
+	if err != nil && logger != nil {
+		logger.Error(2704, err.Error(), nil)
+		responseData["screen_lock"] = "unknown"
+	} else {
+		responseData["screen_lock"] = lock
+	}
+	responseData["screen_lock_delay"] = screenLockDelay()
+	responseData["hostname"] = hostname()
+	responseData["last_user"] = lastUser()
+	responseData["boot_time"] = bootTime()
+	responseData["ip"] = ip()
+	return responseData
 }
 
 // trapError is a helper function to log errors
