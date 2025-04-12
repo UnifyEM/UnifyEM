@@ -1,4 +1,5 @@
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
+//
+//  Copyright (c) 2024-2025 Tenebris Technologies Inc.
 // Please see the LICENSE file for details
 //
 
@@ -7,8 +8,10 @@ package status
 import (
 	"bufio"
 	"bytes"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -142,15 +145,25 @@ func fde() string {
 			return "yes"
 		}
 	}
-	// Try /proc/crypto as a fallback
-	f, err := os.Open("/proc/crypto")
+	// Check for LUKS header
+	out, err = exec.Command("cryptsetup", "status", "root").Output()
 	if err == nil {
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "cbc(aes)") {
-				return "yes"
-			}
+		if strings.Contains(string(out), "LUKS header") {
+			return "yes"
+		}
+	}
+	// Check for dm-crypt
+	out, err = exec.Command("ls", "/dev/mapper").Output()
+	if err == nil {
+		if bytes.Contains(out, []byte("cryptroot")) || bytes.Contains(out, []byte("cryptswap")) {
+			return "yes"
+		}
+	}
+	// Check for eCryptfs
+	out, err = exec.Command("mount").Output()
+	if err == nil {
+		if bytes.Contains(out, []byte("ecryptfs")) {
+			return "yes"
 		}
 	}
 	return "no"
@@ -189,8 +202,74 @@ func password() string {
 	return "unknown"
 }
 
+// getDisplayEnv tries to find a DISPLAY environment variable for a running X11/Wayland session.
+// Returns the DISPLAY value and true if found, otherwise "" and false.
+func getDisplayEnv() (string, bool) {
+	// Check for X11 sockets
+	if files, err := os.ReadDir("/tmp/.X11-unix"); err == nil && len(files) > 0 {
+		// Try to find a DISPLAY from a running Xorg/X process
+		out, err := exec.Command("ps", "axo", "pid,comm").Output()
+		if err == nil {
+			lines := strings.Split(string(out), "\n")
+			for _, line := range lines {
+				fields := strings.Fields(line)
+				if len(fields) == 2 && (fields[1] == "Xorg" || fields[1] == "X") {
+					pid := fields[0]
+					environPath := "/proc/" + pid + "/environ"
+					if envBytes, err := os.ReadFile(environPath); err == nil {
+						envVars := strings.Split(string(envBytes), "\x00")
+						for _, env := range envVars {
+							if strings.HasPrefix(env, "DISPLAY=") {
+								return strings.TrimPrefix(env, "DISPLAY="), true
+							}
+						}
+					}
+				}
+			}
+		}
+		// Fallback: assume :0 if X11 socket exists
+		return ":0", true
+	}
+	// Check for Wayland socket for any user
+	runUserDirs, _ := filepath.Glob("/run/user/*")
+	for _, dir := range runUserDirs {
+		waylandSock := filepath.Join(dir, "wayland-0")
+		if _, err := os.Stat(waylandSock); err == nil {
+			// Try to find WAYLAND_DISPLAY from a compositor process
+			out, err := exec.Command("ps", "axo", "pid,comm").Output()
+			if err == nil {
+				lines := strings.Split(string(out), "\n")
+				for _, line := range lines {
+					fields := strings.Fields(line)
+					if len(fields) == 2 && (strings.Contains(fields[1], "wayland") || strings.Contains(fields[1], "gnome-session")) {
+						pid := fields[0]
+						environPath := "/proc/" + pid + "/environ"
+						if envBytes, err := ioutil.ReadFile(environPath); err == nil {
+							envVars := strings.Split(string(envBytes), "\x00")
+							for _, env := range envVars {
+								if strings.HasPrefix(env, "WAYLAND_DISPLAY=") {
+									return strings.TrimPrefix(env, "WAYLAND_DISPLAY="), true
+								}
+							}
+						}
+					}
+				}
+			}
+			// Fallback: assume wayland-0
+			return "wayland-0", true
+		}
+	}
+	return "", false
+}
+
 // screenLock returns "yes" if the user's screen will automatically lock after inactivity, "no" if not, "unknown" otherwise
 func screenLock() (string, error) {
+	display, found := getDisplayEnv()
+	if !found {
+		return "n/a", nil
+	}
+	// Set DISPLAY for child commands
+	os.Setenv("DISPLAY", display)
 	// Check GNOME settings: lock-enabled and idle-delay
 	lockOut, err1 := exec.Command("gsettings", "get", "org.gnome.desktop.screensaver", "lock-enabled").Output()
 	idleOut, err2 := exec.Command("gsettings", "get", "org.gnome.desktop.session", "idle-delay").Output()
@@ -220,8 +299,13 @@ func screenLock() (string, error) {
 	return "unknown", nil
 }
 
-// screenLockDelay returns the screen lock delay in seconds, or "unknown"
 func screenLockDelay() string {
+	display, found := getDisplayEnv()
+	if !found {
+		return "n/a"
+	}
+	// Set DISPLAY for child commands
+	os.Setenv("DISPLAY", display)
 	// Try gsettings (GNOME, Ubuntu, Debian, CentOS default)
 	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.session", "idle-delay").Output()
 	if err == nil {
