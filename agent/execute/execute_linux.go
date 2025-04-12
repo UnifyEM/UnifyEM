@@ -19,18 +19,17 @@ import (
 func Execute(logger interfaces.Logger, file string, args []string) error {
 	var err error
 
-	// Find the nohup command
-	nohupPath, err := exec.LookPath("nohup")
-	if err != nil {
-		return fmt.Errorf("error finding nohup: %w", err)
-	}
-
-	cmd := exec.Command(nohupPath, append([]string{file}, args...)...)
+	// systemd has a nasty habbit of killing child processes when the parent dies
+	// so we need to use systemd-run to start the process in a new scope
+	newArgs := []string{"--scope", "--quiet"}
+	newArgs = append(newArgs, file)
+	newArgs = append(newArgs, args...)
+	cmd := exec.Command("systemd-run", newArgs...)
 
 	// Detach from parent
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	//cmd.SysProcAttr = &syscall.SysProcAttr{
+	//	Setpgid: true,
+	//}
 
 	// Redirect stdin, stdout, stderr to /dev/null
 	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
