@@ -253,6 +253,233 @@ func (a *API) putAgentResetTriggers(req *http.Request) userver.JResponse {
 		JSONData: schema.APIGenericResponse{Status: schema.APIStatusOK, Code: http.StatusOK}}
 }
 
+/*
+ * TAG MANAGEMENT ENDPOINTS
+ */
+
+// @Summary Get agents by tag
+// @Description Retrieves all agents that have the specified tag
+// @Tags Agent management
+// @Security BearerAuth
+// @Produce json
+// @Param tag path string true "Tag"
+// @Success 200 {object} schema.AgentsByTagResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/by-tag/{tag} [get]
+func (a *API) getAgentsByTag(req *http.Request) userver.JResponse {
+	tag := userver.GetParam(req, "tag")
+	if tag == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "tag required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAllAgentMeta()
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error retrieving agents", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+	var matched []schema.AgentMeta
+	for _, agent := range agents.Agents {
+		for _, t := range agent.Tags {
+			if t == tag {
+				matched = append(matched, agent)
+				break
+			}
+		}
+	}
+	if len(matched) == 0 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "no agents found with tag", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentsByTagResponse{
+			Agents: matched,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
+// @Summary List agent tags
+// @Description Retrieves the list of tags for the specified agent
+// @Tags Agent management
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Success 200 {object} schema.AgentTagsResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/{id}/tags [get]
+func (a *API) getAgentTags(req *http.Request) userver.JResponse {
+	agentID := userver.GetParam(req, "id")
+	if agentID == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "agent ID required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAgentMeta(agentID)
+	if err != nil || len(agents.Agents) != 1 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentTagsResponse{
+			Tags:   agents.Agents[0].Tags,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
+// @Summary Add tags to agent
+// @Description Adds one or more tags to the specified agent (duplicates ignored)
+// @Tags Agent management
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Param tags body schema.AgentTagsRequest true "Tags to add"
+// @Success 200 {object} schema.AgentTagsResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/{id}/tags/add [post]
+func (a *API) postAgentTagsAdd(req *http.Request) userver.JResponse {
+	agentID := userver.GetParam(req, "id")
+	if agentID == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "agent ID required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAgentMeta(agentID)
+	if err != nil || len(agents.Agents) != 1 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	currentMeta := agents.Agents[0]
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error reading body", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	var tagReq schema.AgentTagsRequest
+	if err := json.Unmarshal(body, &tagReq); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error unmarshalling JSON", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+
+	// Add tags, ensuring uniqueness
+	tagSet := make(map[string]struct{})
+	for _, t := range currentMeta.Tags {
+		tagSet[t] = struct{}{}
+	}
+	for _, t := range tagReq.Tags {
+		if t != "" {
+			tagSet[t] = struct{}{}
+		}
+	}
+	newTags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		newTags = append(newTags, tag)
+	}
+	currentMeta.Tags = newTags
+
+	if err := a.data.SetAgentMeta(currentMeta); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error updating agent tags", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentTagsResponse{
+			Tags:   currentMeta.Tags,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
+// @Summary Remove tags from agent
+// @Description Removes one or more tags from the specified agent
+// @Tags Agent management
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Param tags body schema.AgentTagsRequest true "Tags to remove"
+// @Success 200 {object} schema.AgentTagsResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/{id}/tags/remove [post]
+func (a *API) postAgentTagsRemove(req *http.Request) userver.JResponse {
+	agentID := userver.GetParam(req, "id")
+	if agentID == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "agent ID required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAgentMeta(agentID)
+	if err != nil || len(agents.Agents) != 1 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	currentMeta := agents.Agents[0]
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error reading body", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	var tagReq schema.AgentTagsRequest
+	if err := json.Unmarshal(body, &tagReq); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error unmarshalling JSON", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+
+	// Remove tags
+	removeSet := make(map[string]struct{})
+	for _, t := range tagReq.Tags {
+		removeSet[t] = struct{}{}
+	}
+	newTags := make([]string, 0, len(currentMeta.Tags))
+	for _, t := range currentMeta.Tags {
+		if _, found := removeSet[t]; !found {
+			newTags = append(newTags, t)
+		}
+	}
+	currentMeta.Tags = newTags
+
+	if err := a.data.SetAgentMeta(currentMeta); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error updating agent tags", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentTagsResponse{
+			Tags:   currentMeta.Tags,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
 // @Summary Delete agent
 // @Description Deletes an agent by ID
 // @Tags Agent management

@@ -18,6 +18,7 @@ type AgentMeta struct {
 	Build        int           `json:"build"`
 	Triggers     AgentTriggers `json:"triggers"`
 	Status       *AgentStatus  `json:"status,omitempty"`
+	Tags         []string      `json:"tags"`
 }
 
 func NewAgentMeta(agentID string) AgentMeta {
@@ -30,12 +31,32 @@ func NewAgentMeta(agentID string) AgentMeta {
 		LastSeen:     now,
 		Triggers:     NewAgentTriggers(),
 		Status:       nil,
+		Tags:         []string{},
 	}
 }
 
 type AgentStatus struct {
 	LastUpdated time.Time         `json:"last_updated"`
 	Details     map[string]string `json:"details"`
+}
+
+// Request for adding/removing tags
+type AgentTagsRequest struct {
+	Tags []string `json:"tags"`
+}
+
+// Response for tag operations
+type AgentTagsResponse struct {
+	Tags   []string `json:"tags"`
+	Status string   `json:"status"`
+	Code   int      `json:"code"`
+}
+
+// Response for agents by tag
+type AgentsByTagResponse struct {
+	Agents []AgentMeta `json:"agents"`
+	Status string      `json:"status"`
+	Code   int         `json:"code"`
 }
 
 // AgentTriggers are used to request specific immediate actions from the agent

@@ -110,6 +110,33 @@ func Register() *cobra.Command {
 		},
 	})
 
+	cmd.AddCommand(&cobra.Command{
+		Use:   "tags <agent_id>",
+		Short: "list tags for an agent",
+		Long:  "list all tags assigned to the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentListTags(args)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "tag-add <agent_id> <tag1> [<tag2> ...]",
+		Short: "add tags to an agent",
+		Long:  "add one or more tags to the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentAddTags(args)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "tag-remove <agent_id> <tag1> [<tag2> ...]",
+		Short: "remove tags from an agent",
+		Long:  "remove one or more tags from the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentRemoveTags(args)
+		},
+	})
+
 	return cmd
 }
 
@@ -121,7 +148,7 @@ func agentList(_ []string, _ *util.NVPairs) error {
 
 func agentGet(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Agent ID is required\n")
+		return errors.New("Agent ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -131,7 +158,7 @@ func agentGet(args []string, _ *util.NVPairs) error {
 
 func agentDelete(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Agent ID is required\n")
+		return errors.New("Agent ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -141,7 +168,7 @@ func agentDelete(args []string, _ *util.NVPairs) error {
 
 func agentSetName(args []string, _ *util.NVPairs) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID and name are required\n")
+		return errors.New("Agent ID and name are required")
 	}
 
 	agentMeta := schema.NewAgentMeta(args[0])
@@ -149,5 +176,40 @@ func agentSetName(args []string, _ *util.NVPairs) error {
 
 	c := communications.New(login.Login())
 	display.ErrorWrapper(display.GenericResp(c.Put(schema.EndpointAgent+"/"+args[0], agentMeta)))
+	return nil
+}
+
+// List tags for an agent
+func agentListTags(args []string) error {
+	if len(args) < 1 {
+		return errors.New("Agent ID is required")
+	}
+	c := communications.New(login.Login())
+	status, body, err := c.Get(schema.EndpointAgent + "/" + args[0] + "/tags")
+	display.ErrorWrapper(display.TagsResp(status, body, err))
+	return nil
+}
+
+// Add tags to an agent
+func agentAddTags(args []string) error {
+	if len(args) < 2 {
+		return errors.New("Agent ID and at least one tag are required")
+	}
+	req := schema.AgentTagsRequest{Tags: args[1:]}
+	c := communications.New(login.Login())
+	status, body, err := c.Post(schema.EndpointAgent+"/"+args[0]+"/tags/add", req)
+	display.ErrorWrapper(display.GenericResp(status, body, err))
+	return nil
+}
+
+// Remove tags from an agent
+func agentRemoveTags(args []string) error {
+	if len(args) < 2 {
+		return errors.New("Agent ID and at least one tag are required")
+	}
+	req := schema.AgentTagsRequest{Tags: args[1:]}
+	c := communications.New(login.Login())
+	status, body, err := c.Post(schema.EndpointAgent+"/"+args[0]+"/tags/remove", req)
+	display.ErrorWrapper(display.GenericResp(status, body, err))
 	return nil
 }

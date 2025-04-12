@@ -132,10 +132,38 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "agent-by-tag",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/by-tag/{tag}",
+		JHandler: a.getAgentsByTag,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "agent",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointAgent + "/{id}", // Single agent
 		JHandler: a.getAgent,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-tags-list",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/{id}/tags",
+		JHandler: a.getAgentTags,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-tags-add",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/tags/add",
+		JHandler: a.postAgentTagsAdd,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-tags-remove",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/tags/remove",
+		JHandler: a.postAgentTagsRemove,
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
