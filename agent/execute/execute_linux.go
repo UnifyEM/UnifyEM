@@ -19,6 +19,11 @@ import (
 func Execute(logger interfaces.Logger, file string, args []string) error {
 	var err error
 
+	// Ensure the file is executable
+	if err = os.Chmod(file, 0755); err != nil {
+		return fmt.Errorf("error setting executable bit on %s: %w", file, err)
+	}
+
 	cmd := exec.Command(file, args...)
 
 	// Detach: new session, new process group
@@ -27,14 +32,11 @@ func Execute(logger interfaces.Logger, file string, args []string) error {
 		Setpgid: true,
 	}
 
-	// Redirect stdio to /dev/null for full detachment
+	// Redirect stdout and stderr to /dev/null for detachment, leave stdin unset
 	devNull, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
 	if err == nil {
-		cmd.Stdin = devNull
 		cmd.Stdout = devNull
 		cmd.Stderr = devNull
-	} else {
-		cmd.Stdin = nil
 	}
 
 	err = cmd.Start()
