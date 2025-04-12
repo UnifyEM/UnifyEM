@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
+	//"syscall"
 
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
