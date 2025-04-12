@@ -3,6 +3,16 @@
 ## API Endpoint Conventions
 
 - All API endpoints are registered in `server/api/api.go` using `s.AddRoute`.
+
+## User Field Best Practices
+
+- The `user` field is the unique identifier for users and is used as the key in the database.
+- There is no `user_id` field; do not add or use one.
+- All code, API, and CLI must use the `user` field as the identifier for add, get, list, and delete operations.
+- The `user` field replaces any previous use of `username` everywhere.
+- All user-related operations (add, get, list, delete) must use `user` as the key and identifier.
+- All examples, documentation, and log fields must use `user` (not `user_id` or `username`).
+
 - Endpoints use constants from `common/schema/apiMeta.go` (e.g., `schema.EndpointUser`).
 - Endpoints should be namespaced under `/api/v1/` (e.g., `/api/v1/user`).
 
@@ -75,7 +85,7 @@ logFields := fields.NewFields(
     fields.NewField("src_ip", remoteIP),
     fields.NewField("id", authDetails.ID),
     fields.NewField("role", authDetails.Role),
-    fields.NewField("user_id", userID),
+    fields.NewField("user", user),
 )
 
 if err != nil {
