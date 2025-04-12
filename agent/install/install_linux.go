@@ -120,7 +120,7 @@ func (i *Install) uninstallService(removeData bool) error {
 // Upgrade the service
 func (i *Install) upgradeService() error {
 
-	fmt.Println("Uninstalling existing server...")
+	fmt.Println("Uninstalling existing agent...")
 
 	// Remove the existing executable
 	err := i.uninstallService(false)
@@ -131,7 +131,7 @@ func (i *Install) upgradeService() error {
 	// Delay for two seconds to allow the system to release the file
 	time.Sleep(2 * time.Second)
 
-	fmt.Println("\nInstalling new server...")
+	fmt.Println("\nInstalling new agent...")
 
 	// Install the new service
 	return i.installService()
@@ -174,6 +174,7 @@ func (i *Install) createService() error {
 
 // stopService stops the service
 func (i *Install) stopService() error {
+	fmt.Println("Stopping service...")
 	cmd := exec.Command("systemctl", "stop", serviceName)
 	err := cmd.Run()
 	if err != nil {
@@ -184,6 +185,7 @@ func (i *Install) stopService() error {
 
 // startService starts the service
 func (i *Install) startService() error {
+	fmt.Println("Starting service...")
 	cmd := exec.Command("systemctl", "start", serviceName)
 	err := cmd.Run()
 	if err != nil {

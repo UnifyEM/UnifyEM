@@ -3,7 +3,7 @@
 // Please see the LICENSE file for details
 //
 
-//go:build linux || darwin
+//go:build linux
 
 package execute
 
@@ -14,6 +14,7 @@ import (
 
 func setProcessAttributes(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
+		Setsid:  true, // Start the process in a new session (fully detach from parent)
+		Setpgid: true, // Start the process in a new process group
 	}
 }
