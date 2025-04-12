@@ -19,7 +19,13 @@ import (
 func Execute(logger interfaces.Logger, file string, args []string) error {
 	var err error
 
-	cmd := exec.Command(file, args...)
+	// Find the nohup command
+	nohupPath, err := exec.LookPath("nohup")
+	if err != nil {
+		return fmt.Errorf("error finding nohup: %w", err)
+	}
+
+	cmd := exec.Command(nohupPath, append([]string{file}, args...)...)
 
 	// Detach from parent
 	cmd.SysProcAttr = &syscall.SysProcAttr{
