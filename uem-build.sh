@@ -152,9 +152,9 @@ build_agent windows amd64
 build_agent windows arm64
 build_agent darwin amd64
 build_agent darwin arm64
-#build_agent linux 386    # soon
-#build_agent linux amd64  # soon
-#build_agent linux arm64  # soon
+build_agent linux 386
+build_agent linux amd64
+build_agent linux arm64
 echo ""
 echo "Finished building agents"
 echo "Copying agents $HTTP_DIR..."
