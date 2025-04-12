@@ -21,7 +21,7 @@ The `main` branch is intended to be stable. All other branches are for developme
 
 Supported operating systems:
 
-- **Linux:** Server and CLI developed and tested on Ubuntu 24.04 amd64 (agent soon)
+- **Linux:** Developed and tested on Ubuntu 24.04 amd64 (agent requires a lot of testing)
 - **macOS:** Developed and tested on macOS Sequoia 15, arm64.
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
 - **Future development:** Android, iOS, iPadOS.
