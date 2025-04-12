@@ -52,6 +52,13 @@ type AgentTagsResponse struct {
 	Code   int      `json:"code"`
 }
 
+// Response for agents by tag
+type AgentsByTagResponse struct {
+	Agents []AgentMeta `json:"agents"`
+	Status string      `json:"status"`
+	Code   int         `json:"code"`
+}
+
 // AgentTriggers are used to request specific immediate actions from the agent
 // If a new trigger is added, it should be added to the NewAgentTriggers function
 // to ensure a proper reset is possible

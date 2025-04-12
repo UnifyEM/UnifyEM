@@ -257,6 +257,54 @@ func (a *API) putAgentResetTriggers(req *http.Request) userver.JResponse {
  * TAG MANAGEMENT ENDPOINTS
  */
 
+// @Summary Get agents by tag
+// @Description Retrieves all agents that have the specified tag
+// @Tags Agent management
+// @Security BearerAuth
+// @Produce json
+// @Param tag path string true "Tag"
+// @Success 200 {object} schema.AgentsByTagResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/by-tag/{tag} [get]
+func (a *API) getAgentsByTag(req *http.Request) userver.JResponse {
+	tag := userver.GetParam(req, "tag")
+	if tag == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "tag required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAllAgentMeta()
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error retrieving agents", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+	var matched []schema.AgentMeta
+	for _, agent := range agents.Agents {
+		for _, t := range agent.Tags {
+			if t == tag {
+				matched = append(matched, agent)
+				break
+			}
+		}
+	}
+	if len(matched) == 0 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "no agents found with tag", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentsByTagResponse{
+			Agents: matched,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
 // @Summary List agent tags
 // @Description Retrieves the list of tags for the specified agent
 // @Tags Agent management

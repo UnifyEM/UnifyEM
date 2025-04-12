@@ -38,6 +38,12 @@ shutdown
 
 status
 
+tags <agent ID>
+
+tag-add <agent ID>
+
+tag-remove <agent ID>
+
 upgrade
 
 user_add agent_id=<agent ID> user=<user> password=<password> [admin=<true | false>]
@@ -80,10 +86,9 @@ common/schema/api.go
 
 Admin comments use the server's API. For CLI syntax, use `./uem-cli --help` or `uem-cli.exe --help` on Windows.
 
-`uem-cli agent <subcommand> <args>` is used to obtain information about agents as well as setting (and possibly
-resetting) agent triggers.
+`uem-cli agent <subcommand> <args>` is used to obtain information about agents, setting their name, adding and removing tags, and setting (possibly resetting) triggers.
 
-`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests.
+`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests , specify agent_id, or a tag to apply the command to.
 
 `uem-cli config <agents | server> <get | set> [args]` is used to set and retrieve server configuration parameters.
 

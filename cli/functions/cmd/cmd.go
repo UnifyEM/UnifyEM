@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -152,11 +153,60 @@ func Register() *cobra.Command {
 }
 
 func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
-
 	// Create communications object
 	c := communications.New(login.Login())
 
-	err := commands.Validate(subCmd, pairs.Pairs)
+	params := pairs.ToMap()
+	_, hasAgentID := params["agent_id"]
+	tag, hasTag := params["tag"]
+
+	if hasAgentID && hasTag {
+		return fmt.Errorf("cannot specify both agent_id and tag")
+	}
+
+	if hasTag && !hasAgentID {
+		// Bulk action by tag
+		// Query the server for all agents with the tag
+		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
+		if err != nil {
+			return fmt.Errorf("failed to query agents by tag: %v", err)
+		}
+		var resp schema.AgentsByTagResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			return fmt.Errorf("failed to parse agents by tag response: %v", err)
+		}
+		if len(resp.Agents) == 0 {
+			return fmt.Errorf("no agents found with tag: %s", tag)
+		}
+		var firstErr error
+		for _, agent := range resp.Agents {
+			// Prepare parameters for this agent
+			newParams := make(map[string]string)
+			for k, v := range params {
+				if k != "tag" {
+					newParams[k] = v
+				}
+			}
+			newParams["agent_id"] = agent.AgentID
+			// Validate command for this agent
+			if err := commands.Validate(subCmd, newParams); err != nil {
+				fmt.Printf("Validation failed for agent %s: %v\n", agent.AgentID, err)
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			// Build and send command
+			cmdReq := schema.NewCmdRequest()
+			cmdReq.Cmd = subCmd
+			cmdReq.Parameters = newParams
+			display.ErrorWrapper(display.CmdResp(c.Post(schema.EndpointCmd, cmdReq)))
+		}
+		return firstErr
+	}
+
+	// Single agent or normal case
+	err := commands.Validate(subCmd, params)
 	if err != nil {
 		return fmt.Errorf("command validation failed: %s\n", err.Error())
 	}
@@ -164,7 +214,7 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
 	// Initialize a new command object
 	cmd := schema.NewCmdRequest()
 	cmd.Cmd = subCmd
-	cmd.Parameters = pairs.ToMap()
+	cmd.Parameters = params
 
 	// Post the command to the server and display the result
 	display.ErrorWrapper(display.CmdResp(c.Post(schema.EndpointCmd, cmd)))

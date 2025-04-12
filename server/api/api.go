@@ -132,6 +132,13 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "agent-by-tag",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/by-tag/{tag}",
+		JHandler: a.getAgentsByTag,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "agent",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointAgent + "/{id}", // Single agent
