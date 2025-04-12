@@ -63,7 +63,7 @@ func Register() *cobra.Command {
 
 func requestList(_ []string, _ *util.NVPairs) error {
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.GenericResp(c.Get(schema.EndpointRequest)))
+	display.ErrorWrapper(display.RequestList(c.Get(schema.EndpointRequest)))
 	return nil
 }
 
@@ -73,7 +73,7 @@ func requestGet(args []string, _ *util.NVPairs) error {
 	}
 
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.GenericResp(c.Get(schema.EndpointRequest + "/" + args[0])))
+	display.ErrorWrapper(display.RequestList(c.Get(schema.EndpointRequest + "/" + args[0])))
 	return nil
 }
 

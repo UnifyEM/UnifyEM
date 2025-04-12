@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	serviceName = "uem-server"
-	binaryPath  = "/usr/local/bin/"
+	serviceName = "uem-agent"
+	binaryPath  = "/usr/local/bin"
 	servicePath = "/etc/systemd/system"
-	serviceFile = "uem-server.service"
+	serviceFile = "uem-agent.service"
 )
 
 // This must also be changed if binaryPath or serviceName are changed
 const serviceContent = `
 [Unit]
-Description=uem-server
+Description=uem-agent
 After=network.target
 StartLimitIntervalSec=0
 
@@ -35,11 +35,11 @@ User=root
 Group=root
 Restart=always
 RestartSec=1
-ExecStart=/usr/local/bin/uem-server
+ExecStart=/usr/local/bin/uem-agent
 
 [Install]
 WantedBy=multi-user.target
-Alias=uem-server.service
+Alias=uem-agent.service
 `
 
 // Install the service
@@ -120,7 +120,7 @@ func (i *Install) uninstallService(removeData bool) error {
 // Upgrade the service
 func (i *Install) upgradeService() error {
 
-	fmt.Println("Uninstalling existing server...")
+	fmt.Println("Uninstalling existing agent...")
 
 	// Remove the existing executable
 	err := i.uninstallService(false)
@@ -131,7 +131,7 @@ func (i *Install) upgradeService() error {
 	// Delay for two seconds to allow the system to release the file
 	time.Sleep(2 * time.Second)
 
-	fmt.Println("\nInstalling new server...")
+	fmt.Println("\nInstalling new agent...")
 
 	// Install the new service
 	return i.installService()
@@ -174,6 +174,7 @@ func (i *Install) createService() error {
 
 // stopService stops the service
 func (i *Install) stopService() error {
+	fmt.Println("Stopping service...")
 	cmd := exec.Command("systemctl", "stop", serviceName)
 	err := cmd.Run()
 	if err != nil {
@@ -184,10 +185,24 @@ func (i *Install) stopService() error {
 
 // startService starts the service
 func (i *Install) startService() error {
+	fmt.Println("Starting service...")
 	cmd := exec.Command("systemctl", "start", serviceName)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("error starting service: %w", err)
 	}
 	return nil
+}
+
+// restart the service
+func (i *Install) restartService() error {
+	err := i.stopService()
+	if err != nil {
+		return err
+	}
+
+	// Delay 3 seconds
+	time.Sleep(3 * time.Second)
+
+	return i.startService()
 }

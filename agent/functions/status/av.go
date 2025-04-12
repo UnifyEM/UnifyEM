@@ -9,12 +9,20 @@ package status
 //
 //goland:noinspection SpellCheckingInspection
 var antivirusProcesses = []string{
+	// Cross-platform/brand names
 	"Avast",
 	"Bitdefender",
 	"Norton",
 	"McAfee",
 	"Sophos",
 	"SentinelAgent",
+	// Common Linux AV daemons
+	"clamd",
+	"freshclam",
+	"sav-protect",
+	"sav-rms",
+	"f-prot",
+	"freshrpms",
 }
 
 // List of common antivirus applications and their installation paths on macOS

@@ -11,9 +11,11 @@ private/
 bin/
 .idea
 .idea/*
+.vscode
 .DS*
 build/
 *.swp
 uem-agent
 uem-server
 uem-cli
+test.sh

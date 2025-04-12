@@ -17,8 +17,11 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/global"
 )
 
-const binaryPath = "/usr/local/bin/"
-const plistPath = "/Library/LaunchDaemons/com.tenebris.uem-agent.plist"
+const (
+	serviceName = "uem-agent"
+	binaryPath  = "/usr/local/bin"
+	plistPath   = "/Library/LaunchDaemons/com.tenebris.uem-agent.plist"
+)
 
 // Note that this must also be changed if binaryPath or global.UnixBinaryName are changed
 //
@@ -58,7 +61,7 @@ func (i *Install) installService() error {
 	}
 
 	// Set the target path
-	targetPath := binaryPath + global.UnixBinaryName
+	targetPath := binaryPath + string(os.PathSeparator) + serviceName
 
 	// Copy the executable to the target directory
 	if exePath != targetPath {
@@ -70,13 +73,13 @@ func (i *Install) installService() error {
 	fmt.Printf("Binary copied to %s\n", targetPath)
 
 	// Set the proper permissions on the binary
-	err = os.Chmod(binaryPath+global.UnixBinaryName, 0700)
+	err = os.Chmod(targetPath, 0700)
 	if err != nil {
 		return fmt.Errorf("could not set permissions on binary: %w", err)
 	}
 
 	// Set the owner of the binary to root
-	cmd := exec.Command("chown", "root:wheel", binaryPath+global.UnixBinaryName)
+	cmd := exec.Command("chown", "root:wheel", targetPath)
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("could not set owner of binary to root: %w", err)
@@ -100,6 +103,9 @@ func (i *Install) installService() error {
 
 // Uninstall the service
 func (i *Install) uninstallService(removeData bool) error {
+
+	// Set the target path
+	targetPath := binaryPath + string(os.PathSeparator) + serviceName
 
 	// Unload the Launch Daemon
 	cmd := exec.Command("launchctl", "unload", plistPath)
@@ -135,7 +141,7 @@ func (i *Install) uninstallService(removeData bool) error {
 	}
 
 	// Remove the service binary
-	err = os.Remove(binaryPath + global.UnixBinaryName)
+	err = os.Remove(targetPath)
 	if err != nil {
 		return fmt.Errorf("could not remove binary file: %w", err)
 	}
