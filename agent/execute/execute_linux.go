@@ -19,25 +19,23 @@ import (
 func Execute(logger interfaces.Logger, file string, args []string) error {
 	var err error
 
-	// Ensure the file is executable
-	if err = os.Chmod(file, 0755); err != nil {
-		return fmt.Errorf("error setting executable bit on %s: %w", file, err)
-	}
-
 	cmd := exec.Command(file, args...)
 
-	// Detach: new session, new process group
+	// Detach from parent
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid:  true,
 		Setpgid: true,
 	}
 
-	// Redirect stdout and stderr to /dev/null for detachment, leave stdin unset
-	devNull, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
-	if err == nil {
-		cmd.Stdout = devNull
-		cmd.Stderr = devNull
+	// Redirect stdin, stdout, stderr to /dev/null
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err != nil {
+		return fmt.Errorf("Failed to open /dev/null: %w", err)
 	}
+	defer devNull.Close()
+
+	cmd.Stdin = devNull
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
 
 	err = cmd.Start()
 	if err != nil {

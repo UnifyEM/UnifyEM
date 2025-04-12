@@ -21,14 +21,21 @@ func Execute(logger interfaces.Logger, file string, args []string) error {
 
 	cmd := exec.Command(file, args...)
 
-	// Detach: new session, new process group (matches previous logic)
+	// Detach
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid:  true,
 		Setpgid: true,
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Redirect stdin, stdout, stderr to /dev/null
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err != nil {
+		return fmt.Errorf("Failed to open /dev/null: %w", err)
+	}
+	defer devNull.Close()
+
+	cmd.Stdin = devNull
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
 
 	err = cmd.Start()
 	if err != nil {
