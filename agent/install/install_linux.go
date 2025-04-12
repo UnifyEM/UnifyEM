@@ -17,7 +17,7 @@ import (
 
 const (
 	serviceName = "uem-agent"
-	binaryPath  = "/usr/local/bin/"
+	binaryPath  = "/usr/local/bin"
 	servicePath = "/etc/systemd/system"
 	serviceFile = "uem-agent.service"
 )
