@@ -300,12 +300,35 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to %s group: %w", uq, adminGroup, err)
 		}
+
+		// Check if /etc/sudoers.d exists
+		if stat, statErr := os.Stat("/etc/sudoers.d"); statErr == nil && stat.IsDir() {
+			sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
+			content := fmt.Sprintf("%s ALL=(ALL) ALL\n", uq)
+			writeErr := os.WriteFile(sudoersFile, []byte(content), 0440)
+			if writeErr != nil {
+				return fmt.Errorf("failed to create sudoers file for user %s: %w", uq, writeErr)
+			}
+			chmodErr := os.Chmod(sudoersFile, 0440)
+			if chmodErr != nil {
+				return fmt.Errorf("failed to set permissions on sudoers file for user %s: %w", uq, chmodErr)
+			}
+		}
 	} else {
 		// Remove user from admin group
 		cmd = exec.Command("deluser", uq, adminGroup)
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from %s group: %w", uq, adminGroup, err)
+		}
+
+		// Remove sudoers file if it exists
+		sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
+		if _, statErr := os.Stat(sudoersFile); statErr == nil {
+			removeErr := os.Remove(sudoersFile)
+			if removeErr != nil {
+				return fmt.Errorf("failed to remove sudoers file for user %s: %w", uq, removeErr)
+			}
 		}
 	}
 	return nil
