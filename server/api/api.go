@@ -167,6 +167,20 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "agent-users-add",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/users/add",
+		JHandler: a.postAgentUsersAdd,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-users-remove",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/users/remove",
+		JHandler: a.postAgentUsersRemove,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "agent",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointAgent, // All agents

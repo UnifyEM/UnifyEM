@@ -6,6 +6,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -137,6 +138,24 @@ func Register() *cobra.Command {
 		},
 	})
 
+	cmd.AddCommand(&cobra.Command{
+		Use:   "user-add <agent_id>|tag=<tag> <user1> [<user2> ...]",
+		Short: "add users to an agent",
+		Long:  "add one or more users to the specified agent or all agents with a tag",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentAddUsers(args)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "user-remove <agent_id>|tag=<tag> <user1> [<user2> ...]",
+		Short: "remove users from an agent",
+		Long:  "remove one or more users from the specified agent or all agents with a tag",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentRemoveUsers(args)
+		},
+	})
+
 	return cmd
 }
 
@@ -210,6 +229,82 @@ func agentRemoveTags(args []string) error {
 	req := schema.AgentTagsRequest{Tags: args[1:]}
 	c := communications.New(login.Login())
 	status, body, err := c.Post(schema.EndpointAgent+"/"+args[0]+"/tags/remove", req)
+	display.ErrorWrapper(display.GenericResp(status, body, err))
+	return nil
+}
+
+// Add users to an agent or all agents with a tag
+func agentAddUsers(args []string) error {
+	if len(args) < 2 {
+		return errors.New("Agent ID or tag=<tag> and at least one user are required")
+	}
+	c := communications.New(login.Login())
+	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {
+		tag := args[0][4:]
+		// Query agents by tag
+		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
+		if err != nil {
+			return fmt.Errorf("failed to query agents by tag: %v", err)
+		}
+		var resp schema.AgentsByTagResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			return fmt.Errorf("failed to parse agents by tag response: %v", err)
+		}
+		if len(resp.Agents) == 0 {
+			return fmt.Errorf("no agents found with tag: %s", tag)
+		}
+		var firstErr error
+		for _, agent := range resp.Agents {
+			req := schema.AgentUsersRequest{Users: args[1:]}
+			status, body, err := c.Post(schema.EndpointAgent+"/"+agent.AgentID+"/users/add", req)
+			display.ErrorWrapper(display.GenericResp(status, body, err))
+			if err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+		return firstErr
+	}
+	// Single agent
+	req := schema.AgentUsersRequest{Users: args[1:]}
+	status, body, err := c.Post(schema.EndpointAgent+"/"+args[0]+"/users/add", req)
+	display.ErrorWrapper(display.GenericResp(status, body, err))
+	return nil
+}
+
+// Remove users from an agent or all agents with a tag
+func agentRemoveUsers(args []string) error {
+	if len(args) < 2 {
+		return errors.New("Agent ID or tag=<tag> and at least one user are required")
+	}
+	c := communications.New(login.Login())
+	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {
+		tag := args[0][4:]
+		// Query agents by tag
+		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
+		if err != nil {
+			return fmt.Errorf("failed to query agents by tag: %v", err)
+		}
+		var resp schema.AgentsByTagResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			return fmt.Errorf("failed to parse agents by tag response: %v", err)
+		}
+		if len(resp.Agents) == 0 {
+			return fmt.Errorf("no agents found with tag: %s", tag)
+		}
+		var firstErr error
+		for _, agent := range resp.Agents {
+			req := schema.AgentUsersRequest{Users: args[1:]}
+			status, body, err := c.Post(schema.EndpointAgent+"/"+agent.AgentID+"/users/remove", req)
+			display.ErrorWrapper(display.GenericResp(status, body, err))
+			if err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+		return firstErr
+	}
+	// Single agent
+	req := schema.AgentUsersRequest{Users: args[1:]}
+	status, body, err := c.Post(schema.EndpointAgent+"/"+args[0]+"/users/remove", req)
 	display.ErrorWrapper(display.GenericResp(status, body, err))
 	return nil
 }

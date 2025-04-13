@@ -67,6 +67,19 @@ func (d *Data) ListUsers() ([]schema.UserMeta, error) {
 	return users, err
 }
 
+// UserExists checks if a user exists in the user bucket.
+func (d *Data) UserExists(user string) (bool, error) {
+	_, err := d.GetUserByID(user)
+	if err != nil {
+		// If the error is "key not found", return false, nil
+		if err.Error() == "key not found" {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // DeleteUser deletes a user by UserID.
 func (d *Data) DeleteUser(user string) error {
 	return d.database.DeleteData(db.BucketUserMeta, user)
