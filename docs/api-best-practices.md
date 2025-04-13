@@ -127,4 +127,165 @@ a.logger.Info(3202, "users listed", logFields)
 
 ---
 
+## Agents and Users: Model, Endpoints, and Assignment
+
+### Agent and User Schema
+
+#### UserMeta
+
+- The user object is defined in `common/schema/users.go` as `UserMeta`:
+  ```go
+  // swagger:model UserMeta
+  type UserMeta struct {
+      User        string    `json:"user"`
+      DisplayName string    `json:"display_name,omitempty"`
+      Email       string    `json:"email"`
+      CreatedAt   time.Time `json:"created_at"`
+      LastUpdated time.Time `json:"last_updated"`
+  }
+  ```
+- The `user` field is the unique identifier for users and is used as the key in the database.
+
+#### AgentMeta
+
+- The agent object is defined in `common/schema/agents.go` as `AgentMeta`:
+  ```go
+  // swagger:model AgentMeta
+  type AgentMeta struct {
+      AgentID      string        `json:"agent_id"`
+      Active       bool          `json:"active"`
+      FriendlyName string        `json:"friendly_name"`
+      FirstSeen    time.Time     `json:"first_seen"`
+      LastSeen     time.Time     `json:"last_seen"`
+      LastIP       string        `json:"last_ip"`
+      Version      string        `json:"version"`
+      Build        int           `json:"build"`
+      Triggers     AgentTriggers `json:"triggers"`
+      Status       *AgentStatus  `json:"status,omitempty"`
+      Tags         []string      `json:"tags"`
+      Users        []string      `json:"users" example:"[\"alice\",\"bob\"]"`
+  }
+  ```
+- The `users` field is a list of usernames (strings) assigned to this agent, representing which users have access to the computer/device.
+
+### API Endpoints for Agents and Users
+
+#### User Endpoints
+
+- `GET /user` — List all users.
+- `GET /user/{user}` — Get details for a specific user.
+- `POST /user` — Add a new user.
+- `DELETE /user/{user}` — Delete a user.
+
+#### Agent Endpoints
+
+- `GET /agent` — List all agents.
+- `GET /agent/{id}` — Get details for a specific agent (including the `users` field).
+- `POST /agent/{id}` or `PUT /agent/{id}` — Update agent information.
+- `DELETE /agent/{id}` — Delete an agent.
+- `GET /agent/by-tag/{tag}` — List all agents with a specific tag.
+
+#### Agent User Assignment Endpoints
+
+- `POST /agent/{id}/users/add` — Add one or more users to an agent.
+  - Request body: `{ "users": ["alice", "bob"] }`
+  - Checks that each user exists before adding.
+  - Duplicates are ignored.
+  - Logs every error and every success.
+- `POST /agent/{id}/users/remove` — Remove one or more users from an agent.
+  - Request body: `{ "users": ["alice"] }`
+  - Removes the specified users from the agent's `users` list.
+  - Logs every error and every success.
+
+### CLI Commands for User-Agent Assignment
+
+- `agent user-add <agent_id> <user1> [<user2> ...]` — Add users to a specific agent.
+- `agent user-remove <agent_id> <user1> [<user2> ...]` — Remove users from a specific agent.
+- `agent user-add tag=<tag> <user1> [<user2> ...]` — Add users to all agents with the specified tag.
+- `agent user-remove tag=<tag> <user1> [<user2> ...]` — Remove users from all agents with the specified tag.
+
+The CLI will:
+- For `tag=<tag>`, query `/agent/by-tag/{tag}` to get all agents with that tag, then perform the add/remove operation for each agent.
+- For a specific agent ID, perform the operation directly.
+
+### Data Flow for Adding/Removing Users to/from Agents
+
+1. The CLI command is invoked (e.g., `agent user-add agent123 alice`).
+2. The CLI sends a POST request to `/agent/agent123/users/add` with the user list.
+3. The API handler:
+   - Checks that each user exists in the user bucket.
+   - Adds users to the agent's `users` list, ensuring uniqueness.
+   - Updates the agent metadata in the database.
+   - Logs every error and every success.
+   - Returns the updated list of users for the agent.
+4. For `tag=<tag>`, the CLI first queries `/agent/by-tag/{tag}` and repeats the above process for each agent.
+
+### Requirements and Conventions for Future Changes
+
+- The `users` field in `AgentMeta` must always be a list of strings, with the JSON tag `users`.
+- All user-related operations must use the `user` field as the unique identifier.
+- When adding users to an agent, always check that the user exists before adding.
+- All API handlers must log both errors and successful operations, using unique numeric codes.
+- The agent's `users` list is the source of truth for which users have access to a device.
+- Do not add a `user_id` field or use any identifier other than `user`.
+- When making changes to user or agent assignment logic, ensure that:
+  - The API, CLI, and schema remain in sync.
+  - All changes are reflected in Swagger/OpenAPI documentation and example tags.
+  - Logging and error handling conventions are followed.
+- If you need to add additional actions when users are added/removed from agents, use the HOOK comments in the API code as insertion points.
+
+### Example: Adding Users to an Agent
+
+**Request:**
+```
+POST /agent/agent123/users/add
+Content-Type: application/json
+
+{
+  "users": ["alice", "bob"]
+}
+```
+
+**Response:**
+```json
+{
+  "users": ["alice", "bob"],
+  "status": "ok",
+  "code": 200
+}
+```
+
+**Log Entry:**
+```
+INFO 3304 users added to agent agent123: [alice bob]
+```
+
+### Example: Removing Users from an Agent
+
+**Request:**
+```
+POST /agent/agent123/users/remove
+Content-Type: application/json
+
+{
+  "users": ["alice"]
+}
+```
+
+**Response:**
+```json
+{
+  "users": ["bob"],
+  "status": "ok",
+  "code": 200
+}
+```
+
+**Log Entry:**
+```
+INFO 3306 users removed from agent agent123: [alice]
+```
+
+---
+
 _Last updated: 2025-04-12_
