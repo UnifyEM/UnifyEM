@@ -1,12 +1,16 @@
 # UnifyEM
 
-Unify Endpoint Management (UnifyEM) is free open source, self-hosted software made in Canada. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+Unify Endpoint Management (UnifyEM) is free, open source, self-hosted software written in Canada. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+
+Hopefully author won't have to ask users to send screenshots as evidence that basic security controls such as disk encryption are in place. It eats at his soul.
 
 We have chosen the Apache licence to facilitate widespread adoption and encourage contributions from the community. If this presents issues for your organization please contact us for alternate licensing arrangements.
 
+Security by design, API-first, and modularity are key architectural features. While it may be unconventional to defer development of the web UI until later in the project, this is a deliberate decision based on our limited resources and desire to delivering a robust foundation. By prioritizing the agent and core components first, we ensure that the underlying product is stable, capable, and API-complete. (If donating your time to develop a web front-end for free software is your thing, we'd love to hear from you.)
+
 UnifyEM components are written in Go and designed to be simple to deploy and upgrade. The system consists of four components:
 
-- **uem-server**: The main server component that includes an embedded database and follows an API-first approach for seamless integration with other products.
+- **uem-server**: The main server component that includes an embedded database.
 - **uem-agent**: A lightweight agent that manages each computer’s configurations, policies, and security posture. 
 - **uem-cli**: A command-line interface enabling control over administrative tasks via the server's API.
 - **uem-webui**: A web-based interface (future).
@@ -15,16 +19,16 @@ There are also a number of packages in `common` that are shared across the compo
 
 ## Development status
 
-This software is under active development. **Testing is required prior to production deployment.**
+This software is incomplete and under active development. **Testing is required prior to production deployment.**
 
 The `main` branch is intended to be stable. All other branches are for development and testing purposes.
 
 Supported operating systems:
 
-- **Linux:** Developed and tested on Ubuntu 24.04 amd64 (server and CLI, agent pending)
-- **macOS:** Developed and tested on macOS Sequoia 15, arm64.
+- **Linux:** Developed and tested on Ubuntu 24.04 x64.
+- **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
-- **Future development:** Android, iOS, iPadOS.
+- **Future development:** Android, iOS, iPadOS?
 
 ## Whois is UnifyEM for?
 
@@ -97,6 +101,22 @@ If the agent's record is deleted from the server database, access will be denied
 
 To remove an agent, the preferable method is to send an uninstall command. This will cause the agent to uninstall itself as a service and stop running. However, in the event of a security issue, changing the registration token (`uem-cli regtoken new`) and then deleting the agent record from the server (`uem-cli agent delete <agent ID>`) will prevent the agent from being able to re-register.
 
+## Security Model Summary
+
+The security model is quickly evolving and will be more fully documented at a later date.
+
+Agents register to the server using the installaton key and are given an access key and a refresh key. By default, the refresh key does not expire. The agent stores the refresh key. The access key is kept in RAM and is used to authenticate to the server. If it expires or the agent restarts, the refresh key is used to obtain a new access key. If the configuration is changed such that the refresh key expires, the agent will attempt a new registation. Note that a new registration gives the agent a new identity since it would be unwise to allow an agent to re-register with an unproven identity.
+
+If the CA pinning feature is enabled, when the agent next connects to the server, it retains a hash of the CA public key (the last certificate in a verify chain). From that point forward, it will refuse to connect to the server if the server's SSL/TLS certificate does not chain to the same CA. This allows certificates from services such as LetsEncrypt to be used while providing some MITM attack mitigation.
+
+When the server requests an agent to download an execute a file, it includes an SHA265 hash of the file in the request. When the server instructs the agent to upgrade, it includes the SHA256 hash of a deployment file which, in turn, lists the SHA256 hashes of all agents available for download. The agent will discard any file that can not be verified. (For development and transition this can be disabled in agent/global/global.go.
+
+When updated clients are placed in the download directory, the administrator must initiate a refresh of the deployment file. This can be done using the CLI (`uem-cli files deploy`). Failure to update the hashes in the deployment file will prevent the agents from upgrading unless hash verification is disabled.
+
+A transition is in process to all requests being digitally signed by the server. Once the agent receives a configuration containing the server's public signing key, it will refuse to accept any request that is not digitally signed. (For development purposes this can be disabled in agent/global/global.go)
+
+Administrators authenticate to the server using their username and password, and receive a refresh and access token. The refresh token lifetime for users ("refresh_token_life_users") defaults to 1440 minutes, after which the user will need to re-authenticate. This is configurable. At this point only one administrator is allowed. Expanding this and adding MFA is on the short-term roadmap.
+
 ## Build and deploy
 
 Each of the components can be built by changing to their directory and using Go build. For example,
@@ -117,7 +137,7 @@ Each component is a single statically-linked binary.
 
 `./uem-server install` will install the server as a service. On Windows, configuration information is stored in the registry and a data directory is created in ProgramData. On macOS and Linux, configuration information is written to /etc/uem-server.conf and a data directory is created in /opt/uem-server.
 
-By default, the server will listen on http://127.0.0.1:8080. If you encourter difficulties, you can temporarily bypass the configured listen address and start uem-server in the foreground (i.e. not as a deamon/service) using `uem-server listen 127.0.0.1:8080` or another suitable address. This is useful in the event that a mistake in the configuration prevents uem-server from starting.
+By default, the server will listen on http://127.0.0.1:8080. If you encounter difficulties, you can temporarily bypass the configured listen address and start uem-server in the foreground (i.e. not as a deamon/service) using `uem-server listen 127.0.0.1:8080` or another suitable address. This is useful in the event that a mistake in the configuration prevents uem-server from starting.
 
 To change the listen URL, the external URL, or other configuration, update them using `uem-cli config server`, stop the service and change the registry or /etc/uem-server.conf file as appropriate.
 
@@ -135,14 +155,14 @@ By default, logs are written to /var/log/uem-server.log on Linux and macOS. On W
 
 ### uem-cli installation
 
-uem-cli is a command-line interface for administration use only. Authentication and server information from the environment is used to authenticate with the server and obtain an access and refresh token. If a file in the user's home directory named `.openuem` exists, it will be loaded into the environment.
+uem-cli is a command-line interface for administration use only. Authentication and server information from the environment is used to authenticate with the server and obtain an access and refresh token. If a file in the user's home directory named `.uem` exists, it will be loaded into the environment.
 
 The following environment variables are required:
 
 ```
-OPENUEM_USER: The administrator's username
-OPENUEM_PASS: The administrator's password
-OPENUEM_SERVER: The protocol, FQDN, and port of the server (i.e. https://uem.example.com:443)
+UEM_USER: The administrator's username
+UEM_PASS: The administrator's password
+UEM_SERVER: The protocol, FQDN, and port of the server (i.e. https://uem.example.com:443)
 ```
 
 Additional administrator accounts, along with managing them via the API, will be added in the near future. Until this occurs, the only admin-level credentials are usernames and passwords set from the uem-server command line.
@@ -173,6 +193,8 @@ This component has not yet been developed.
 
 Copyright (c) 2024-2025 by Tenebris Technologies Inc. and available for use under Apache License 2.0. Please see the LICENSE file for full information.
 
-## Warranty
+## No Warranty (zilch, none, void, nil, null, "", {}, 0x00, 0b00000000, EOF)
 
 THIS SOFTWARE IS PROVIDED “AS IS,” WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Made in Canada
