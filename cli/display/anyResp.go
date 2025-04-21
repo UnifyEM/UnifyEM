@@ -14,8 +14,9 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
-// TagsResp handles schema.APIRequestStatusResponse from the server.
-func TagsResp(statusCode int, data []byte, err error) error {
+// GenericResp handles any response from the server and pretty-prints it to stdout
+// It also checks for an expired access token
+func AnyResp(statusCode int, data []byte, err error) error {
 
 	// Check for errors
 	if err != nil {
@@ -25,8 +26,8 @@ func TagsResp(statusCode int, data []byte, err error) error {
 	// Print the response code
 	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
 
-	// Unmarshal the response body into the correct object
-	var resp schema.AgentTagsResponse
+	// Unmarshal the response body into a generic response object
+	var resp schema.APIAnyResponse
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)

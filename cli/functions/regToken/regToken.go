@@ -52,12 +52,12 @@ func Register() *cobra.Command {
 
 func getRegToken() error {
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.GenericResp(c.Get(schema.EndpointRegToken)))
+	display.ErrorWrapper(display.AnyResp(c.Get(schema.EndpointRegToken)))
 	return nil
 }
 
 func newRegToken() error {
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.GenericResp(c.Post(schema.EndpointRegToken, nil)))
+	display.ErrorWrapper(display.AnyResp(c.Post(schema.EndpointRegToken, nil)))
 	return nil
 }

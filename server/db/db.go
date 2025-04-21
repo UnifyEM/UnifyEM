@@ -25,8 +25,9 @@ const BucketAuth = "Auth"
 const BucketAgentRequests = "Requests"
 const BucketAgentMeta = "AgentMeta"
 const BucketAgentEvents = "AgentEvents"
+const BucketUserMeta = "UserMeta"
 
-var bucketList = []string{BucketAuth, BucketAgentRequests, BucketAgentMeta, BucketAgentEvents}
+var bucketList = []string{BucketAuth, BucketAgentRequests, BucketAgentMeta, BucketAgentEvents, BucketUserMeta}
 
 // Open opens (or creates) a Bolt DB at the specified path.
 // It also creates three buckets if they do not already exist.

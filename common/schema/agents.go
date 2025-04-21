@@ -19,6 +19,9 @@ type AgentMeta struct {
 	Triggers     AgentTriggers `json:"triggers"`
 	Status       *AgentStatus  `json:"status,omitempty"`
 	Tags         []string      `json:"tags"`
+	// Users is a list of usernames assigned to this agent
+	// swagger:model
+	Users []string `json:"users" example:"[\"alice\",\"bob\"]"`
 }
 
 func NewAgentMeta(agentID string) AgentMeta {
@@ -32,6 +35,7 @@ func NewAgentMeta(agentID string) AgentMeta {
 		Triggers:     NewAgentTriggers(),
 		Status:       nil,
 		Tags:         []string{},
+		Users:        []string{},
 	}
 }
 
@@ -43,6 +47,18 @@ type AgentStatus struct {
 // Request for adding/removing tags
 type AgentTagsRequest struct {
 	Tags []string `json:"tags"`
+}
+
+// Request for adding/removing users
+type AgentUsersRequest struct {
+	Users []string `json:"users"`
+}
+
+// Response for user operations
+type AgentUsersResponse struct {
+	Users  []string `json:"users"`
+	Status string   `json:"status"`
+	Code   int      `json:"code"`
 }
 
 // Response for tag operations

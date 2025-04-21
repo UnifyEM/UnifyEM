@@ -116,7 +116,7 @@ func get(cfg string) error {
 	c := communications.New(login.Login())
 
 	// Post the command to the server and display the result
-	display.ErrorWrapper(display.GenericResp(c.Get(endpoint)))
+	display.ErrorWrapper(display.AnyResp(c.Get(endpoint)))
 	return nil
 }
 

@@ -22,7 +22,7 @@ func ReportResp(statusCode int, data []byte, err error) error {
 	}
 
 	// Print the response code
-	fmt.Printf("Server response: HTTP %d\n", statusCode)
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
 
 	// Unmarshal the response body into a APICmdResponse object
 	var reportResp schema.APIReportResponse

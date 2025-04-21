@@ -1,12 +1,16 @@
 # UnifyEM
 
-Unify Endpoint Management (UnifyEM) is free open source, self-hosted software made in Canada. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+Unify Endpoint Management (UnifyEM) is free, open source, self-hosted software written in Canada. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+
+Hopefully author won't have to ask users to send screenshots as evidence that basic security controls such as disk encryption are in place. It eats at his soul.
 
 We have chosen the Apache licence to facilitate widespread adoption and encourage contributions from the community. If this presents issues for your organization please contact us for alternate licensing arrangements.
 
+Security by design, API-first, and modularity are key architectural features. While it may be unconventional to defer development of the web UI until later in the project, this is a deliberate decision based on our limited resources and desire to delivering a robust foundation. By prioritizing the agent and core components first, we ensure that the underlying product is stable, capable, and API-complete. (If donating your time to develop a web front-end for free software is your thing, we'd love to hear from you.)
+
 UnifyEM components are written in Go and designed to be simple to deploy and upgrade. The system consists of four components:
 
-- **uem-server**: The main server component that includes an embedded database and follows an API-first approach for seamless integration with other products.
+- **uem-server**: The main server component that includes an embedded database.
 - **uem-agent**: A lightweight agent that manages each computer’s configurations, policies, and security posture. 
 - **uem-cli**: A command-line interface enabling control over administrative tasks via the server's API.
 - **uem-webui**: A web-based interface (future).
@@ -15,16 +19,16 @@ There are also a number of packages in `common` that are shared across the compo
 
 ## Development status
 
-This software is under active development. **Testing is required prior to production deployment.**
+This software is incomplete and under active development. **Testing is required prior to production deployment.**
 
 The `main` branch is intended to be stable. All other branches are for development and testing purposes.
 
 Supported operating systems:
 
-- **Linux:** Developed and tested on Ubuntu 24.04 amd64 (agent requires a lot of testing)
-- **macOS:** Developed and tested on macOS Sequoia 15, arm64.
+- **Linux:** Developed and tested on Ubuntu 24.04 x64.
+- **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
-- **Future development:** Android, iOS, iPadOS.
+- **Future development:** Android, iOS, iPadOS?
 
 ## Whois is UnifyEM for?
 
@@ -189,6 +193,8 @@ This component has not yet been developed.
 
 Copyright (c) 2024-2025 by Tenebris Technologies Inc. and available for use under Apache License 2.0. Please see the LICENSE file for full information.
 
-## Warranty
+## No Warranty (zilch, none, void, nil, null, "", {}, 0x00, 0b00000000, EOF)
 
 THIS SOFTWARE IS PROVIDED “AS IS,” WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Made in Canada

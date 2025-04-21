@@ -84,12 +84,12 @@ func (d *DB) DeleteData(bucketName string, key string) error {
 			return errors.New("bucket not found")
 		}
 
-		/* This seems like an unnecessary database hit
 		// Check if the key exists in the bucket
+		// This may appear unnecessary, but it is used higher in the stack
+		// including returning an error at the API if the key does not exist
 		if bucket.Get([]byte(key)) == nil {
 			return errors.New("key not found")
 		}
-		*/
 
 		// Delete the entry for the given key
 		if err := bucket.Delete([]byte(key)); err != nil {

@@ -167,6 +167,20 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "agent-users-add",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/users/add",
+		JHandler: a.postAgentUsersAdd,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-users-remove",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/users/remove",
+		JHandler: a.postAgentUsersRemove,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "agent",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointAgent, // All agents
@@ -276,6 +290,35 @@ func (a *API) startAPI() error {
 		Methods:  []string{"PUT", "POST"},
 		Pattern:  schema.EndpointCreateDeployFile,
 		JHandler: a.createDeployFile,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	// --- User management endpoints ---
+	s.AddRoute(userver.Route{
+		Name:     "user-list",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointUser,
+		JHandler: a.getUsers,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-get",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointUser + "/{id}",
+		JHandler: a.getUser,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-add",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointUser,
+		JHandler: a.postUser,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "user-delete",
+		Methods:  []string{"DELETE"},
+		Pattern:  schema.EndpointUser + "/{id}",
+		JHandler: a.deleteUser,
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	// Start the server

@@ -44,6 +44,6 @@ func Register() *cobra.Command {
 
 func eventsGet(_ []string, pairs *util.NVPairs) error {
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.GenericResp(c.GetQuery(schema.EndpointEvents, pairs)))
+	display.ErrorWrapper(display.AnyResp(c.GetQuery(schema.EndpointEvents, pairs)))
 	return nil
 }

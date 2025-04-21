@@ -480,6 +480,180 @@ func (a *API) postAgentTagsRemove(req *http.Request) userver.JResponse {
 	}
 }
 
+/*
+ * USER MANAGEMENT ENDPOINTS
+ */
+
+// @Summary Add users to agent
+// @Description Adds one or more users to the specified agent (duplicates ignored, users must exist)
+// @Tags Agent management
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Param users body schema.AgentUsersRequest true "Users to add"
+// @Success 200 {object} schema.AgentUsersResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/{id}/users/add [post]
+func (a *API) postAgentUsersAdd(req *http.Request) userver.JResponse {
+	agentID := userver.GetParam(req, "id")
+	if agentID == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "agent ID required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAgentMeta(agentID)
+	if err != nil || len(agents.Agents) != 1 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	currentMeta := agents.Agents[0]
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error reading body", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	var userReq schema.AgentUsersRequest
+	if err := json.Unmarshal(body, &userReq); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error unmarshalling JSON", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+
+	// Check that each user exists in the user bucket
+	validUsers := make([]string, 0, len(userReq.Users))
+	for _, u := range userReq.Users {
+		exists, err := a.data.UserExists(u)
+		if err != nil {
+			a.logger.Error(3301, fmt.Sprintf("error checking user existence: %s", err.Error()), nil)
+			return userver.JResponse{
+				HTTPCode: http.StatusInternalServerError,
+				JSONData: schema.API500{Details: "error checking user existence", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+		}
+		if !exists {
+			a.logger.Error(3302, fmt.Sprintf("user does not exist: %s", u), nil)
+			return userver.JResponse{
+				HTTPCode: http.StatusNotFound,
+				JSONData: schema.API404{Details: fmt.Sprintf("user does not exist: %s", u), Status: schema.APIStatusError, Code: http.StatusNotFound}}
+		}
+		validUsers = append(validUsers, u)
+	}
+
+	// Add users, ensuring uniqueness
+	userSet := make(map[string]struct{})
+	for _, u := range currentMeta.Users {
+		userSet[u] = struct{}{}
+	}
+	for _, u := range validUsers {
+		if u != "" {
+			userSet[u] = struct{}{}
+		}
+	}
+	newUsers := make([]string, 0, len(userSet))
+	for user := range userSet {
+		newUsers = append(newUsers, user)
+	}
+	currentMeta.Users = newUsers
+
+	if err := a.data.SetAgentMeta(currentMeta); err != nil {
+		a.logger.Error(3303, fmt.Sprintf("error updating agent users: %s", err.Error()), nil)
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error updating agent users", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+
+	// HOOK: Place for future actions when users are added to an agent
+
+	a.logger.Info(3304, fmt.Sprintf("users added to agent %s: %v", agentID, validUsers), nil)
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentUsersResponse{
+			Users:  currentMeta.Users,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
+// @Summary Remove users from agent
+// @Description Removes one or more users from the specified agent
+// @Tags Agent management
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Agent ID"
+// @Param users body schema.AgentUsersRequest true "Users to remove"
+// @Success 200 {object} schema.AgentUsersResponse
+// @Failure 400 {object} schema.API400
+// @Failure 401 {object} schema.API401
+// @Failure 404 {object} schema.API404
+// @Router /agent/{id}/users/remove [post]
+func (a *API) postAgentUsersRemove(req *http.Request) userver.JResponse {
+	agentID := userver.GetParam(req, "id")
+	if agentID == "" {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "agent ID required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	agents, err := a.data.GetAgentMeta(agentID)
+	if err != nil || len(agents.Agents) != 1 {
+		return userver.JResponse{
+			HTTPCode: http.StatusNotFound,
+			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+	}
+	currentMeta := agents.Agents[0]
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error reading body", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+	var userReq schema.AgentUsersRequest
+	if err := json.Unmarshal(body, &userReq); err != nil {
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "error unmarshalling JSON", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+
+	// Remove users
+	removeSet := make(map[string]struct{})
+	for _, u := range userReq.Users {
+		removeSet[u] = struct{}{}
+	}
+	newUsers := make([]string, 0, len(currentMeta.Users))
+	for _, u := range currentMeta.Users {
+		if _, found := removeSet[u]; !found {
+			newUsers = append(newUsers, u)
+		}
+	}
+	currentMeta.Users = newUsers
+
+	if err := a.data.SetAgentMeta(currentMeta); err != nil {
+		a.logger.Error(3305, fmt.Sprintf("error updating agent users: %s", err.Error()), nil)
+		return userver.JResponse{
+			HTTPCode: http.StatusInternalServerError,
+			JSONData: schema.API500{Details: "error updating agent users", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
+	}
+
+	// HOOK: Place for future actions when users are removed from an agent
+
+	a.logger.Info(3306, fmt.Sprintf("users removed from agent %s: %v", agentID, userReq.Users), nil)
+	return userver.JResponse{
+		HTTPCode: http.StatusOK,
+		JSONData: schema.AgentUsersResponse{
+			Users:  currentMeta.Users,
+			Status: schema.APIStatusOK,
+			Code:   http.StatusOK,
+		},
+	}
+}
+
 // @Summary Delete agent
 // @Description Deletes an agent by ID
 // @Tags Agent management
