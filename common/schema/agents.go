@@ -19,9 +19,7 @@ type AgentMeta struct {
 	Triggers     AgentTriggers `json:"triggers"`
 	Status       *AgentStatus  `json:"status,omitempty"`
 	Tags         []string      `json:"tags"`
-	// Users is a list of usernames assigned to this agent
-	// swagger:model
-	Users []string `json:"users" example:"[\"alice\",\"bob\"]"`
+	Users        []string      `json:"users"`
 }
 
 func NewAgentMeta(agentID string) AgentMeta {

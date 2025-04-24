@@ -251,8 +251,16 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/schema.AgentStatus'
+      tags:
+        items:
+          type: string
+        type: array
       triggers:
         $ref: '#/definitions/schema.AgentTriggers'
+      users:
+        items:
+          type: string
+        type: array
       version:
         type: string
     type: object
@@ -358,6 +366,24 @@ definitions:
       version:
         type: string
     type: object
+  schema.AgentTagsRequest:
+    properties:
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.AgentTagsResponse:
+    properties:
+      code:
+        type: integer
+      status:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
   schema.AgentTriggers:
     properties:
       lost:
@@ -369,6 +395,35 @@ definitions:
       wipe:
         example: false
         type: boolean
+    type: object
+  schema.AgentUsersRequest:
+    properties:
+      users:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.AgentUsersResponse:
+    properties:
+      code:
+        type: integer
+      status:
+        type: string
+      users:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.AgentsByTagResponse:
+    properties:
+      agents:
+        items:
+          $ref: '#/definitions/schema.AgentMeta'
+        type: array
+      code:
+        type: integer
+      status:
+        type: string
     type: object
   schema.CmdRequest:
     properties:
@@ -416,6 +471,62 @@ definitions:
           type: string
         type: object
       report:
+        type: string
+    type: object
+  schema.UserCreateRequest:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      user:
+        type: string
+    type: object
+  schema.UserCreateResponse:
+    properties:
+      code:
+        type: integer
+      status:
+        type: string
+      user:
+        $ref: '#/definitions/schema.UserMeta'
+    type: object
+  schema.UserDeleteResponse:
+    properties:
+      code:
+        type: integer
+      status:
+        type: string
+    type: object
+  schema.UserList:
+    properties:
+      code:
+        example: 200
+        type: integer
+      status:
+        example: ok
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/schema.UserMeta'
+        type: array
+    type: object
+  schema.UserMeta:
+    properties:
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      display_name:
+        example: Alice Smith
+        type: string
+      email:
+        example: alice@example.com
+        type: string
+      last_updated:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      user:
+        example: alice
         type: string
     type: object
 host: localhost:8080
@@ -579,6 +690,237 @@ paths:
       security:
       - BearerAuth: []
       summary: Update agent information
+      tags:
+      - Agent management
+  /agent/{id}/tags:
+    get:
+      description: Retrieves the list of tags for the specified agent
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentTagsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: List agent tags
+      tags:
+      - Agent management
+  /agent/{id}/tags/add:
+    post:
+      consumes:
+      - application/json
+      description: Adds one or more tags to the specified agent (duplicates ignored)
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tags to add
+        in: body
+        name: tags
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AgentTagsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentTagsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: Add tags to agent
+      tags:
+      - Agent management
+  /agent/{id}/tags/remove:
+    post:
+      consumes:
+      - application/json
+      description: Removes one or more tags from the specified agent
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tags to remove
+        in: body
+        name: tags
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AgentTagsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentTagsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: Remove tags from agent
+      tags:
+      - Agent management
+  /agent/{id}/users/add:
+    post:
+      consumes:
+      - application/json
+      description: Adds one or more users to the specified agent (duplicates ignored,
+        users must exist)
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Users to add
+        in: body
+        name: users
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AgentUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentUsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: Add users to agent
+      tags:
+      - Agent management
+  /agent/{id}/users/remove:
+    post:
+      consumes:
+      - application/json
+      description: Removes one or more users from the specified agent
+      parameters:
+      - description: Agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Users to remove
+        in: body
+        name: users
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AgentUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentUsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: Remove users from agent
+      tags:
+      - Agent management
+  /agent/by-tag/{tag}:
+    get:
+      description: Retrieves all agents that have the specified tag
+      parameters:
+      - description: Tag
+        in: path
+        name: tag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.AgentsByTagResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+      security:
+      - BearerAuth: []
+      summary: Get agents by tag
       tags:
       - Agent management
   /cmd:
@@ -1226,6 +1568,141 @@ paths:
       summary: Agent sync with server
       tags:
       - Agent communication
+  /user:
+    get:
+      description: Retrieves a list of all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.UserList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - User management
+    post:
+      consumes:
+      - application/json
+      description: Adds a new user
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.UserCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: Add a new user
+      tags:
+      - User management
+  /user/{id}:
+    delete:
+      description: Deletes a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.UserDeleteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: Delete a user
+      tags:
+      - User management
+    get:
+      description: Retrieves information for a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.UserMeta'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.API400'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.API401'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.API404'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.API500'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - User management
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
