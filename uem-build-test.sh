@@ -4,13 +4,13 @@
 REPO="$(cd "$(dirname "$0")" && pwd)"
 #
 # Default location for server and cli binaries
-BIN_DIR="/usr/local/bin"
+BIN_DIR="/tmp/uem-test-build"
 #
 # Default location of http directory for client distribution 
-HTTP_DIR="/opt/uem-server/http"
+HTTP_DIR="/tmp/uem-test-build"
 #
 # Folder to build into ($REPO/bin is excluded in .gitignore)
-BUILD_DIR="$REPO/bin"
+BUILD_DIR="/tmp/uem-test-build"
 #
 # Build options
 BOPTS="-ldflags=\"-s -w\""
@@ -21,15 +21,18 @@ GO_MIN_VERSION="1.24"
 # Bail if an error occurs
 set -e
 #
+rm -rf /tmp/uem-test-build
+mkdir /tmp/uem-test-build
 ################################################################
 # uem-agent has conditional code for Windows, Linux, and macOS.
 # Running vet and govulncheck for each build is slower, but it
 # makes sure that issues in conditional code are detected.
 ###############################################################
 #
-build_agent() {
+build() {
   os=$1
   arch=$2
+  out=$3
 
   echo ""
   echo "Building for $os $arch..."
@@ -51,20 +54,20 @@ build_agent() {
     exit 1
   fi
 
-  BIN="uem-agent-$os-$arch"
+  BIN="$out-$os-$arch"
   if [ "$os" = "windows" ]; then
     BIN="${BIN}.exe"
   fi
-  echo "Compiling uem-agent for $os $arch to $BUILD_DIR..."
+  echo "Compiling for $os $arch to $BUILD_DIR..."
   CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build $BOPS -o $BUILD_DIR/$BIN
 }
 
 #
-# Check if a directory exists - use sudo to prevent issues 
+# Check if a directory exists 
 # with /opt/uem-server
 # 
 check_directory() {
-    if  ! sudo test -d "$1"; then
+    if  ! test -d "$1"; then
 	echo ""
         echo "Error: Directory does not exist: $1" >&2
 	echo "Please correct this issue and try again."
@@ -118,62 +121,52 @@ check_directory $HTTP_DIR
 echo "Changing to $REPO..."
 cd $REPO
 mkdir -p $BUILD_DIR
-echo "Executing git pull..."
-git pull
+echo ""
+echo "---"
 echo "Building uem-server to $BUILD_DIR..."
+echo ""
 cd $REPO/server
-CGO_ENABLED=0 go build -o $BUILD_DIR/uem-server
+build windows amd64 uem-server
+build windows arm64 uem-server
+build windows 386 uem-server
+build darwin amd64 uem-server
+build darwin arm64 uem-server
+build linux amd64 uem-server
+build linux arm64 uem-server
+build linux 386 uem-server
+
+echo ""
+echo "---"
 echo "Building uem-cli to $BUILD_DIR..."
+echo ""
 cd $REPO/cli
-CGO_ENABLED=0 go build -o $BUILD_DIR/uem-cli
-echo "Copying cli binary to $BIN_DIR..."
-sudo cp $BUILD_DIR/uem-cli $BIN_DIR/uem-cli
-echo "Stopping uem-server..."
-sudo systemctl stop uem-server
-echo "Copying server binary to $BIN_DIR..."
-sudo cp $BUILD_DIR/uem-server $BIN_DIR/uem-server
-echo "Starting server..."
-sudo systemctl daemon-reload
-sudo systemctl start uem-server
-#sleep 1
-#echo ""
-#echo "Checking service status..."
-#sudo systemctl status uem-server
+build windows amd64 uem-cli
+build windows arm64 uem-cli
+build windows 386 uem-cli
+build darwin amd64 uem-cli
+build darwin arm64 uem-cli
+build linux amd64 uem-cli
+build linux arm64 uem-cli
+build linux 386 uem-cli
 #
 ################################################################
 # Build agents and copy to $BIN_DIR
 ################################################################
 #
 echo ""
+echo "---"
 echo "Building agents to $BUILD_DIR..."
+echo ""
 cd $REPO/agent
-build_agent windows 386
-build_agent windows amd64
-build_agent windows arm64
-build_agent darwin amd64
-build_agent darwin arm64
-build_agent linux 386
-build_agent linux amd64
-build_agent linux arm64
+build windows 386 uem-agent
+build windows amd64 uem-agent
+build windows arm64 uem-agent
+build darwin amd64 uem-agent
+build darwin arm64 uem-agent
+build linux 386 uem-agent
+build linux amd64 uem-agent
+build linux arm64 uem-agent
 echo ""
 echo "Finished building agents"
-echo "Copying agents $HTTP_DIR..."
-sudo cp -f $BUILD_DIR/uem-agent-* $HTTP_DIR
 echo ""
-sudo ls -al $HTTP_DIR
-echo ""
-echo "Attempting to create deployment file..."
-$BIN_DIR/uem-cli files deploy
-echo ""
-echo ""
-echo "Agent upgrade notes:"
-echo "Use 'uem-cli agent list' to obtain a list of agents"
-echo ""
-echo "Use 'uem-cli cmd upgrade agent_id=<agent ID>' to initiate an agent upgrade"
-echo ""
-echo "For legacy agents, add 'hash=false' to the upgrade command to suppress the hash because it will cause"
-echo "older agents to reject the command."
-echo ""
-echo "Caution: 'uem-cli files deploy' must run to update the hashes in the deployment file or agents will not upgrade."
-echo "          Verify that it ran correctly above, otherwise run it manually."
-echo ""
+echo "Test build complete"
