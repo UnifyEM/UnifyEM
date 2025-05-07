@@ -341,7 +341,7 @@ func runUserAppleScript(username, script string) (string, error) {
 	if username == "unknown" {
 		return "", fmt.Errorf("no user available to run AppleScript")
 	}
-	cmd := exec.Command("sudo", "-u", username, "/usr/bin/osascript", "-e", script)
+	cmd := exec.Command("/usr/bin/sudo", "-u", username, "/usr/bin/osascript", "-e", script)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("runUserAppleScript failed: %w", err)
@@ -352,7 +352,7 @@ func runUserAppleScript(username, script string) (string, error) {
 // getCurrentOrLastUser returns the currently logged-in user, or falls back to lastUser().
 func getCurrentOrLastUser() string {
 	// Try "who" to get the console user
-	out, err := exec.Command("who").Output()
+	out, err := exec.Command("/usr/bin/who").Output()
 	if err == nil {
 		lines := strings.Split(string(out), "\n")
 		for _, line := range lines {
