@@ -33,7 +33,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
-	responseData := CollectStatusData(h.logger)
+	responseData := h.CollectStatusData()
 	response := schema.NewAgentResponse()
 	response.Cmd = request.Request
 	response.RequestID = request.RequestID
@@ -55,29 +55,29 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 }
 
 // CollectStatusData gathers all status items into a map for reporting or testing.
-func CollectStatusData(logger interfaces.Logger) map[string]string {
+func (h *Handler) CollectStatusData() map[string]string {
 	responseData := make(map[string]string)
 	responseData["uem_agent"] = fmt.Sprintf("%s-%d", global.Version, global.Build)
 	responseData["collected"] = time.Now().Format("2006-01-02T15:04:05-07:00")
-	responseData["os"] = osName()
-	responseData["os_version"] = osVersion()
-	responseData["firewall"] = firewall()
-	responseData["antivirus"] = antivirus()
-	responseData["auto_updates"] = autoUpdates()
-	responseData["full_disk_encryption"] = fde()
-	responseData["password"] = password()
-	lock, err := screenLock()
-	if err != nil && logger != nil {
-		logger.Error(2704, err.Error(), nil)
+	responseData["os"] = h.osName()
+	responseData["os_version"] = h.osVersion()
+	responseData["firewall"] = h.firewall()
+	responseData["antivirus"] = h.antivirus()
+	responseData["auto_updates"] = h.autoUpdates()
+	responseData["full_disk_encryption"] = h.fde()
+	responseData["password"] = h.password()
+	lock, err := h.screenLock()
+	if err != nil && h.logger != nil {
+		h.logger.Error(2704, err.Error(), nil)
 		responseData["screen_lock"] = "unknown"
 	} else {
 		responseData["screen_lock"] = lock
 	}
-	responseData["screen_lock_delay"] = screenLockDelay()
-	responseData["hostname"] = hostname()
-	responseData["last_user"] = lastUser()
-	responseData["boot_time"] = bootTime()
-	responseData["ip"] = ip()
+	responseData["screen_lock_delay"] = h.screenLockDelay()
+	responseData["hostname"] = h.hostname()
+	responseData["last_user"] = h.lastUser()
+	responseData["boot_time"] = h.bootTime()
+	responseData["ip"] = h.ip()
 	return responseData
 }
 

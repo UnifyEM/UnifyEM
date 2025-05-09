@@ -18,12 +18,12 @@ import (
 )
 
 // osName returns the OS name
-func osName() string {
+func (h *Handler) osName() string {
 	return "Linux"
 }
 
 // osVersion returns the Linux distribution and version
-func osVersion() string {
+func (h *Handler) osVersion() string {
 	// Try /etc/os-release (standard on all modern distros)
 	f, err := os.Open("/etc/os-release")
 	if err == nil {
@@ -58,7 +58,7 @@ func osVersion() string {
 }
 
 // firewall returns "yes" if a firewall is enabled, "no" if not, "unknown" otherwise
-func firewall() string {
+func (h *Handler) firewall() string {
 	// Check for ufw
 	out, err := exec.Command("ufw", "status").Output()
 	if err == nil {
@@ -91,7 +91,7 @@ func firewall() string {
 }
 
 // antivirus returns "yes" if a known AV process is running, "no" if not, "unknown" otherwise
-func antivirus() string {
+func (h *Handler) antivirus() string {
 	out, err := exec.Command("ps", "aux").Output()
 	if err != nil {
 		return "unknown"
@@ -105,7 +105,7 @@ func antivirus() string {
 }
 
 // autoUpdates returns "yes" if automatic updates are enabled, "no" if not, "unknown" otherwise
-func autoUpdates() string {
+func (h *Handler) autoUpdates() string {
 	// Check for unattended-upgrades (Debian/Ubuntu)
 	f, err := os.Open("/etc/apt/apt.conf.d/20auto-upgrades")
 	if err == nil {
@@ -133,7 +133,7 @@ func autoUpdates() string {
 }
 
 // fde returns "yes" if full disk encryption is enabled, "no" if not, "unknown" otherwise
-func fde() string {
+func (h *Handler) fde() string {
 	// Check if root is on a LUKS device
 	out, err := exec.Command("lsblk", "-o", "NAME,TYPE,MOUNTPOINT").Output()
 	if err != nil {
@@ -170,7 +170,7 @@ func fde() string {
 }
 
 // password returns "yes" if the current user has a password set, "no" if not, "unknown" otherwise
-func password() string {
+func (h *Handler) password() string {
 	currentUser := os.Getenv("USER")
 	if currentUser == "" {
 		// Try LOGNAME as a fallback
@@ -204,7 +204,7 @@ func password() string {
 
 // getDisplayEnv tries to find a DISPLAY environment variable for a running X11/Wayland session.
 // Returns the DISPLAY value and true if found, otherwise "" and false.
-func getDisplayEnv() (string, bool) {
+func (h *Handler) getDisplayEnv() (string, bool) {
 	// Check for X11 sockets
 	if files, err := os.ReadDir("/tmp/.X11-unix"); err == nil && len(files) > 0 {
 		// Try to find a DISPLAY from a running Xorg/X process
@@ -263,7 +263,7 @@ func getDisplayEnv() (string, bool) {
 }
 
 // screenLock returns "yes" if the user's screen will automatically lock after inactivity, "no" if not, "unknown" otherwise
-func screenLock() (string, error) {
+func (h *Handler) screenLock() (string, error) {
 	display, found := getDisplayEnv()
 	if !found {
 		return "n/a", nil
@@ -299,7 +299,7 @@ func screenLock() (string, error) {
 	return "unknown", nil
 }
 
-func screenLockDelay() string {
+func (h *Handler) screenLockDelay() string {
 	display, found := getDisplayEnv()
 	if !found {
 		return "n/a"
@@ -345,7 +345,7 @@ func screenLockDelay() string {
 }
 
 // lastUser returns the last logged-in user
-func lastUser() string {
+func (h *Handler) lastUser() string {
 	out, err := exec.Command("last", "-w").Output()
 	if err != nil {
 		return "unknown"
@@ -361,7 +361,7 @@ func lastUser() string {
 }
 
 // bootTime returns the system boot time as an ISO8601 string
-func bootTime() string {
+func (h *Handler) bootTime() string {
 	// Try /proc/stat for btime
 	f, err := os.Open("/proc/stat")
 	if err == nil {

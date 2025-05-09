@@ -16,7 +16,7 @@ import (
 //
 
 // hostname returns the hostname of the system
-func hostname() string {
+func (h *Handler) hostname() string {
 	name, err := os.Hostname()
 	if err != nil {
 		return "unknown"
@@ -26,7 +26,7 @@ func hostname() string {
 
 // ip returns a comma-separated list of IP addresses for the system
 // Loopback, local link, ULA IPv6 addresses, and down interfaces are excluded
-func ip() string {
+func (h *Handler) ip() string {
 	var ips []string
 	interfaces, err := net.Interfaces()
 	if err != nil {
