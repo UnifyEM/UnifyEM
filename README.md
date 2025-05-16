@@ -1,21 +1,21 @@
 # UnifyEM
 
-Unify Endpoint Management (UnifyEM) is free, open source, self-hosted software written in Canada. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+Unify Endpoint Management (UnifyEM) is free, open source, self-hosted software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
 
-Hopefully author won't have to ask users to send screenshots as evidence that basic security controls such as disk encryption are in place. It eats at his soul.
+(Asking users to send screenshots to demonstrate that they have basics such as disk encryption and screen lock enabled eats at the author's soul. )
 
-We have chosen the Apache licence to facilitate widespread adoption and encourage contributions from the community. If this presents issues for your organization please contact us for alternate licensing arrangements.
+The Apache licence was chosen to facilitate widespread adoption and encourage contributions from the community. If this presents issues for your organization please contact us for alternate licensing arrangements.
 
-Security by design, API-first, and modularity are key architectural features. While it may be unconventional to defer development of the web UI until later in the project, this is a deliberate decision based on our limited resources and desire to delivering a robust foundation. By prioritizing the agent and core components first, we ensure that the underlying product is stable, capable, and API-complete. (If donating your time to develop a web front-end for free software is your thing, we'd love to hear from you.)
+Security by design, API-first, and modularity are key architectural features. While it may be unconventional to defer development of the web UI until later in the project, this is a deliberate decision based on limited resources and a desire to delivering a robust foundation. By prioritizing the agent and core components first, we ensure that the underlying product is stable, capable, and API-complete. (If donating your time to develop a web front-end for free software is your thing, we'd love to hear from you.)
 
 UnifyEM components are written in Go and designed to be simple to deploy and upgrade. The system consists of four components:
 
 - **uem-server**: The main server component that includes an embedded database.
 - **uem-agent**: A lightweight agent that manages each computer’s configurations, policies, and security posture. 
 - **uem-cli**: A command-line interface enabling control over administrative tasks via the server's API.
-- **uem-webui**: A web-based interface (future).
+- **uem-webui**: A web-based interface (**future**).
 
-There are also a number of packages in `common` that are shared across the components and available for other open source projects.
+There are also a number of packages in `common` that are shared across the components.
 
 ## Development status
 
@@ -30,13 +30,20 @@ Supported operating systems:
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
 - **Future development:** Android, iOS, iPadOS?
 
+## Known issues and work-in-progress
+
+- On macOS, when running as a service, the agent is unable to access some information in the user's context such as screen lock status and therefore reports in accurate or unknown information. We are exploring a few different options to address this issue.
+- We have begun to implement "users" within the system. This is a longer-term effort and a few architectural decisions still need to be made. The initial focus will be to help administrators keep track of what hosts a user has access to and perform operations such as locking a user's accounts across all hosts they have access to.
+- Disk wipe has not yet been implemented.
+- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault, but much broader testing is required.
+
 ## Whois is UnifyEM for?
 
 This software's initial goal is to provide simple, effective centralized endpoint management for small and medium
 businesses, including:
 
 - Basic operations support such as adding users, deleting users, and resetting passwords
-- Endpoint locking and erasing
+- Organizational control over endpoints (locking, and ultimately erasing if required)
 - Providing security-related evidence for SOC 2 and ISO 27001 audits
 
 This software is not intended to replace sophisticated platform-specific solutions. For example, if your organization uses exclusively Microsoft Entra ID (formerly known as AzureAD) connected Windows PCs, Intune is a better solution. If you only have Apple devices, please check out Apple's MDM capabilities.
@@ -45,11 +52,11 @@ On the other hand, if you have a mix of platforms in your organization, UnifyEM 
 
 ## Why does UnifyEM exist?
 
-Every application has a story. This software was inspired by more than three decades of cybersecurity experience and propelled by the urgent need to secure endpoints, streamline administration, and provide evidence of compliance for SOC 2 and ISO 27001 audits. It also reflects the primary author's growing frustration with open source projects that gate critical features behind commercial licences, and the increasing costs of software that fail to justify their price tag.
+Every application has a story. This software was inspired by more than three decades of cybersecurity experience and propelled by the need to secure endpoints, streamline administration, and provide evidence of compliance for SOC and ISO audits. It also reflects the primary author's growing frustration with open source projects that gate critical features behind commercial licences, and the increasing costs of software that fail to justify their price tag.
 
-Asking users to send screenshots as evidence that their firewall and screen lock are enabled is irritating, and paying more to automate the process than it costs to provide the employee with Google Workspace or Office 365 is difficult to justify. While there are a few low-cost MDM providers, it is difficult to recommend a cloud-based endpoint management solution that fails to meet basic security requirements.
+Asking users to send screenshots as evidence that their firewall and screen lock are enabled is inefficient, and paying more to automate the process than it costs to provide the employee with Google Workspace or Office 365 is difficult to justify. While there are a few low-cost MDM providers, it is difficult to recommend a cloud-based endpoint management solution that cannot withstand even cursory due-diligence.
 
-The author has no intention of adding commercial features to this free open source software. However, if you or your organization find this software useful and wish to sponsor new features, desire paid support, or would like expert assistance with your cybersecurity program, please feel free to contact us via our website at https://tenebris.com.
+The author has no intention of adding commercial features to this free open source software. However, if you or your organization find this software useful and wish to sponsor new features, desire paid support, or would like assistance with your cybersecurity program, please feel free to contact us via our website at https://tenebris.com.
 
 ## Acknowledgements
 
@@ -59,11 +66,11 @@ Contributions and sponsorships are welcome, would be greatfully appreciated, and
 
 ## Cautions
 
-During testing, we highly recommend that the `PROTECTED` option is set to `true` in agent\global\global.go. This will disable the `uninstall` and `wipe` triggers, as well as hopefully preventing some user and computer locking functions. When received from the server, triggers are executed as quickly as possible. They therefore can only be reset (aborted) before the agent's next sync.
+During testing, we highly recommend that the `PROTECTED` option is set to `true` in agent\global\global.go. This will disable the `uninstall` and `wipe` triggers. When received from the server, triggers are executed as quickly as possible. They therefore can only be reset (aborted) before the agent's next sync.
 
-The `wipe` trigger is disruptive. It is designed to delete data on the endpoint and make it as difficult as possible to recover.
+The `wipe` trigger (not yet implemented) is destructive. It is designed to delete data on the endpoint and make it as difficult as possible to recover.
 
-The `lock` trigger changes the password of the currently logged-in user to a random string and reboots the computer. Assuming the drive is encrypted, this should lock the user out. The agent attempts to send the username and random password to the server on a best-effort basis.
+The `lock` trigger changes the password of the currently logged-in user to a random string and reboots the computer. Assuming the drive is encrypted, this should prevent further access. The agent attempts to send the username and random password to the server on a best-effort basis. Administrators are advised to ensure that an admin account is in place to faciliate access to data stored on the device.
 
 Combining `uninstall` with the `lock` or `wipe` triggers may have unpredictable results.
 
@@ -97,6 +104,8 @@ Agents register automatically using the registration token and receive a unique 
 
 Each time the agent checks in with the server it retrieves a list of pending commands and sends any queued responses. It also receives configuration information such as check in and status report frequencies. Status reports include information on the agent computer's functional and security status.
 
+After the check-in, the agent processes any requests and queues associated responses. The interval between when a request is actioned and when the response is sent depends on the shorter of `sync_interval` and `sync_pending` in the global agent configuration, which is managed via uem_server.
+
 If the agent's record is deleted from the server database, access will be denied even though the tokens may still be valid. This will cause the agent to attempt re-registration using the registration token it was provided at installation.
 
 To remove an agent, the preferable method is to send an uninstall command. This will cause the agent to uninstall itself as a service and stop running. However, in the event of a security issue, changing the registration token (`uem-cli regtoken new`) and then deleting the agent record from the server (`uem-cli agent delete <agent ID>`) will prevent the agent from being able to re-register.
@@ -113,9 +122,9 @@ When the server requests an agent to download an execute a file, it includes an 
 
 When updated clients are placed in the download directory, the administrator must initiate a refresh of the deployment file. This can be done using the CLI (`uem-cli files deploy`). Failure to update the hashes in the deployment file will prevent the agents from upgrading unless hash verification is disabled.
 
-A transition is in process to all requests being digitally signed by the server. Once the agent receives a configuration containing the server's public signing key, it will refuse to accept any request that is not digitally signed. (For development purposes this can be disabled in agent/global/global.go)
+I'm in the process of implementing digital signatures for all requests sent to agents. Once the agent receives a configuration containing the server's public signing key, it will refuse to accept any request that is not digitally signed. (For development purposes this can be disabled in agent/global/global.go)
 
-Administrators authenticate to the server using their username and password, and receive a refresh and access token. The refresh token lifetime for users ("refresh_token_life_users") defaults to 1440 minutes, after which the user will need to re-authenticate. This is configurable. At this point only one administrator is allowed. Expanding this and adding MFA is on the short-term roadmap.
+Administrators authenticate to the server using their username and password, and receive a refresh and access token. The refresh token lifetime for users ("refresh_token_life_users") defaults to 1440 minutes, after which the user will need to re-authenticate. This is configurable. At this point only one administrator is allowed. Expanding this and adding MFA is on the roadmap.
 
 ## Build and deploy
 

@@ -21,11 +21,11 @@ import (
 
 var screenLockDelayValue string
 
-func osName() string {
+func (h *Handler) osName() string {
 	return "Windows"
 }
 
-func osVersion() string {
+func (h *Handler) osVersion() string {
 	out, err := exec.Command("wmic", "os", "get", "Caption,CSDVersion", "/value").Output()
 	if err != nil {
 		return "unknown"
@@ -43,7 +43,7 @@ func osVersion() string {
 	return version
 }
 
-func firewall() string {
+func (h *Handler) firewall() string {
 	out, err := exec.Command("netsh", "advfirewall", "show", "allprofiles").Output()
 	if err != nil {
 		return "unknown"
@@ -66,7 +66,7 @@ func firewall() string {
 	return "no"
 }
 
-func antivirus() string {
+func (h *Handler) antivirus() string {
 
 	for _, keyPath := range windowsAntivirusKeys {
 		k, err := registry.OpenKey(registry.LOCAL_MACHINE, keyPath, registry.QUERY_VALUE)
@@ -79,7 +79,7 @@ func antivirus() string {
 	return "no"
 }
 
-func autoUpdates() string {
+func (h *Handler) autoUpdates() string {
 	noAutoUpdate, err := registryGetInt(registry.LOCAL_MACHINE, "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "NoAutoUpdate")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
@@ -93,7 +93,7 @@ func autoUpdates() string {
 	return "yes"
 }
 
-func fde() string {
+func (h *Handler) fde() string {
 	out, err := exec.Command("powershell", "Get-BitLockerVolume", "|", "Select-Object", "-ExpandProperty", "VolumeStatus").Output()
 	if err != nil {
 		return "unknown"
@@ -108,7 +108,7 @@ func fde() string {
 	return "yes"
 }
 
-func password() string {
+func (h *Handler) password() string {
 	// Check AutoAdminLogon
 	autoAdminLogon, err := registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
 	if err != nil {
@@ -136,7 +136,7 @@ func password() string {
 	return "yes"
 }
 
-func screenLock() (string, error) {
+func (h *Handler) screenLock() (string, error) {
 	screenLockDelayValue = "0"
 
 	screenSaverSecure, screenSaverTimeout, err := screenSaver()
@@ -191,13 +191,13 @@ func screenLock() (string, error) {
 	return "no", nil
 }
 
-func screenLockDelay() string {
+func (h *Handler) screenLockDelay() string {
 	// On Windows it is easiest to get this at the same time as screenLock() so it saves it
 	return screenLockDelayValue
 }
 
 // screenSaver checks if the screen saver is enabled and if a password is required
-func screenSaver() (bool, uint32, error) {
+func (h *Handler) screenSaver() (bool, uint32, error) {
 	var secure = false
 	var timeout uint32 = 0
 
@@ -244,7 +244,7 @@ func screenSaver() (bool, uint32, error) {
 	return secure, timeout, nil
 }
 
-func lastUser() string {
+func (h *Handler) lastUser() string {
 
 	// Check the currently logged-in user
 	out, err := exec.Command("query", "user").Output()
@@ -267,7 +267,7 @@ func lastUser() string {
 	return val
 }
 
-func bootTime() string {
+func (h *Handler) bootTime() string {
 	// Get system uptime
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
 	getTickCount64 := kernel32.NewProc("GetTickCount64")
@@ -280,7 +280,7 @@ func bootTime() string {
 }
 
 // registryGetInt retrieves an integer value from the Windows registry
-func registryGetInt(key registry.Key, path string, name string) (int, error) {
+func (h *Handler) registryGetInt(key registry.Key, path string, name string) (int, error) {
 	k, err := registry.OpenKey(key, path, registry.QUERY_VALUE)
 	if err != nil {
 		return 0, fmt.Errorf("error opening registry key: %w", err)
@@ -298,7 +298,7 @@ func registryGetInt(key registry.Key, path string, name string) (int, error) {
 }
 
 // registryGetString retrieves a string value from the Windows registry
-func registryGetString(key registry.Key, path string, name string) (string, error) {
+func (h *Handler) registryGetString(key registry.Key, path string, name string) (string, error) {
 	k, err := registry.OpenKey(key, path, registry.QUERY_VALUE)
 	if err != nil {
 		return "", fmt.Errorf("error opening registry key: %w", err)
@@ -316,7 +316,7 @@ func registryGetString(key registry.Key, path string, name string) (string, erro
 }
 
 // registryGetStringToInt retrieves a string value from the Windows registry and converts it to an integer
-func registryGetStringToInt(key registry.Key, path string, name string) (uint32, error) {
+func (h *Handler) registryGetStringToInt(key registry.Key, path string, name string) (uint32, error) {
 	strVal, err := registryGetString(key, path, name)
 	if err != nil {
 		return 0, err
@@ -332,7 +332,7 @@ func registryGetStringToInt(key registry.Key, path string, name string) (uint32,
 
 // getUserRegistryKey gets the registry path for the currently or last logged-in user
 // This is used in place of registry.CURRENT_USER which would return the service's context
-func getUserRegistryKey() (registry.Key, error) {
+func (h *Handler) getUserRegistryKey() (registry.Key, error) {
 
 	// Open the HKEY_USERS registry key
 	usersKey, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI`, registry.QUERY_VALUE)

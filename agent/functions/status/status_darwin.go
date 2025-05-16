@@ -8,7 +8,7 @@ package status
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
@@ -19,11 +19,11 @@ import (
 	"howett.net/plist"
 )
 
-func osName() string {
+func (h *Handler) osName() string {
 	return "macOS"
 }
 
-func osVersion() string {
+func (h *Handler) osVersion() string {
 	out, err := exec.Command("sw_vers", "-productVersion").Output()
 	if err != nil {
 		return "unknown"
@@ -31,10 +31,10 @@ func osVersion() string {
 	return strings.TrimSpace(string(out))
 }
 
-func firewall() string {
+func (h *Handler) firewall() string {
 
 	// Try plist first
-	state, err := getPlistValue("/Library/Preferences/com.apple.alf", "globalstate")
+	state, err := h.getPlistValue("/Library/Preferences/com.apple.alf", "globalstate")
 	if err == nil {
 		if state == "1" {
 			return "yes"
@@ -57,7 +57,7 @@ func firewall() string {
 	}
 }
 
-func antivirus() string {
+func (h *Handler) antivirus() string {
 	for _, path := range macAntivirusPaths {
 		if _, err := exec.Command("test", "-e", path).Output(); err == nil {
 			return "yes"
@@ -78,8 +78,8 @@ func antivirus() string {
 	return "no"
 }
 
-func autoUpdates() string {
-	out, err := getPlistValue("/Library/Preferences/com.apple.SoftwareUpdate",
+func (h *Handler) autoUpdates() string {
+	out, err := h.getPlistValue("/Library/Preferences/com.apple.SoftwareUpdate",
 		"AutomaticallyInstallMacOSUpdates")
 	if err != nil {
 		return "unknown"
@@ -92,7 +92,7 @@ func autoUpdates() string {
 	return "no"
 }
 
-func fde() string {
+func (h *Handler) fde() string {
 	out, err := exec.Command("fdesetup", "status").Output()
 	if err != nil {
 		return "unknown"
@@ -104,8 +104,8 @@ func fde() string {
 	return "no"
 }
 
-func password() string {
-	out, err := getPlistValue("/Library/Preferences/com.apple.loginwindow", "autoLoginUser")
+func (h *Handler) password() string {
+	out, err := h.getPlistValue("/Library/Preferences/com.apple.loginwindow", "autoLoginUser")
 	if err != nil {
 		// Check if the exit code indicates the key does not exist
 		var exitError *exec.ExitError
@@ -123,15 +123,15 @@ func password() string {
 	return "no"
 }
 
-func screenLockDelay() string {
-	username := lastUser()
+func (h *Handler) screenLockDelay() string {
+	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown"
 	}
-	enabled, _, delay, err := getUserScreenSaverStatus(username)
+	enabled, _, delay, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
 		// fallback to AppleScript for current user context
-		out, err2 := getAppleScript("tell application \"System Events\" to get delay interval of screen saver preferences")
+		out, err2 := h.getAppleScript("tell application \"System Events\" to get delay interval of screen saver preferences")
 		if err2 != nil {
 			return "unknown"
 		}
@@ -143,17 +143,19 @@ func screenLockDelay() string {
 	return fmt.Sprintf("%d", delay)
 }
 
-func screenLock() (string, error) {
-	username := lastUser()
+func (h *Handler) screenLock() (string, error) {
+	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown", fmt.Errorf("could not determine last user")
 	}
-	enabled, requirePassword, _, err := getUserScreenSaverStatus(username)
+	enabled, requirePassword, _, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
 		// fallback to AppleScript for current user context
-		out, err2 := getAppleScript("tell application \"System Events\" to get require password to wake of security preferences")
+		out, err2 := h.getAppleScript("tell application \"System Events\" to get require password to wake of security preferences")
 		if err2 != nil {
-			return "unknown", fmt.Errorf("error getting screen lock status: %w", err2)
+			h.logger.Errorf(2710, "error getting screen lock status from AppleScript: %s [%s]",
+				err2.Error(), out)
+			return "unknown", fmt.Errorf("error getting screen lock status from AppleScript: %w", err2)
 		}
 		if out == "true" {
 			return "yes", nil
@@ -167,7 +169,7 @@ func screenLock() (string, error) {
 }
 
 // getUserScreenSaverStatus checks the screensaver/lock status for a given user
-func getUserScreenSaverStatus(username string) (enabled bool, requirePassword bool, delay int, err error) {
+func (h *Handler) getUserScreenSaverStatus(username string) (enabled bool, requirePassword bool, delay int, err error) {
 	usr, err := user.Lookup(username)
 	if err != nil {
 		return false, false, 0, fmt.Errorf("could not lookup user: %w", err)
@@ -180,7 +182,7 @@ func getUserScreenSaverStatus(username string) (enabled bool, requirePassword bo
 	askForPassword := 0
 	askForPasswordDelay := 0
 	if len(byHostFiles) > 0 {
-		data, err := ioutil.ReadFile(byHostFiles[0])
+		data, err := os.ReadFile(byHostFiles[0])
 		if err == nil {
 			var byHostData map[string]interface{}
 			_, err = plist.Unmarshal(data, &byHostData)
@@ -228,7 +230,7 @@ func getUserScreenSaverStatus(username string) (enabled bool, requirePassword bo
 	// 2. Fallback: Read askForPassword and askForPasswordDelay from main plist if not found in ByHost
 	if askForPassword == 0 || askForPasswordDelay == 0 {
 		plistPath := filepath.Join(usr.HomeDir, "Library/Preferences/com.apple.screensaver.plist")
-		data, err := ioutil.ReadFile(plistPath)
+		data, err := os.ReadFile(plistPath)
 		if err == nil {
 			var plistData map[string]interface{}
 			_, err = plist.Unmarshal(data, &plistData)
@@ -271,12 +273,12 @@ func getUserScreenSaverStatus(username string) (enabled bool, requirePassword bo
 	// If askForPassword is not set, try AppleScript as a last resort
 	if askForPassword == 0 {
 		script := `tell application "System Events" to get require password to wake of security preferences`
-		out, err := runUserAppleScript(username, script)
+		out, err := h.runUserAppleScript(username, script)
 		if err == nil {
 			requirePassword = (out == "true")
 			return enabled, requirePassword, delay, nil
 		}
-		fmt.Printf("WARNING: Could not determine askForPassword for user %s; reporting as unknown\n", username)
+		h.logger.Warningf(2711, "Could not determine askForPassword for user %s, reporting as unknown", username)
 		return enabled, false, delay, fmt.Errorf("askForPassword not set in any plist or via AppleScript")
 	}
 
@@ -284,7 +286,7 @@ func getUserScreenSaverStatus(username string) (enabled bool, requirePassword bo
 	return enabled, requirePassword, delay, nil
 }
 
-func bootTime() string {
+func (h *Handler) bootTime() string {
 	out, err := exec.Command("sysctl", "-n", "kern.boottime").Output()
 	if err != nil {
 		return "unknown"
@@ -312,7 +314,7 @@ func bootTime() string {
 	return bootTimeInt.Format("2006-01-02T15:04:05-07:00")
 }
 
-func lastUser() string {
+func (h *Handler) lastUser() string {
 	out, err := exec.Command("defaults", "read", "/Library/Preferences/com.apple.loginwindow", "lastUserName").Output()
 	if err != nil {
 		return "unknown"
@@ -321,7 +323,7 @@ func lastUser() string {
 }
 
 // getPlistValue retrieves the value associated with name from a plist at location
-func getPlistValue(location string, name string) (string, error) {
+func (h *Handler) getPlistValue(location string, name string) (string, error) {
 	value, err := exec.Command("defaults", "-currentHost", "read", location, name).Output()
 	if err != nil {
 		return "", err
@@ -334,25 +336,29 @@ runUserAppleScript runs /usr/bin/osascript as the specified user (using sudo -u)
 If username is empty, it falls back to the last user.
 Returns the trimmed output or an error.
 */
-func runUserAppleScript(username, script string) (string, error) {
+func (h *Handler) runUserAppleScript(username, script string) (string, error) {
 	if username == "" {
-		username = lastUser()
+		username = h.lastUser()
 	}
 	if username == "unknown" {
 		return "", fmt.Errorf("no user available to run AppleScript")
 	}
-	cmd := exec.Command("sudo", "-u", username, "/usr/bin/osascript", "-e", script)
-	out, err := cmd.Output()
+	h.logger.Debugf(2712, "executing /bin/launchctl asuser %s sudo -u %s /usr/bin/osascript -e %s",
+		username, username, "'"+script+"'")
+	cmd := exec.Command("/bin/launchctl", "asuser", username, "sudo", "-u", username, "/usr/bin/osascript", "-e", "'"+script+"'")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		h.logger.Errorf(2709, "runUserAppleScript failed: %s [%s]",
+			err.Error(), string(out))
 		return "", fmt.Errorf("runUserAppleScript failed: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
 
 // getCurrentOrLastUser returns the currently logged-in user, or falls back to lastUser().
-func getCurrentOrLastUser() string {
+func (h *Handler) getCurrentOrLastUser() string {
 	// Try "who" to get the console user
-	out, err := exec.Command("who").Output()
+	out, err := exec.Command("/usr/bin/who").Output()
 	if err == nil {
 		lines := strings.Split(string(out), "\n")
 		for _, line := range lines {
@@ -363,11 +369,11 @@ func getCurrentOrLastUser() string {
 		}
 	}
 	// Fallback to lastUser()
-	return lastUser()
+	return h.lastUser()
 }
 
 // getAppleScript runs an AppleScript as the current or last user (for backward compatibility)
-func getAppleScript(script string) (string, error) {
-	username := getCurrentOrLastUser()
-	return runUserAppleScript(username, script)
+func (h *Handler) getAppleScript(script string) (string, error) {
+	username := h.getCurrentOrLastUser()
+	return h.runUserAppleScript(username, script)
 }
