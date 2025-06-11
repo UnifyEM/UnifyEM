@@ -62,8 +62,8 @@ func addCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&user, "user", "u", "", "User (required)")
 	cmd.Flags().StringVarP(&displayName, "display-name", "d", "", "Display name (optional)")
 	cmd.Flags().StringVarP(&email, "email", "e", "", "Email (required)")
-	cmd.MarkFlagRequired("user")
-	cmd.MarkFlagRequired("email")
+	_ = cmd.MarkFlagRequired("user")
+	_ = cmd.MarkFlagRequired("email")
 
 	return cmd
 }
