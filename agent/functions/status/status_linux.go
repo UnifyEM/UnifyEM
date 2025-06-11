@@ -264,7 +264,7 @@ func (h *Handler) getDisplayEnv() (string, bool) {
 
 // screenLock returns "yes" if the user's screen will automatically lock after inactivity, "no" if not, "unknown" otherwise
 func (h *Handler) screenLock() (string, error) {
-	display, found := getDisplayEnv()
+	display, found := h.getDisplayEnv()
 	if !found {
 		return "n/a", nil
 	}
@@ -300,7 +300,7 @@ func (h *Handler) screenLock() (string, error) {
 }
 
 func (h *Handler) screenLockDelay() string {
-	display, found := getDisplayEnv()
+	display, found := h.getDisplayEnv()
 	if !found {
 		return "n/a"
 	}
