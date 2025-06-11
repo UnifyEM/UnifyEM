@@ -80,7 +80,7 @@ func (h *Handler) antivirus() string {
 }
 
 func (h *Handler) autoUpdates() string {
-	noAutoUpdate, err := registryGetInt(registry.LOCAL_MACHINE, "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "NoAutoUpdate")
+	noAutoUpdate, err := h.registryGetInt(registry.LOCAL_MACHINE, "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "NoAutoUpdate")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			return "yes"
@@ -110,7 +110,7 @@ func (h *Handler) fde() string {
 
 func (h *Handler) password() string {
 	// Check AutoAdminLogon
-	autoAdminLogon, err := registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
+	autoAdminLogon, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			return "yes"
@@ -122,7 +122,7 @@ func (h *Handler) password() string {
 	}
 
 	// Check non-admin auto-login
-	defaultUserName, err := registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName")
+	defaultUserName, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			return "yes"
@@ -139,7 +139,7 @@ func (h *Handler) password() string {
 func (h *Handler) screenLock() (string, error) {
 	screenLockDelayValue = "0"
 
-	screenSaverSecure, screenSaverTimeout, err := screenSaver()
+	screenSaverSecure, screenSaverTimeout, err := h.screenSaver()
 	if err != nil {
 		return "unknown", fmt.Errorf("error checking screen saver setting: %w", err)
 	}
@@ -203,13 +203,13 @@ func (h *Handler) screenSaver() (bool, uint32, error) {
 
 	// Get the user's registry path - this is required because registry.CURRENT_USER would return the
 	// service's context, not the user
-	userPath, err := getUserRegistryKey()
+	userPath, err := h.getUserRegistryKey()
 	if err != nil {
 		return false, 0, err
 	}
 
 	// Check if screen saver is configured to require a password
-	secureValue, err := registryGetStringToInt(userPath, "Control Panel\\Desktop", "ScreenSaverIsSecure")
+	secureValue, err := h.registryGetStringToInt(userPath, "Control Panel\\Desktop", "ScreenSaverIsSecure")
 	if err != nil {
 		return false, 0, fmt.Errorf("error checking for screen saver password: %w", err)
 	}
@@ -218,13 +218,13 @@ func (h *Handler) screenSaver() (bool, uint32, error) {
 	}
 
 	// Check the screen saver timeout
-	timeout, err = registryGetStringToInt(userPath, "Control Panel\\Desktop", "ScreenSaveTimeOut")
+	timeout, err = h.registryGetStringToInt(userPath, "Control Panel\\Desktop", "ScreenSaveTimeOut")
 	if err != nil {
 		return false, 0, fmt.Errorf("error checking screen saver timeout: %w", err)
 	}
 
 	// Check if the screen saver is set to (none)
-	screenSaverValue, err := registryGetString(userPath, "Control Panel\\Desktop", "SCRNSAVE.EXE")
+	screenSaverValue, err := h.registryGetString(userPath, "Control Panel\\Desktop", "SCRNSAVE.EXE")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			// If the registry value does not exist, treat it as no screen saver set
@@ -260,7 +260,7 @@ func (h *Handler) lastUser() string {
 	}
 
 	// Check the last logged-in user from the registry
-	val, err := registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI", "LastLoggedOnUser")
+	val, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI", "LastLoggedOnUser")
 	if err != nil {
 		return "unknown"
 	}
@@ -317,7 +317,7 @@ func (h *Handler) registryGetString(key registry.Key, path string, name string) 
 
 // registryGetStringToInt retrieves a string value from the Windows registry and converts it to an integer
 func (h *Handler) registryGetStringToInt(key registry.Key, path string, name string) (uint32, error) {
-	strVal, err := registryGetString(key, path, name)
+	strVal, err := h.registryGetString(key, path, name)
 	if err != nil {
 		return 0, err
 	}

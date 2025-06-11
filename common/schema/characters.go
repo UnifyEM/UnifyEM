@@ -5,6 +5,7 @@
 
 package schema
 
+//goland:noinspection SpellCheckingInspection
 const (
 	ValidUsernameChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
 	ValidPasswordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-!@#$%^&*(){}[]/"
