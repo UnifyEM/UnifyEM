@@ -8,6 +8,7 @@ package display
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/UnifyEM/UnifyEM/cli/credentials"
 
 	"github.com/UnifyEM/UnifyEM/cli/global"
@@ -36,7 +37,7 @@ func ReportResp(statusCode int, data []byte, err error) error {
 		credentials.AccessExpired()
 	}
 
-	global.Pretty(reportResp) // TODO have a way to save a report to a file
+	global.Pretty(reportResp) // TODO need a way to save a report to a file
 
 	fmt.Println()
 

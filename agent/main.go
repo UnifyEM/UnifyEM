@@ -270,14 +270,14 @@ func startService(optionalArgs ...bool) {
 		return
 	}
 
-	// Try to tell the server
+	// Try to tell the server we are starting
 	_ = communication.SendMessage(fmt.Sprintf("%s version %s (build %d) starting", global.Name, global.Version, global.Build))
 
 	err = service.Start()
 	if err != nil {
 		logger.Fatalf(8005, "service failed to start: %s", err.Error())
 
-		// Try to tell the server
+		// Try to tell the server startup failed
 		_ = communication.SendMessage(fmt.Sprintf("%s version %s (build %d) failed to start: %s", global.Name, global.Version, global.Build, err.Error()))
 		exit(1, false)
 	}
@@ -335,10 +335,10 @@ func syncTime(elapsed int64) bool {
 func ServiceStopping(interfaces.Logger) {
 
 	// Save the configuration
-	err := conf.Checkpoint()
-	if err != nil {
-		logger.Infof(8006, "error saving configuration: %s", err.Error())
-	}
+	//err := conf.Checkpoint()
+	//if err != nil {
+	//	logger.Infof(8006, "error saving configuration: %s", err.Error())
+	//}
 
 	// Try to tell the server
 	_ = communication.SendMessage(fmt.Sprintf("%s version %s (build %d) stopping", global.Name, global.Version, global.Build))

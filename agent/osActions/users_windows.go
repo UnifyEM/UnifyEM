@@ -200,26 +200,25 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 		return fmt.Errorf("failed to add user %s to Users group: %w", uq, err)
 	}
 
-	// Get the domain and RID for the user
-	cmd = exec.Command("wmic", "useraccount", "where", fmt.Sprintf("name='%s'", username), "get", "sid")
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("failed to get SID for user %s: %w", uq, err)
-	}
+	// Add the user's password to allow boot drive bitlocker access
+	strippedPQ := strings.Trim(pq, "\"")           // removes leading/trailing double quotes
+	strippedPQ = strings.ReplaceAll(pq, "'", "''") // escape single quotes
+	cmd = exec.Command(
+		"powershell",
+		"-Command",
+		fmt.Sprintf(
+			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
+			strippedPQ,
+		),
+	)
 
-	sid := strings.TrimSpace(strings.Split(string(output), "\n")[1])
-	domainUser := strings.Join(strings.Split(sid, "-")[:5], "-")
-	rid := strings.Split(sid, "-")[5]
-
-	// Add the user to the list of users who can unlock the drive with BitLocker
-	cmd = exec.Command("manage-bde", "-protectors", "-add", "C:", "-sid", fmt.Sprintf("%s-%s", domainUser, rid))
 	err = cmd.Run()
 	if err != nil {
 		if strings.Contains(err.Error(), "BitLocker is not enabled") {
 			// Handle the case where BitLocker is not enabled
-			fmt.Printf("BitLocker is not enabled, skipping adding user %s to BitLocker\n", uq)
+			a.logger.Warningf(8401, "BitLocker is not enabled, not adding user %s to BitLocker", uq)
 		} else {
-			return fmt.Errorf("failed to add user %s to BitLocker: %w", uq, err)
+			return fmt.Errorf("failed adding password to BitLocker: %w", err)
 		}
 	}
 

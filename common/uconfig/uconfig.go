@@ -51,6 +51,7 @@ func New(options ...func(*UConfig) error) (interfaces.Config, error) {
 			return nil, err
 		}
 	}
+
 	return c, nil
 }
 
@@ -63,6 +64,7 @@ func (c *UConfig) Init() {
 
 // Save the configuration to the specified file or registry
 func (c *UConfig) Save(filename string) error {
+
 	if c.windowsRegistry {
 		return c.saveRegistry()
 	}

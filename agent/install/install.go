@@ -44,14 +44,17 @@ func (i *Install) Install(key string) error {
 		return errors.New("key is required for installation")
 	}
 
-	// Call the private function for os specific install
-	err = i.installService()
+	// Save the key
+	i.config.AP.Set(global.ConfigRegToken, key)
+	i.config.AP.Set(global.ConfigRefreshToken, "")
+	i.config.AP.Set(global.ConfigServerURL, "")
+	err = i.config.Checkpoint()
 	if err != nil {
 		return err
 	}
 
-	// Save the key
-	return i.ReKey(key)
+	// Call the private function for os specific install
+	return i.installService()
 }
 
 // Stop the service, but do not disable or uninstall it
@@ -138,6 +141,7 @@ func (i *Install) recoverInstall() error {
 }
 
 func (i *Install) ReKey(key string) error {
+
 	// Check that a key is provided
 	if key == "" {
 		return errors.New("key is required")

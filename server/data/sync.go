@@ -189,7 +189,8 @@ func (d *Data) queueResponse(agentID string, response schema.AgentResponse) erro
 	// Log the response
 	d.logger.Info(2703, "agent response", f)
 
-	// TODO add a queue or other mechanism to let admin know it's done (for example letting admin know it's complete)
+	// If we want to send a message to notify the admin, etc.,
+	// this is where we would do it
 
 	return nil
 }

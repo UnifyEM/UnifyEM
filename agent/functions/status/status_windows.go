@@ -26,21 +26,64 @@ func (h *Handler) osName() string {
 }
 
 func (h *Handler) osVersion() string {
-	out, err := exec.Command("wmic", "os", "get", "Caption,CSDVersion", "/value").Output()
-	if err != nil {
-		return "unknown"
+
+	// Try to use PowerShell to get OS information
+	out, err := exec.Command("powershell", "-Command",
+		"Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber | ConvertTo-Json").Output()
+	if err == nil {
+		output := strings.TrimSpace(string(out))
+		// Parse the JSON output and extract the version information
+		if strings.Contains(output, "Caption") && strings.Contains(output, "Version") {
+			// Extract caption and version
+			caption := ""
+			version := ""
+
+			if strings.Contains(output, "\"Caption\":") {
+				captionParts := strings.Split(strings.Split(output, "\"Caption\":")[1], "\"")
+				if len(captionParts) > 1 {
+					caption = captionParts[1]
+				}
+			}
+
+			if strings.Contains(output, "\"Version\":") {
+				versionParts := strings.Split(strings.Split(output, "\"Version\":")[1], "\"")
+				if len(versionParts) > 1 {
+					version = versionParts[1]
+				}
+			}
+
+			if caption != "" && version != "" {
+				return caption + " (Version " + version + ")"
+			} else if caption != "" {
+				return caption
+			}
+		}
 	}
-	output := strings.TrimSpace(string(out))
-	lines := strings.Split(output, "\n")
-	if len(lines) < 2 {
-		return "unknown"
+
+	// If that fails, try the registry
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE,
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.QUERY_VALUE)
+	if err == nil {
+		defer k.Close()
+
+		productName, _, _ := k.GetStringValue("ProductName")
+		displayVersion, _, _ := k.GetStringValue("DisplayVersion")
+
+		if productName != "" {
+			if displayVersion != "" {
+				return productName + " " + displayVersion
+			}
+			return productName
+		}
 	}
-	version := strings.TrimSpace(strings.Split(lines[0], "=")[1])
-	servicePack := strings.TrimSpace(strings.Split(lines[1], "=")[1])
-	if servicePack != "" {
-		version += " " + servicePack
+
+	// If that files, try using the ver command as last resort
+	out, err = exec.Command("cmd", "/c", "ver").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out))
 	}
-	return version
+
+	return "unknown"
 }
 
 func (h *Handler) firewall() string {
@@ -226,10 +269,6 @@ func (h *Handler) screenSaver() (bool, uint32, error) {
 	// Check if the screen saver is set to (none)
 	screenSaverValue, err := h.registryGetString(userPath, "Control Panel\\Desktop", "SCRNSAVE.EXE")
 	if err != nil {
-		if errors.Is(err, registry.ErrNotExist) {
-			// If the registry value does not exist, treat it as no screen saver set
-			return false, 0, nil
-		}
 		return false, 0, fmt.Errorf("error checking screen saver executable: %w", err)
 	}
 	if screenSaverValue == "" || screenSaverValue == "(none)" {
@@ -291,6 +330,10 @@ func (h *Handler) registryGetInt(key registry.Key, path string, name string) (in
 
 	val, _, err := k.GetIntegerValue(name)
 	if err != nil {
+		if errors.Is(err, registry.ErrNotExist) {
+			// Registry key or value doesn't exist, assume it's not set
+			return 0, nil
+		}
 		return 0, fmt.Errorf("error getting registry value: %w", err)
 	}
 
@@ -309,6 +352,10 @@ func (h *Handler) registryGetString(key registry.Key, path string, name string) 
 
 	val, _, err := k.GetStringValue(name)
 	if err != nil {
+		if errors.Is(err, registry.ErrNotExist) {
+			// Registry key or value doesn't exist, assume it's not set
+			return "", nil
+		}
 		return "", fmt.Errorf("error getting registry value: %w", err)
 	}
 
@@ -320,6 +367,11 @@ func (h *Handler) registryGetStringToInt(key registry.Key, path string, name str
 	strVal, err := h.registryGetString(key, path, name)
 	if err != nil {
 		return 0, err
+	}
+
+	// The string value may be empty or not set
+	if strVal == "" {
+		return 0, nil
 	}
 
 	uintVal, err := strconv.ParseUint(strVal, 10, 32)
@@ -353,13 +405,13 @@ func (h *Handler) getUserRegistryKey() (registry.Key, error) {
 	userKeyPath := fmt.Sprintf(`%s`, lastLoggedOnUserSID)
 	_, err = registry.OpenKey(registry.USERS, userKeyPath, registry.QUERY_VALUE)
 	if err != nil {
-		return 0, fmt.Errorf("G error checking user registry key: %w", err)
+		return 0, fmt.Errorf("error checking user registry key: %w", err)
 	}
 
 	// Open the registry key for the user
 	userKey, err := registry.OpenKey(registry.USERS, userKeyPath, registry.QUERY_VALUE)
 	if err != nil {
-		return 0, fmt.Errorf("G error opening user registry key: %w", err)
+		return 0, fmt.Errorf("error opening user registry key: %w", err)
 	}
 	return userKey, nil
 }

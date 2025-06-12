@@ -87,7 +87,6 @@ func Config() (*AgentConfig, error) {
 		c.AP.Set(ConfigAgentLogFile, logFile)
 	}
 
-	fmt.Println("Log file: ", logFile)
 	// Attempt to checkpoint the config
 	_ = c.Checkpoint()
 	return c, err
