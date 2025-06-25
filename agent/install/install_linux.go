@@ -162,6 +162,14 @@ func (i *Install) createService() error {
 		return fmt.Errorf("could not write service file: %w", err)
 	}
 
+	// Reload the systemd daemon
+	cmd := exec.Command("systemctl", "daemon-reload")
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("error reloading systemd daemon: %w", err)
+	}
+
+	// Enable the service
 	cmd := exec.Command("systemctl", "enable", serviceName)
 	err = cmd.Run()
 	if err != nil {
