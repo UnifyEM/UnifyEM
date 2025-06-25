@@ -413,7 +413,7 @@ func (a *API) postAgentTagsAdd(req *http.Request) userver.JResponse {
 }
 
 // @Summary Remove tags from agent
-// @Description Removes one or more tags from the specified agent (case insensitive)
+// @Description Removes one or more tags from the specified agent (case-insensitive)
 // @Tags Agent management
 // @Security BearerAuth
 // @Accept json

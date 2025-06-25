@@ -434,7 +434,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes one or more tags from the specified agent",
+                "description": "Removes one or more tags from the specified agent (case-insensitive)",
                 "consumes": [
                     "application/json"
                 ],
