@@ -171,11 +171,8 @@ func (i *Install) createService() error {
 
 	// Enable the service
 	cmd2 := exec.Command("systemctl", "enable", serviceName)
-	err = cmd2.Run()
-	if err != nil {
-		// The file is enabled by default, so an error here is not fatal
-		i.logger.Warningf(8705, "error enabling service (may already be enabled): %s", err.Error())
-	}
+	// The file is enabled by default, so an error here is not fatal
+	_ = cmd2.Run()
 
 	fmt.Printf("Service file created at: %s\n", target)
 	return nil
