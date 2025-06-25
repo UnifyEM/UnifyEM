@@ -413,7 +413,7 @@ func (a *API) postAgentTagsAdd(req *http.Request) userver.JResponse {
 }
 
 // @Summary Remove tags from agent
-// @Description Removes one or more tags from the specified agent
+// @Description Removes one or more tags from the specified agent (case insensitive)
 // @Tags Agent management
 // @Security BearerAuth
 // @Accept json
@@ -446,6 +446,7 @@ func (a *API) postAgentTagsRemove(req *http.Request) userver.JResponse {
 			HTTPCode: http.StatusBadRequest,
 			JSONData: schema.API400{Details: "error reading body", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
 	}
+
 	var tagReq schema.AgentTagsRequest
 	if err := json.Unmarshal(body, &tagReq); err != nil {
 		return userver.JResponse{
@@ -453,24 +454,29 @@ func (a *API) postAgentTagsRemove(req *http.Request) userver.JResponse {
 			JSONData: schema.API400{Details: "error unmarshalling JSON", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
 	}
 
-	// Remove tags
+	// Create a set of tags to remove, forcing to lower case
 	removeSet := make(map[string]struct{})
 	for _, t := range tagReq.Tags {
-		removeSet[t] = struct{}{}
+		removeSet[strings.ToLower(t)] = struct{}{}
 	}
+
+	// Copy existing tags that are not in the removeSet to a new list
+	// in a case-insensitive manner
 	newTags := make([]string, 0, len(currentMeta.Tags))
 	for _, t := range currentMeta.Tags {
-		if _, found := removeSet[t]; !found {
+		if _, found := removeSet[strings.ToLower(t)]; !found {
 			newTags = append(newTags, t)
 		}
 	}
-	currentMeta.Tags = newTags
 
+	// Update the agent's metadata
+	currentMeta.Tags = newTags
 	if err := a.data.SetAgentMeta(currentMeta); err != nil {
 		return userver.JResponse{
 			HTTPCode: http.StatusInternalServerError,
 			JSONData: schema.API500{Details: "error updating agent tags", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
 	}
+
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
 		JSONData: schema.AgentTagsResponse{
