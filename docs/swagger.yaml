@@ -892,7 +892,7 @@ paths:
       - Agent management
   /agent/by-tag/{tag}:
     get:
-      description: Retrieves all agents that have the specified tag
+      description: Retrieves all agents that have the specified tag (case-insensitive)
       parameters:
       - description: Tag
         in: path

@@ -258,7 +258,7 @@ func (a *API) putAgentResetTriggers(req *http.Request) userver.JResponse {
  */
 
 // @Summary Get agents by tag
-// @Description Retrieves all agents that have the specified tag
+// @Description Retrieves all agents that have the specified tag (case-insensitive)
 // @Tags Agent management
 // @Security BearerAuth
 // @Produce json
@@ -284,7 +284,8 @@ func (a *API) getAgentsByTag(req *http.Request) userver.JResponse {
 	var matched []schema.AgentMeta
 	for _, agent := range agents.Agents {
 		for _, t := range agent.Tags {
-			if t == tag {
+			// Match case-insensitive
+			if strings.ToLower(t) == strings.ToLower(tag) {
 				matched = append(matched, agent)
 				break
 			}
