@@ -163,15 +163,15 @@ func (i *Install) createService() error {
 	}
 
 	// Reload the systemd daemon
-	cmd := exec.Command("systemctl", "daemon-reload")
-	err = cmd.Run()
+	cmd1 := exec.Command("systemctl", "daemon-reload")
+	err = cmd1.Run()
 	if err != nil {
 		return fmt.Errorf("error reloading systemd daemon: %w", err)
 	}
 
 	// Enable the service
-	cmd := exec.Command("systemctl", "enable", serviceName)
-	err = cmd.Run()
+	cmd2 := exec.Command("systemctl", "enable", serviceName)
+	err = cmd2.Run()
 	if err != nil {
 		return fmt.Errorf("error enabling service: %w", err)
 	}
