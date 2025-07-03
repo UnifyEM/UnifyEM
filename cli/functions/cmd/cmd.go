@@ -97,7 +97,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserAdd + " agent_id=<agent ID> | tag=<tag> username=<username> [admin=true|false]",
+		Use:   commands.UserAdd + " agent_id=<agent ID> | tag=<tag> username=<username> password=<password> [admin=true|false]",
 		Short: "add a user",
 		Long:  "add a user to the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
