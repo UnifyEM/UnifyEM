@@ -28,6 +28,8 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 		return schema.DeviceUserList{}, fmt.Errorf("failed to get hostname: %w", err)
 	}
 
+	a.logger.Debugf(8404, "hostname: %s", hostname)
+
 	// Get all users using WMI
 	var wmiUsers []struct {
 		Name         string
@@ -43,7 +45,9 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 
 	// Iterate through the list of users and add the local users to the list
 	for _, wmiUser := range wmiUsers {
+		a.logger.Debugf(8405, "Found user: %s Domain: %s Disabled: %t Local: %t", wmiUser.Name, wmiUser.Domain, wmiUser.Disabled, wmiUser.LocalAccount)
 		if !wmiUser.LocalAccount {
+			a.logger.Debugf(8406, "Skipping non-local account user: %s Domain: %s", wmiUser.Name, wmiUser.Domain)
 			continue
 		}
 		users.Users = append(users.Users, schema.DeviceUser{Domain: wmiUser.Domain, Name: wmiUser.Name, Disabled: wmiUser.Disabled, Administrator: false})
@@ -59,6 +63,9 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 	if err != nil {
 		return schema.DeviceUserList{}, fmt.Errorf("WMI query failed: %w", err)
 	}
+
+	// Log and parse
+	a.logger.Debugf(8407, "Administrators: %v", adminList)
 	admins, err := parseAdminList(adminList)
 
 	// Iterate through the list of users and mark the administrators
@@ -81,6 +88,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 		}
 		if !found {
 			parts := strings.Split(admin, "\\")
+			a.logger.Debugf(8408, "Adding admin user: %s Domain: %s Disabled: %t Local: %t", parts[1], parts[0], false, true)
 			users.Users = append(users.Users, schema.DeviceUser{Domain: parts[0], Name: parts[1], Disabled: false, Administrator: true})
 		}
 	}
