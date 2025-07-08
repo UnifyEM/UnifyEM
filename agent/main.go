@@ -468,11 +468,12 @@ func newLogger() (interfaces.Logger, error) {
 	var l interfaces.Logger
 
 	// Try a full logger first based on the loaded configuration
+	debug := conf.AC.Get(schema.ConfigAgentDebug).Bool() || global.Debug
 	loggerOptions := []ulogger.Option{
 		ulogger.WithPrefix(global.LogName),
 		ulogger.WithLogStdout(conf.AC.Get(schema.ConfigAgentLogStdout).Bool()),
 		ulogger.WithRetention(conf.AC.Get(schema.ConfigAgentLogRetention).Int()),
-		ulogger.WithDebug(global.Debug)}
+		ulogger.WithDebug(debug)}
 
 	var optKey string
 	switch runtime.GOOS {
@@ -505,7 +506,7 @@ func newLogger() (interfaces.Logger, error) {
 			ulogger.WithLogFile(""),
 			ulogger.WithLogStdout(true),
 			ulogger.WithRetention(0),
-			ulogger.WithDebug(global.Debug))
+			ulogger.WithDebug(true))
 	}
 	return l, nil
 }
