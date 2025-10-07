@@ -30,10 +30,11 @@ import (
 )
 
 type Command struct {
-	logger   interfaces.Logger
-	config   *global.AgentConfig
-	comms    *communications.Communications
-	handlers map[string]CmdHandler
+	logger         interfaces.Logger
+	config         *global.AgentConfig
+	comms          *communications.Communications
+	handlers       map[string]CmdHandler
+	userDataSource status.UserDataSource
 }
 
 type CmdHandler interface {
@@ -64,7 +65,7 @@ func New(options ...func(*Command) error) (*Command, error) {
 	// Add command handlers
 	c.addHandler(commands.DownloadExecute, downloadEx.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.Execute, execute.New(c.config, c.logger, c.comms))
-	c.addHandler(commands.Status, status.New(c.config, c.logger, c.comms))
+	c.addHandler(commands.Status, status.New(c.config, c.logger, c.comms, c.userDataSource))
 	c.addHandler(commands.Ping, ping.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.Reboot, reboot.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.Shutdown, shutdown.New(c.config, c.logger, c.comms))
@@ -105,6 +106,13 @@ func WithComms(comms *communications.Communications) func(*Command) error {
 			return errors.New("comms is nil")
 		}
 		c.comms = comms
+		return nil
+	}
+}
+
+func WithUserDataSource(userDataSource status.UserDataSource) func(*Command) error {
+	return func(c *Command) error {
+		c.userDataSource = userDataSource
 		return nil
 	}
 }

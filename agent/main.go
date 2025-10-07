@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"os/user"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -20,6 +22,8 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/agent/install"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
+	"github.com/UnifyEM/UnifyEM/agent/userdata"
+	"github.com/UnifyEM/UnifyEM/agent/userhelper"
 	"github.com/UnifyEM/UnifyEM/common"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
@@ -36,6 +40,7 @@ var lastSync int64
 var lastStatus int64
 var requestQueue *queues.RequestQueue
 var responseQueue *queues.ResponseQueue
+var userDataListener *userdata.UserDataListener
 
 func main() {
 
@@ -45,6 +50,19 @@ func main() {
 			common.Banner(global.Description, global.Version, global.Build)
 			exit(0, false)
 		}
+	}
+
+	// Check for user-helper mode (runs as user, no root required)
+	if len(os.Args) > 1 && os.Args[1] == global.UserHelperFlag {
+		// Parse collection interval from args if provided
+		interval := global.DefaultCollectionInterval
+		if len(os.Args) > 3 && os.Args[2] == global.CollectionIntervalFlag {
+			if val, err := strconv.Atoi(os.Args[3]); err == nil && val > 0 {
+				interval = val
+			}
+		}
+		runUserHelper(interval)
+		os.Exit(0)
 	}
 
 	// Make sure this program is running with elevated privileges
@@ -249,6 +267,27 @@ func startService(optionalArgs ...bool) {
 		exit(1, false)
 	}
 
+	// Start user data listener (macOS only)
+	if runtime.GOOS == "darwin" {
+		userDataListener = userdata.New(logger)
+		if err := userDataListener.Start(); err != nil {
+			logger.Errorf(8003, "Failed to start user data listener: %v", err)
+			// Continue without it - will fall back to existing methods
+		} else {
+			// Clean stale data periodically
+			go func() {
+				ticker := time.NewTicker(15 * time.Minute)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ticker.C:
+						userDataListener.CleanStaleData(30 * time.Minute)
+					}
+				}
+			}()
+		}
+	}
+
 	// Check for foreground option
 	if foreground {
 		simulateService(logger, global.TaskTicker)
@@ -334,6 +373,13 @@ func syncTime(elapsed int64) bool {
 // ServiceStopping will be called when the service is stopping
 func ServiceStopping(interfaces.Logger) {
 
+	// Stop user data listener
+	if userDataListener != nil {
+		if err := userDataListener.Stop(); err != nil {
+			logger.Errorf(8007, "Error stopping user data listener: %v", err)
+		}
+	}
+
 	// Save the configuration
 	//err := conf.Checkpoint()
 	//if err != nil {
@@ -351,7 +397,8 @@ func processRequests() {
 	cmd, err := functions.New(
 		functions.WithLogger(logger),
 		functions.WithConfig(conf),
-		functions.WithComms(communication))
+		functions.WithComms(communication),
+		functions.WithUserDataSource(userDataListener))
 	if err != nil {
 		logger.Errorf(8050, "error initializing command functions module: %s", err.Error())
 		return
@@ -407,7 +454,8 @@ func sendStatus() {
 	cmd, err := functions.New(
 		functions.WithLogger(logger),
 		functions.WithConfig(conf),
-		functions.WithComms(communication))
+		functions.WithComms(communication),
+		functions.WithUserDataSource(userDataListener))
 	if err != nil {
 		logger.Errorf(8060, "error initializing command module: %s", err.Error())
 		return
@@ -509,4 +557,51 @@ func newLogger() (interfaces.Logger, error) {
 			ulogger.WithDebug(true))
 	}
 	return l, nil
+}
+
+// runUserHelper is called when --user-helper flag is detected
+func runUserHelper(collectionInterval int) {
+	// Minimal setup - no privilege escalation needed
+	username := getCurrentUsername()
+
+	// Create per-user log file
+	logPath := fmt.Sprintf("/tmp/uem-agent-user-%s.log", username)
+
+	// Create logger (log to /tmp since we don't have /var/log access)
+	logger, err := ulogger.New(
+		ulogger.WithPrefix("uem-agent-user"),
+		ulogger.WithLogFile(logPath),
+		ulogger.WithLogStdout(false),
+		ulogger.WithRetention(7),
+		ulogger.WithDebug(global.Debug))
+
+	if err != nil {
+		fmt.Printf("Error creating logger: %v\n", err)
+		os.Exit(1)
+	}
+
+	logger.Infof(3200, "Starting user-helper mode for user: %s (interval: %d seconds)",
+		username, collectionInterval)
+
+	// Load minimal config (or use defaults)
+	config := &global.AgentConfig{
+		// Minimal config needed for status collection
+	}
+
+	// Create and run user helper
+	helper := userhelper.New(logger, config, collectionInterval)
+
+	if err := helper.Run(); err != nil {
+		logger.Errorf(3201, "User-helper error: %v", err)
+		os.Exit(1)
+	}
+}
+
+// getCurrentUsername returns the current user's username
+func getCurrentUsername() string {
+	u, err := user.Current()
+	if err != nil {
+		return "unknown"
+	}
+	return u.Username
 }

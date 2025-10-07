@@ -124,6 +124,16 @@ func (h *Handler) password() string {
 }
 
 func (h *Handler) screenLockDelay() string {
+	// First try console user-helper data
+	if h.userDataSource != nil {
+		userData, exists := h.userDataSource.GetConsoleUserData()
+		if exists && time.Since(userData.Timestamp) < 10*time.Minute {
+			h.logger.Debugf(2716, "Using screen lock delay from console user helper: %s", userData.ScreenLockDelay)
+			return userData.ScreenLockDelay
+		}
+	}
+
+	// Fallback to existing methods
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown"
@@ -143,7 +153,22 @@ func (h *Handler) screenLockDelay() string {
 	return fmt.Sprintf("%d", delay)
 }
 
+// ScreenLockDelay is the exported version for external packages
+func (h *Handler) ScreenLockDelay() string {
+	return h.screenLockDelay()
+}
+
 func (h *Handler) screenLock() (string, error) {
+	// First try to get data from user-helper (console user)
+	if h.userDataSource != nil {
+		userData, exists := h.userDataSource.GetConsoleUserData()
+		if exists && time.Since(userData.Timestamp) < 10*time.Minute {
+			h.logger.Debugf(2715, "Using screen lock data from console user helper: %s", userData.ScreenLock)
+			return userData.ScreenLock, nil
+		}
+	}
+
+	// Fallback to existing plist/AppleScript methods
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown", fmt.Errorf("could not determine last user")
@@ -166,6 +191,11 @@ func (h *Handler) screenLock() (string, error) {
 		return "yes", nil
 	}
 	return "no", nil
+}
+
+// ScreenLock is the exported version for external packages
+func (h *Handler) ScreenLock() (string, error) {
+	return h.screenLock()
 }
 
 // getUserScreenSaverStatus checks the screensaver/lock status for a given user
@@ -320,6 +350,11 @@ func (h *Handler) lastUser() string {
 		return "unknown"
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// LastUser is the exported version for external packages
+func (h *Handler) LastUser() string {
+	return h.lastUser()
 }
 
 // getPlistValue retrieves the value associated with name from a plist at location

@@ -18,17 +18,33 @@ import (
 
 // Status collects and reports status information
 
-type Handler struct {
-	config *global.AgentConfig
-	logger interfaces.Logger
-	comms  *communications.Communications
+// UserDataSource is an interface for getting console user data from the user-helper
+type UserDataSource interface {
+	GetConsoleUserData() (UserContextData, bool)
 }
 
-func New(config *global.AgentConfig, logger interfaces.Logger, comms *communications.Communications) *Handler {
+// UserContextData represents user-specific context information
+type UserContextData struct {
+	Username        string
+	Timestamp       time.Time
+	ScreenLock      string
+	ScreenLockDelay string
+	RawData         map[string]string
+}
+
+type Handler struct {
+	config         *global.AgentConfig
+	logger         interfaces.Logger
+	comms          *communications.Communications
+	userDataSource UserDataSource
+}
+
+func New(config *global.AgentConfig, logger interfaces.Logger, comms *communications.Communications, userDataSource UserDataSource) *Handler {
 	return &Handler{
-		config: config,
-		logger: logger,
-		comms:  comms,
+		config:         config,
+		logger:         logger,
+		comms:          comms,
+		userDataSource: userDataSource,
 	}
 }
 

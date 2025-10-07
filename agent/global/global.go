@@ -16,16 +16,21 @@ const PROTECTED = true
 
 // These constants are used throughout the agent
 const (
-	Version           = common.Version
-	Build             = common.Build
-	Name              = "UEMAgent"
-	LogName           = "uem-agent"
-	Description       = "UnifyEM Agent"
-	WindowsBinaryName = "uem-agent.exe"
-	UnixBinaryName    = "uem-agent"
-	TaskTicker        = 5   // seconds between task checks
-	ConsoleExitDelay  = 10  // seconds to wait so that user can read the console output when exiting
-	TaskQueueSize     = 100 // maximum number of tasks to queue
+	Version                   = common.Version
+	Build                     = common.Build
+	Name                      = "UEMAgent"
+	LogName                   = "uem-agent"
+	Description               = "UnifyEM Agent"
+	WindowsBinaryName         = "uem-agent.exe"
+	UnixBinaryName            = "uem-agent"
+	TaskTicker                = 5   // seconds between task checks
+	ConsoleExitDelay          = 10  // seconds to wait so that user can read the console output when exiting
+	TaskQueueSize             = 100 // maximum number of tasks to queue
+	UserHelperFlag            = "--user-helper"
+	CollectionIntervalFlag    = "--collection-interval"
+	DefaultCollectionInterval = 300 // 5 minutes in seconds
+	SocketPath                = "/var/run/uem-agent.sock"
+	SocketPerms               = 0666 // Allow user processes to connect
 )
 
 // These constants are used for development and testing purposes only and disable important security features.
