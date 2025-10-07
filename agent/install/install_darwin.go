@@ -141,6 +141,9 @@ func (i *Install) installService() error {
 		fmt.Printf("Note: User helper will start when users log in (load error: %v)\n", err)
 	}
 
+	// Bootstrap user agent for currently logged-in users
+	bootstrapUserAgents()
+
 	return nil
 }
 
@@ -292,4 +295,133 @@ func (i *Install) restartService() error {
 	time.Sleep(3 * time.Second)
 
 	return i.startService()
+}
+
+// getLoggedInUserUIDs returns a map of unique UIDs for currently logged-in users
+func getLoggedInUserUIDs() (map[string]bool, error) {
+	cmd := exec.Command("who")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("could not get logged-in users: %w", err)
+	}
+
+	uids := make(map[string]bool)
+	lines := string(output)
+
+	// Parse who output - format is typically: username tty date time
+	var users []string
+	for _, line := range splitLines(lines) {
+		if len(line) > 0 {
+			// First field is the username
+			fields := splitFields(line)
+			if len(fields) > 0 {
+				users = append(users, fields[0])
+			}
+		}
+	}
+
+	// Get UIDs for each unique user
+	seen := make(map[string]bool)
+	for _, user := range users {
+		if seen[user] {
+			continue
+		}
+		seen[user] = true
+
+		cmd = exec.Command("id", "-u", user)
+		output, err = cmd.Output()
+		if err != nil {
+			continue // Skip users we can't get UID for
+		}
+		uid := string(output)
+		uid = trimSpace(uid)
+		if uid != "" && uid != "0" { // Skip root
+			uids[uid] = true
+		}
+	}
+
+	return uids, nil
+}
+
+// bootstrapUserAgents bootstraps the LaunchAgent for all currently logged-in users
+func bootstrapUserAgents() {
+	uids, err := getLoggedInUserUIDs()
+	if err != nil {
+		fmt.Printf("Warning: could not get logged-in users: %v\n", err)
+		return
+	}
+
+	if len(uids) == 0 {
+		fmt.Println("No users currently logged in")
+		return
+	}
+
+	successCount := 0
+	for uid := range uids {
+		domain := fmt.Sprintf("gui/%s", uid)
+		cmd := exec.Command("launchctl", "bootstrap", domain, agentPlistPath)
+		err := cmd.Run()
+		if err != nil {
+			// Ignore errors - may already be loaded
+			continue
+		}
+		successCount++
+	}
+
+	if successCount > 0 {
+		fmt.Printf("Started user helper for %d logged-in user(s)\n", successCount)
+	}
+}
+
+// Helper functions for string processing
+func splitLines(s string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			lines = append(lines, s[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		lines = append(lines, s[start:])
+	}
+	return lines
+}
+
+func splitFields(s string) []string {
+	var fields []string
+	var current []byte
+	inField := false
+
+	for i := 0; i < len(s); i++ {
+		if s[i] == ' ' || s[i] == '\t' {
+			if inField {
+				fields = append(fields, string(current))
+				current = nil
+				inField = false
+			}
+		} else {
+			current = append(current, s[i])
+			inField = true
+		}
+	}
+	if inField {
+		fields = append(fields, string(current))
+	}
+	return fields
+}
+
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+
+	return s[start:end]
 }
