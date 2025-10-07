@@ -1,6 +1,6 @@
 module github.com/UnifyEM/UnifyEM
 
-go 1.24.4
+go 1.25.2
 
 require (
 	github.com/StackExchange/wmi v1.2.1
