@@ -109,6 +109,7 @@ fi
 
 check_directory $REPO
 check_directory $BIN_DIR
+mkdir -p $HTTP_DIR
 check_directory $HTTP_DIR
 #
 ################################################################
