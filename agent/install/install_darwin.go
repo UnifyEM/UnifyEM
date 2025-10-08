@@ -159,9 +159,8 @@ func (i *Install) uninstallService(removeData bool) error {
 		}
 	}
 
-	// Unload the Launch Agent
-	cmd = exec.Command("launchctl", "unload", agentPlistPath)
-	_ = cmd.Run() // Best effort
+	// Unload all user agent instances
+	unloadUserAgents()
 
 	// Wait for the program to terminate
 	time.Sleep(5 * time.Second)
@@ -367,6 +366,30 @@ func bootstrapUserAgents() {
 	if successCount > 0 {
 		fmt.Printf("Started user helper for %d logged-in user(s)\n", successCount)
 	}
+}
+
+// unloadUserAgents unloads the LaunchAgent for all currently logged-in users
+func unloadUserAgents() {
+	uidToUser, err := getLoggedInUsers()
+	if err != nil {
+		// Can't get users, try to kill any user-helper processes directly
+		exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+		return
+	}
+
+	for uid, username := range uidToUser {
+		domain := fmt.Sprintf("gui/%s", uid)
+		target := fmt.Sprintf("%s/com.tenebris.uem-agent-user", domain)
+		// Run as the user to bootout from their domain
+		cmd := exec.Command("sudo", "-u", username, "launchctl", "bootout", target)
+		_ = cmd.Run() // Best effort, ignore errors
+	}
+
+	// Give processes time to exit
+	time.Sleep(2 * time.Second)
+
+	// Force kill any remaining user-helper processes
+	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
 }
 
 // Helper functions for string processing
