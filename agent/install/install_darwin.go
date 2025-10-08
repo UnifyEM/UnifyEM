@@ -101,8 +101,8 @@ func (i *Install) installService() error {
 	}
 	fmt.Printf("Binary copied to %s\n", targetPath)
 
-	// Set the proper permissions on the binary
-	err = os.Chmod(targetPath, 0700)
+	// Set the proper permissions on the binary (755 allows user-helper mode to run as non-root)
+	err = os.Chmod(targetPath, 0755)
 	if err != nil {
 		return fmt.Errorf("could not set permissions on binary: %w", err)
 	}
