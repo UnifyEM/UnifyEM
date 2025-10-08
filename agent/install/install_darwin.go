@@ -133,15 +133,9 @@ func (i *Install) installService() error {
 		return fmt.Errorf("could not load launch daemon: %w", err)
 	}
 
-	// Load agent (will start for all current and future user sessions)
-	cmd = exec.Command("launchctl", "load", "-w", agentPlistPath)
-	err = cmd.Run()
-	if err != nil {
-		// Non-fatal: agent will load when users log in
-		fmt.Printf("Note: User helper will start when users log in (load error: %v)\n", err)
-	}
-
 	// Bootstrap user agent for currently logged-in users
+	// Note: The plist in /Library/LaunchAgents/ will auto-load for users at login
+	// We only need to bootstrap for currently logged-in users
 	bootstrapUserAgents()
 
 	return nil
