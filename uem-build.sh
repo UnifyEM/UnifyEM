@@ -16,10 +16,13 @@ BUILD_DIR="$REPO/bin"
 BOPTS="-ldflags=\"-s -w\""
 #
 # Required minimum version
-GO_MIN_VERSION="1.24"
+GO_MIN_VERSION="1.25"
 #
 # Bail if an error occurs
 set -e
+#
+# Make sure govulncheck is up to date
+go install golang.org/x/vuln/cmd/govulncheck@latest
 #
 ################################################################
 # uem-agent has conditional code for Windows, Linux, and macOS.
