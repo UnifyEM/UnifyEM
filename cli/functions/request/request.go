@@ -20,9 +20,10 @@ import (
 
 func Register() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "request",
-		Short: "request functions",
-		Long:  "query and delete agent requests",
+		Use:     "request",
+		Aliases: []string{"requests"},
+		Short:   "request functions",
+		Long:    "query and delete agent requests",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("A subcommand is required\n")

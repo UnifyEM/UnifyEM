@@ -6,6 +6,6 @@
 package common
 
 const (
-	Version = "0.0.31"
-	Build   = 51 
+	Version = "0.0.32"
+	Build   = 52
 )

@@ -367,7 +367,9 @@ func (h *Handler) getPlistValue(location string, name string) (string, error) {
 }
 
 /*
-runUserAppleScript runs /usr/bin/osascript as the specified user (using sudo -u).
+runUserAppleScript runs /usr/bin/osascript as the specified user.
+If running as root (system daemon), it uses launchctl/sudo to switch to the target user.
+If running as a regular user (user-helper), it executes directly.
 If username is empty, it falls back to the last user.
 Returns the trimmed output or an error.
 */
@@ -378,9 +380,24 @@ func (h *Handler) runUserAppleScript(username, script string) (string, error) {
 	if username == "unknown" {
 		return "", fmt.Errorf("no user available to run AppleScript")
 	}
-	h.logger.Debugf(2712, "executing /bin/launchctl asuser %s sudo -u %s /usr/bin/osascript -e %s",
-		username, username, "'"+script+"'")
-	cmd := exec.Command("/bin/launchctl", "asuser", username, "sudo", "-u", username, "/usr/bin/osascript", "-e", "'"+script+"'")
+
+	var cmd *exec.Cmd
+	var cmdString string
+
+	// Check if running as root (system daemon mode)
+	if os.Getuid() == 0 {
+		// Running as root - use launchctl/sudo to switch to target user
+		cmdString = fmt.Sprintf("/bin/launchctl asuser %s sudo -u %s /usr/bin/osascript -e '%s'",
+			username, username, script)
+		h.logger.Debugf(2712, "executing %s", cmdString)
+		cmd = exec.Command("/bin/launchctl", "asuser", username, "sudo", "-u", username, "/usr/bin/osascript", "-e", script)
+	} else {
+		// Running as regular user (user-helper mode) - execute directly
+		cmdString = fmt.Sprintf("/usr/bin/osascript -e '%s'", script)
+		h.logger.Debugf(2712, "executing %s", cmdString)
+		cmd = exec.Command("/usr/bin/osascript", "-e", script)
+	}
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		h.logger.Errorf(2709, "runUserAppleScript failed: %s [%s]",
