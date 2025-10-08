@@ -297,15 +297,15 @@ func (i *Install) restartService() error {
 	return i.startService()
 }
 
-// getLoggedInUserUIDs returns a map of unique UIDs for currently logged-in users
-func getLoggedInUserUIDs() (map[string]bool, error) {
+// getLoggedInUsers returns a map of UID to username for currently logged-in users
+func getLoggedInUsers() (map[string]string, error) {
 	cmd := exec.Command("who")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("could not get logged-in users: %w", err)
 	}
 
-	uids := make(map[string]bool)
+	uidToUser := make(map[string]string)
 	lines := string(output)
 
 	// Parse who output - format is typically: username tty date time
@@ -336,33 +336,35 @@ func getLoggedInUserUIDs() (map[string]bool, error) {
 		uid := string(output)
 		uid = trimSpace(uid)
 		if uid != "" && uid != "0" { // Skip root
-			uids[uid] = true
+			uidToUser[uid] = user
 		}
 	}
 
-	return uids, nil
+	return uidToUser, nil
 }
 
 // bootstrapUserAgents bootstraps the LaunchAgent for all currently logged-in users
 func bootstrapUserAgents() {
-	uids, err := getLoggedInUserUIDs()
+	uidToUser, err := getLoggedInUsers()
 	if err != nil {
 		fmt.Printf("Warning: could not get logged-in users: %v\n", err)
 		return
 	}
 
-	if len(uids) == 0 {
+	if len(uidToUser) == 0 {
 		fmt.Println("No users currently logged in")
 		return
 	}
 
 	successCount := 0
-	for uid := range uids {
+	for uid, username := range uidToUser {
 		domain := fmt.Sprintf("gui/%s", uid)
-		cmd := exec.Command("launchctl", "bootstrap", domain, agentPlistPath)
+		// Run as the user, not as root, so the agent inherits user privileges
+		cmd := exec.Command("sudo", "-u", username, "launchctl", "bootstrap", domain, agentPlistPath)
 		err := cmd.Run()
 		if err != nil {
 			// Ignore errors - may already be loaded
+			fmt.Printf("Note: Could not bootstrap user helper for %s (may already be running): %v\n", username, err)
 			continue
 		}
 		successCount++
