@@ -19,6 +19,34 @@ import (
 	"howett.net/plist"
 )
 
+// macOS Status Collection Notes:
+//
+// Screen Lock Password Delay Limitation (macOS 13+):
+// On macOS Ventura (13) and later, Apple removed API access to the password delay setting
+// found in System Settings > Lock Screen > "Require password after screen saver begins
+// or display is turned off: After X seconds".
+//
+// What IS accessible:
+// - Whether password is required (require password to wake) - via AppleScript
+// - Screen saver idle time (delay interval) - via AppleScript and plists
+//
+// What is NOT accessible:
+// - Password delay (the "After X seconds" setting) - no API available
+//
+// This setting is not stored in:
+// - User or system preference files (plists)
+// - AppleScript APIs (System Events)
+// - IORegistry
+// - System databases
+// - Power management settings
+//
+// For audit/compliance purposes, this function reports:
+// - screen_lock: yes/no (whether password is required)
+// - screen_lock_delay: screen saver idle time in seconds (NOT the password delay)
+//
+// The password delay is likely stored in a private system database accessible only
+// to the Settings app and cannot be retrieved programmatically on modern macOS.
+
 func (h *Handler) osName() string {
 	return "macOS"
 }
@@ -124,6 +152,12 @@ func (h *Handler) password() string {
 }
 
 func (h *Handler) screenLockDelay() string {
+	// NOTE: On macOS 13+ (Ventura/Sequoia), the password delay setting
+	// ("Require password after screen saver begins: After X seconds")
+	// is NOT accessible via any API (AppleScript, plists, or system databases).
+	// This function returns the screen saver idle time instead.
+	// See: https://github.com/UnifyEM/UnifyEM/issues/XXX
+
 	// First try console user-helper data
 	if h.userDataSource != nil {
 		userData, exists := h.userDataSource.GetConsoleUserData()
@@ -133,19 +167,23 @@ func (h *Handler) screenLockDelay() string {
 		}
 	}
 
-	// Fallback to existing methods
+	// Fallback to reading screen saver idle time
+	// This is the time before the screen saver STARTS, not the password delay
+
+	// Try defaults command first (works in user mode without TCC)
+	out, err := exec.Command("defaults", "-currentHost", "read", "com.apple.screensaver", "idleTime").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out))
+	}
+
+	// If that fails, try plist reading
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown"
 	}
 	enabled, _, delay, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
-		// fallback to AppleScript for current user context
-		out, err2 := h.getAppleScript("tell application \"System Events\" to get delay interval of screen saver preferences")
-		if err2 != nil {
-			return "unknown"
-		}
-		return strings.TrimSpace(out)
+		return "unknown"
 	}
 	if !enabled {
 		return "0"
@@ -159,6 +197,10 @@ func (h *Handler) ScreenLockDelay() string {
 }
 
 func (h *Handler) screenLock() (string, error) {
+	// Returns whether password is required to wake from sleep/screensaver
+	// Uses: System Events -> security preferences -> require password to wake
+	// This works on all macOS versions via AppleScript
+
 	// First try to get data from user-helper (console user)
 	if h.userDataSource != nil {
 		userData, exists := h.userDataSource.GetConsoleUserData()
@@ -168,15 +210,15 @@ func (h *Handler) screenLock() (string, error) {
 		}
 	}
 
-	// Fallback to existing plist/AppleScript methods
+	// Fallback to plist/AppleScript methods
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown", fmt.Errorf("could not determine last user")
 	}
 	enabled, requirePassword, _, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
-		// fallback to AppleScript for current user context
-		out, err2 := h.getAppleScript("tell application \"System Events\" to get require password to wake of security preferences")
+		// Fallback to AppleScript for current user context
+		out, err2 := h.getAppleScript("tell application \"System Events\" to tell security preferences to get require password to wake")
 		if err2 != nil {
 			h.logger.Errorf(2710, "error getting screen lock status from AppleScript: %s [%s]",
 				err2.Error(), out)
@@ -402,7 +444,8 @@ func (h *Handler) runUserAppleScript(username, script string) (string, error) {
 	if err != nil {
 		h.logger.Errorf(2709, "runUserAppleScript failed: %s [%s]",
 			err.Error(), string(out))
-		return "", fmt.Errorf("runUserAppleScript failed: %w", err)
+		// Include output in error message for TCC detection
+		return "", fmt.Errorf("runUserAppleScript failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return strings.TrimSpace(string(out)), nil
 }

@@ -24,9 +24,10 @@ import (
 
 // UserHelper manages user-context data collection and transmission
 type UserHelper struct {
-	logger             interfaces.Logger
-	config             *global.AgentConfig
-	collectionInterval time.Duration
+	logger               interfaces.Logger
+	config               *global.AgentConfig
+	collectionInterval   time.Duration
+	tccNotificationShown bool // Track if we've shown TCC notification in this run
 }
 
 // UserContextData represents user-specific context information
@@ -115,13 +116,58 @@ func (h *UserHelper) collectUserData() status.UserContextData {
 	}
 
 	// These calls will now work because we're running in user context
-	data.ScreenLock, _ = statusHandler.ScreenLock()
+	screenLockValue, screenLockErr := statusHandler.ScreenLock()
+	data.ScreenLock = screenLockValue
 	data.ScreenLockDelay = statusHandler.ScreenLockDelay()
+
+	// Detect TCC permission denial
+	// If ScreenLock() returned an error and the value is "unknown", it's likely a TCC issue
+	if screenLockErr != nil && screenLockValue == "unknown" && !h.tccNotificationShown {
+		h.handleTCCDenial(screenLockErr)
+		h.tccNotificationShown = true
+	}
 
 	// Collect additional user-context data
 	data.RawData["last_user"] = statusHandler.LastUser()
 
 	return data
+}
+
+// handleTCCDenial detects TCC permission denial and shows a blocking dialog to the user
+func (h *UserHelper) handleTCCDenial(err error) {
+	// Check if this is specifically a TCC error (-1743)
+	errMsg := err.Error()
+	isTCCError := strings.Contains(errMsg, "-1743") ||
+		strings.Contains(errMsg, "Not authorized to send Apple events")
+
+	if !isTCCError {
+		// Not a TCC error, just log and return
+		h.logger.Warningf(3020, "Screen lock detection failed (non-TCC): %v", err)
+		return
+	}
+
+	// Log the TCC denial
+	h.logger.Warningf(3021, "TCC permission denied for System Events - showing user notification")
+
+	// Show blocking dialog to user
+	dialogScript := `display dialog "UEM Agent needs your permission to monitor security settings.
+
+To enable full security monitoring:
+
+1. Go to System Settings
+2. Navigate to Privacy & Security > Automation
+3. Find 'uem-agent' in the list
+4. Enable 'System Events'
+
+Without this permission, some security settings cannot be monitored." buttons {"OK"} default button "OK" with title "UEM Agent - Permission Required" with icon caution`
+
+	cmd := exec.Command("/usr/bin/osascript", "-e", dialogScript)
+	err = cmd.Run()
+	if err != nil {
+		h.logger.Errorf(3022, "Failed to show TCC notification dialog: %v", err)
+	} else {
+		h.logger.Infof(3023, "TCC notification dialog shown to user")
+	}
 }
 
 // sendToDaemon sends data to daemon via Unix socket

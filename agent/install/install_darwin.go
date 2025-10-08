@@ -79,7 +79,6 @@ const agentPlistContent = `
 </plist>
 `
 
-
 // Install the service
 func (i *Install) installService() error {
 
@@ -365,7 +364,43 @@ func bootstrapUserAgents() {
 
 	if successCount > 0 {
 		fmt.Printf("Started user helper for %d logged-in user(s)\n", successCount)
+
+		// Trigger TCC permission prompts for each logged-in user
+		fmt.Println("\nTriggering TCC permission prompts for security monitoring...")
+		triggerTCCPrompts(uidToUser)
 	}
+}
+
+// triggerTCCPrompts attempts to trigger TCC permission prompts for all logged-in users
+// by briefly running the user-helper which will attempt to access System Events
+func triggerTCCPrompts(uidToUser map[string]string) {
+	// Construct path to the uem-agent binary
+	agentPath := binaryPath + string(os.PathSeparator) + serviceName
+
+	for _, username := range uidToUser {
+		// Run the user-helper briefly as each user to trigger TCC prompt
+		// The --collection-interval of 5 seconds means it will try once and exit
+		cmd := exec.Command("sudo", "-u", username, agentPath, "--user-helper", "--collection-interval", "5")
+
+		// Run in background - don't wait for it to complete
+		err := cmd.Start()
+		if err != nil {
+			fmt.Printf("Note: Could not trigger TCC prompt for %s: %v\n", username, err)
+			continue
+		}
+
+		fmt.Printf("Triggered TCC prompt for user: %s\n", username)
+	}
+
+	// Give user-helpers time to attempt System Events access and trigger prompts
+	fmt.Println("Waiting for TCC prompts to appear (5 seconds)...")
+	time.Sleep(5 * time.Second)
+
+	// Clean up any remaining user-helper processes
+	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+
+	fmt.Println("\nIf you see permission dialogs, click 'OK' to allow uem-agent to monitor security settings.")
+	fmt.Println("Or grant permission manually in: System Settings > Privacy & Security > Automation")
 }
 
 // unloadUserAgents unloads the LaunchAgent for all currently logged-in users
