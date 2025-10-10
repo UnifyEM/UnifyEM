@@ -6,12 +6,14 @@
 package api
 
 import (
-	"github.com/UnifyEM/UnifyEM/server/global"
+	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/common/userver"
+	"github.com/UnifyEM/UnifyEM/server/global"
 )
 
 // @Summary Retrieve registration token
@@ -55,7 +57,10 @@ func (a *API) getRegToken(req *http.Request) userver.JResponse {
 	if externalURL[len(externalURL)-1:] == "/" {
 		externalURL = externalURL[:len(externalURL)-1]
 	}
-	rToken := externalURL + "/" + regToken
+
+	// Generate new base64-encoded format: {"s":"server","t":"token"}
+	tokenData := fmt.Sprintf(`{"s":"%s","t":"%s"}`, externalURL, regToken)
+	rToken := base64.StdEncoding.EncodeToString([]byte(tokenData))
 	a.logger.Info(2850, "get regkey", logFields)
 
 	return userver.JResponse{
@@ -111,7 +116,10 @@ func (a *API) postRegToken(req *http.Request) userver.JResponse {
 	if externalURL[len(externalURL)-1:] == "/" {
 		externalURL = externalURL[:len(externalURL)-1]
 	}
-	rToken := externalURL + "/" + regToken
+
+	// Generate new base64-encoded format: {"s":"server","t":"token"}
+	tokenData := fmt.Sprintf(`{"s":"%s","t":"%s"}`, externalURL, regToken)
+	rToken := base64.StdEncoding.EncodeToString([]byte(tokenData))
 	a.logger.Info(2859, "generate new registration key", logFields)
 
 	return userver.JResponse{

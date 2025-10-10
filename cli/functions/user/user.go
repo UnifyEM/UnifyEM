@@ -18,9 +18,10 @@ import (
 // Register returns the root user command with subcommands.
 func Register() *cobra.Command {
 	userCmd := &cobra.Command{
-		Use:   "user",
-		Short: "Manage users",
-		Long:  "User management commands: list, add, delete",
+		Use:     "user",
+		Aliases: []string{"users"},
+		Short:   "Manage users",
+		Long:    "User management commands: list, add, delete",
 	}
 
 	userCmd.AddCommand(listCmd())

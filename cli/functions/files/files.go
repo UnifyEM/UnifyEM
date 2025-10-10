@@ -18,9 +18,10 @@ import (
 
 func Register() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "files",
-		Short: "file management functions",
-		Long:  "manage files used by agents",
+		Use:     "files",
+		Aliases: []string{"file"},
+		Short:   "file management functions",
+		Long:    "manage files used by agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("a subcommand is required\n")

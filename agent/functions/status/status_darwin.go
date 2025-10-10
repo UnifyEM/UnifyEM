@@ -19,6 +19,34 @@ import (
 	"howett.net/plist"
 )
 
+// macOS Status Collection Notes:
+//
+// Screen Lock Password Delay Limitation (macOS 13+):
+// On macOS Ventura (13) and later, Apple removed API access to the password delay setting
+// found in System Settings > Lock Screen > "Require password after screen saver begins
+// or display is turned off: After X seconds".
+//
+// What IS accessible:
+// - Whether password is required (require password to wake) - via AppleScript
+// - Screen saver idle time (delay interval) - via AppleScript and plists
+//
+// What is NOT accessible:
+// - Password delay (the "After X seconds" setting) - no API available
+//
+// This setting is not stored in:
+// - User or system preference files (plists)
+// - AppleScript APIs (System Events)
+// - IORegistry
+// - System databases
+// - Power management settings
+//
+// For audit/compliance purposes, this function reports:
+// - screen_lock: yes/no (whether password is required)
+// - screen_lock_delay: screen saver idle time in seconds (NOT the password delay)
+//
+// The password delay is likely stored in a private system database accessible only
+// to the Settings app and cannot be retrieved programmatically on modern macOS.
+
 func (h *Handler) osName() string {
 	return "macOS"
 }
@@ -124,18 +152,38 @@ func (h *Handler) password() string {
 }
 
 func (h *Handler) screenLockDelay() string {
+	// NOTE: On macOS 13+ (Ventura/Sequoia), the password delay setting
+	// ("Require password after screen saver begins: After X seconds")
+	// is NOT accessible via any API (AppleScript, plists, or system databases).
+	// This function returns the screen saver idle time instead.
+	// See: https://github.com/UnifyEM/UnifyEM/issues/XXX
+
+	// First try console user-helper data
+	if h.userDataSource != nil {
+		userData, exists := h.userDataSource.GetConsoleUserData()
+		if exists && time.Since(userData.Timestamp) < 10*time.Minute {
+			h.logger.Debugf(2716, "Using screen lock delay from console user helper: %s", userData.ScreenLockDelay)
+			return userData.ScreenLockDelay
+		}
+	}
+
+	// Fallback to reading screen saver idle time
+	// This is the time before the screen saver STARTS, not the password delay
+
+	// Try defaults command first (works in user mode without TCC)
+	out, err := exec.Command("defaults", "-currentHost", "read", "com.apple.screensaver", "idleTime").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out))
+	}
+
+	// If that fails, try plist reading
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown"
 	}
 	enabled, _, delay, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
-		// fallback to AppleScript for current user context
-		out, err2 := h.getAppleScript("tell application \"System Events\" to get delay interval of screen saver preferences")
-		if err2 != nil {
-			return "unknown"
-		}
-		return strings.TrimSpace(out)
+		return "unknown"
 	}
 	if !enabled {
 		return "0"
@@ -143,15 +191,34 @@ func (h *Handler) screenLockDelay() string {
 	return fmt.Sprintf("%d", delay)
 }
 
+// ScreenLockDelay is the exported version for external packages
+func (h *Handler) ScreenLockDelay() string {
+	return h.screenLockDelay()
+}
+
 func (h *Handler) screenLock() (string, error) {
+	// Returns whether password is required to wake from sleep/screensaver
+	// Uses: System Events -> security preferences -> require password to wake
+	// This works on all macOS versions via AppleScript
+
+	// First try to get data from user-helper (console user)
+	if h.userDataSource != nil {
+		userData, exists := h.userDataSource.GetConsoleUserData()
+		if exists && time.Since(userData.Timestamp) < 10*time.Minute {
+			h.logger.Debugf(2715, "Using screen lock data from console user helper: %s", userData.ScreenLock)
+			return userData.ScreenLock, nil
+		}
+	}
+
+	// Fallback to plist/AppleScript methods
 	username := h.lastUser()
 	if username == "unknown" {
 		return "unknown", fmt.Errorf("could not determine last user")
 	}
 	enabled, requirePassword, _, err := h.getUserScreenSaverStatus(username)
 	if err != nil {
-		// fallback to AppleScript for current user context
-		out, err2 := h.getAppleScript("tell application \"System Events\" to get require password to wake of security preferences")
+		// Fallback to AppleScript for current user context
+		out, err2 := h.getAppleScript("tell application \"System Events\" to tell security preferences to get require password to wake")
 		if err2 != nil {
 			h.logger.Errorf(2710, "error getting screen lock status from AppleScript: %s [%s]",
 				err2.Error(), out)
@@ -166,6 +233,11 @@ func (h *Handler) screenLock() (string, error) {
 		return "yes", nil
 	}
 	return "no", nil
+}
+
+// ScreenLock is the exported version for external packages
+func (h *Handler) ScreenLock() (string, error) {
+	return h.screenLock()
 }
 
 // getUserScreenSaverStatus checks the screensaver/lock status for a given user
@@ -322,6 +394,11 @@ func (h *Handler) lastUser() string {
 	return strings.TrimSpace(string(out))
 }
 
+// LastUser is the exported version for external packages
+func (h *Handler) LastUser() string {
+	return h.lastUser()
+}
+
 // getPlistValue retrieves the value associated with name from a plist at location
 func (h *Handler) getPlistValue(location string, name string) (string, error) {
 	value, err := exec.Command("defaults", "-currentHost", "read", location, name).Output()
@@ -332,7 +409,9 @@ func (h *Handler) getPlistValue(location string, name string) (string, error) {
 }
 
 /*
-runUserAppleScript runs /usr/bin/osascript as the specified user (using sudo -u).
+runUserAppleScript runs /usr/bin/osascript as the specified user.
+If running as root (system daemon), it uses launchctl/sudo to switch to the target user.
+If running as a regular user (user-helper), it executes directly.
 If username is empty, it falls back to the last user.
 Returns the trimmed output or an error.
 */
@@ -343,14 +422,30 @@ func (h *Handler) runUserAppleScript(username, script string) (string, error) {
 	if username == "unknown" {
 		return "", fmt.Errorf("no user available to run AppleScript")
 	}
-	h.logger.Debugf(2712, "executing /bin/launchctl asuser %s sudo -u %s /usr/bin/osascript -e %s",
-		username, username, "'"+script+"'")
-	cmd := exec.Command("/bin/launchctl", "asuser", username, "sudo", "-u", username, "/usr/bin/osascript", "-e", "'"+script+"'")
+
+	var cmd *exec.Cmd
+	var cmdString string
+
+	// Check if running as root (system daemon mode)
+	if os.Getuid() == 0 {
+		// Running as root - use launchctl/sudo to switch to target user
+		cmdString = fmt.Sprintf("/bin/launchctl asuser %s sudo -u %s /usr/bin/osascript -e '%s'",
+			username, username, script)
+		h.logger.Debugf(2712, "executing %s", cmdString)
+		cmd = exec.Command("/bin/launchctl", "asuser", username, "sudo", "-u", username, "/usr/bin/osascript", "-e", script)
+	} else {
+		// Running as regular user (user-helper mode) - execute directly
+		cmdString = fmt.Sprintf("/usr/bin/osascript -e '%s'", script)
+		h.logger.Debugf(2712, "executing %s", cmdString)
+		cmd = exec.Command("/usr/bin/osascript", "-e", script)
+	}
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		h.logger.Errorf(2709, "runUserAppleScript failed: %s [%s]",
 			err.Error(), string(out))
-		return "", fmt.Errorf("runUserAppleScript failed: %w", err)
+		// Include output in error message for TCC detection
+		return "", fmt.Errorf("runUserAppleScript failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return strings.TrimSpace(string(out)), nil
 }

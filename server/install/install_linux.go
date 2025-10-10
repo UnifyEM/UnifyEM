@@ -17,7 +17,7 @@ import (
 
 const (
 	serviceName = "uem-server"
-	binaryPath  = "/usr/local/bin/"
+	binaryPath  = "/usr/local/bin"
 	servicePath = "/etc/systemd/system"
 	serviceFile = "uem-server.service"
 )
@@ -162,11 +162,17 @@ func (i *Install) createService() error {
 		return fmt.Errorf("could not write service file: %w", err)
 	}
 
-	cmd := exec.Command("systemctl", "enable", serviceName)
-	err = cmd.Run()
+	// Reload the systemd daemon
+	cmd1 := exec.Command("systemctl", "daemon-reload")
+	err = cmd1.Run()
 	if err != nil {
-		return fmt.Errorf("error enabling service: %w", err)
+		return fmt.Errorf("error reloading systemd daemon: %w", err)
 	}
+
+	// Enable the service
+	cmd2 := exec.Command("systemctl", "enable", serviceName)
+	// The file is enabled by default, so an error here is not fatal
+	_ = cmd2.Run()
 
 	fmt.Printf("Service file created at: %s\n", target)
 	return nil

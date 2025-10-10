@@ -140,7 +140,7 @@ go build -o ../bin/uem-server
 
 Each component is a single statically-linked binary.
 
-**The author's script from his Ubuntu 24 UEM server is included as uem-build.sh. This script compiles uem-server and uem-cli and deploys them, stopping and re-starting uem-server as required. It then builds the various agents and copies them to the default file distribution directory. Note that this script uses sudo. Please review it prior to running it on your ocmputer.**
+**The author's script from his Ubuntu 24 UEM server is included as uem-build.sh. This script compiles uem-server and uem-cli and deploys them, stopping and re-starting uem-server as required. It then builds the various agents and copies them to the default file distribution directory. Note that this script uses sudo. Please review it prior to running it on your computer. Note that you must install the server following the instructions below, the script is to build and update the server, not the initial installation.**
 
 ### uem-server installation
 
@@ -148,9 +148,15 @@ Each component is a single statically-linked binary.
 
 By default, the server will listen on http://127.0.0.1:8080. If you encounter difficulties, you can temporarily bypass the configured listen address and start uem-server in the foreground (i.e. not as a deamon/service) using `uem-server listen 127.0.0.1:8080` or another suitable address. This is useful in the event that a mistake in the configuration prevents uem-server from starting.
 
-To change the listen URL, the external URL, or other configuration, update them using `uem-cli config server`, stop the service and change the registry or /etc/uem-server.conf file as appropriate.
+To change the listen URL, the external URL, or other configuration, update them using `uem-cli config server', stop the service and change the registry or /etc/uem-server.conf file as appropriate.
 
 `./uem-server admin <username> <password>` will create a super administrator account. There are no default accounts. The ability to add and maintain regular administrators via the API will be added in the near future.
+
+```
+sudo systemctl stop uem-server
+./uem-server admin <your_username> <desired_password>
+sudo systemctl start uem-server
+```
 
 Note that attempting to create a super admin while the server is running may fail due to database locking.
 
@@ -158,7 +164,37 @@ The server is currently designed to run with root/admin privileges to allow it t
 
 `./uem-server uninstall` will remove the service from the system.
 
-At this point we recommend the uem-server default of listening for HTTP on localhost and NGINX as a proxy that provides TLS termination. This has the benefit of out-of-the-box certbot compatibility.
+At this point we recommend using the uem-server default of listening for HTTP on localhost and NGINX as a proxy that provides TLS termination. This has the benefit of out-of-the-box certbot compatibility. Here is an example NGINX configuration to get you started.
+
+```
+server {
+    server_name uem.example.com;
+
+     # HTTP configuration
+    listen 80;
+
+    # HTTP to HTTPS
+    if ($scheme != "https") {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/uem.example.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/uem.example.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    location / {
+        proxy_pass  http://127.0.0.1:8080;
+        proxy_redirect                      off;
+        proxy_set_header  Host              $http_host;
+        proxy_set_header  X-Real-IP         $remote_addr;
+        proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header  X-Forwarded-Proto $scheme;
+        proxy_read_timeout                  900;
+    }
+}
+```
 
 By default, logs are written to /var/log/uem-server.log on Linux and macOS. On Windows, log events are sent to the Windows Event Log and, but default, also to c:\ProgramData\uem-server\uem-server.log. Logs are rotated daily and by default retained for 30 days. The retention period can be changed in the configuration file/registry.
 
@@ -168,10 +204,16 @@ uem-cli is a command-line interface for administration use only. Authentication 
 
 The following environment variables are required:
 
-```
 UEM_USER: The administrator's username
 UEM_PASS: The administrator's password
 UEM_SERVER: The protocol, FQDN, and port of the server (i.e. https://uem.example.com:443)
+
+Example ~/.uem file:
+
+```
+UEM_USER=<username>
+UEM_PASS=<password>
+UEM_SERVER=http://127.0.0.1:8080
 ```
 
 Additional administrator accounts, along with managing them via the API, will be added in the near future. Until this occurs, the only admin-level credentials are usernames and passwords set from the uem-server command line.

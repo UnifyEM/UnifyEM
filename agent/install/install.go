@@ -34,6 +34,21 @@ func (i *Install) Check() {
 	fmt.Printf("Reg Token: %s\n", i.config.AP.Get(global.ConfigRegToken).String())
 	fmt.Printf("Server URL: %s\n", i.config.AP.Get(global.ConfigServerURL).String())
 	fmt.Printf("Agent ID: %s\n", i.config.AP.Get(global.ConfigAgentID).String())
+	fmt.Printf("\n")
+
+	acDump, err := i.config.AC.Dump()
+	if err != nil {
+		fmt.Printf("Error dumping AC configuration: %v\n", err)
+		return
+	}
+	fmt.Printf("AC: %v\n\n", acDump)
+
+	apDump, err := i.config.AP.Dump()
+	if err != nil {
+		fmt.Printf("Error dumping AP configuration: %v\n", err)
+		return
+	}
+	fmt.Printf("AP: %v\n\n", apDump)
 }
 
 func (i *Install) Install(key string) error {

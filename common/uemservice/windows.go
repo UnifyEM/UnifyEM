@@ -39,6 +39,7 @@ func (s *Service) Execute(args []string, req <-chan svc.ChangeRequest, status ch
 	}
 
 	s.logger.Infof(s.SEid+1, "%s %s (build %d) service started", s.ServiceName, s.ServiceVersion, s.ServiceBuild)
+	s.logger.Debugf(s.SEid+1, "Debug logging enabled")
 
 	status <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 

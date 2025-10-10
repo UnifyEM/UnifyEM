@@ -18,15 +18,16 @@ import (
 )
 
 const (
-	serviceName = "uem-agent"
-	binaryPath  = "/usr/local/bin"
-	plistPath   = "/Library/LaunchDaemons/com.tenebris.uem-agent.plist"
+	serviceName     = "uem-agent"
+	binaryPath      = "/usr/local/bin"
+	daemonPlistPath = "/Library/LaunchDaemons/com.tenebris.uem-agent.plist"
+	agentPlistPath  = "/Library/LaunchAgents/com.tenebris.uem-agent.plist"
 )
 
 // Note that this must also be changed if binaryPath or global.UnixBinaryName are changed
 //
 //goland:noinspection HttpUrlsUsage
-const plistContent = `
+const daemonPlistContent = `
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -47,6 +48,33 @@ const plistContent = `
     <string>/var/log/uem-agent.log</string>
     <key>StandardErrorPath</key>
     <string>/var/log/uem-agent.log</string>
+</dict>
+</plist>
+`
+
+//goland:noinspection HttpUrlsUsage
+const agentPlistContent = `
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tenebris.uem-agent-user</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/uem-agent</string>
+        <string>--user-helper</string>
+        <string>--collection-interval</string>
+        <string>300</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/uem-agent-user.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/uem-agent-user.log</string>
 </dict>
 </plist>
 `
@@ -72,8 +100,8 @@ func (i *Install) installService() error {
 	}
 	fmt.Printf("Binary copied to %s\n", targetPath)
 
-	// Set the proper permissions on the binary
-	err = os.Chmod(targetPath, 0700)
+	// Set the proper permissions on the binary (755 allows user-helper mode to run as non-root)
+	err = os.Chmod(targetPath, 0755)
 	if err != nil {
 		return fmt.Errorf("could not set permissions on binary: %w", err)
 	}
@@ -85,18 +113,29 @@ func (i *Install) installService() error {
 		return fmt.Errorf("could not set owner of binary to root: %w", err)
 	}
 
-	// Create the plist file
-	err = i.createPlist()
+	// Create daemon plist
+	err = i.createPlist(daemonPlistPath, daemonPlistContent)
+	if err != nil {
+		return err
+	}
+
+	// Create agent plist
+	err = i.createPlist(agentPlistPath, agentPlistContent)
 	if err != nil {
 		return err
 	}
 
 	// Load the Launch Daemon
-	cmd = exec.Command("launchctl", "load", plistPath)
+	cmd = exec.Command("launchctl", "load", daemonPlistPath)
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("could not load launch daemon: %w", err)
 	}
+
+	// Bootstrap user agent for currently logged-in users
+	// Note: The plist in /Library/LaunchAgents/ will auto-load for users at login
+	// We only need to bootstrap for currently logged-in users
+	bootstrapUserAgents()
 
 	return nil
 }
@@ -108,7 +147,7 @@ func (i *Install) uninstallService(removeData bool) error {
 	targetPath := binaryPath + string(os.PathSeparator) + serviceName
 
 	// Unload the Launch Daemon
-	cmd := exec.Command("launchctl", "unload", plistPath)
+	cmd := exec.Command("launchctl", "unload", daemonPlistPath)
 	err := cmd.Run()
 	if err != nil {
 		// Delay 30 seconds and try again
@@ -118,6 +157,9 @@ func (i *Install) uninstallService(removeData bool) error {
 			return fmt.Errorf("could not unload launch daemon: %w", err)
 		}
 	}
+
+	// Unload all user agent instances
+	unloadUserAgents()
 
 	// Wait for the program to terminate
 	time.Sleep(5 * time.Second)
@@ -134,10 +176,16 @@ func (i *Install) uninstallService(removeData bool) error {
 		return fmt.Errorf("program did not terminate within the expected time")
 	}
 
-	// Remove the plist file
-	err = os.Remove(plistPath)
+	// Remove daemon plist
+	err = os.Remove(daemonPlistPath)
 	if err != nil {
-		return fmt.Errorf("could not remove plist file: %w", err)
+		return fmt.Errorf("could not remove daemon plist file: %w", err)
+	}
+
+	// Remove agent plist
+	err = os.Remove(agentPlistPath)
+	if err != nil {
+		fmt.Printf("Warning: could not remove agent plist: %v\n", err)
 	}
 
 	// Remove the service binary
@@ -197,20 +245,20 @@ func CheckRootPrivileges() error {
 	return nil
 }
 
-// createPlist creates the Launch Daemon plist file
-func (i *Install) createPlist() error {
-	err := os.WriteFile(plistPath, []byte(plistContent), 0644)
+// createPlist creates a plist file at the specified path with the given content
+func (i *Install) createPlist(path string, content string) error {
+	err := os.WriteFile(path, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("could not write plist file: %w", err)
 	}
 
-	fmt.Printf("Plist file created at: %s\n", plistPath)
+	fmt.Printf("Plist file created at: %s\n", path)
 	return nil
 }
 
 // stopService stops the service
 func (i *Install) stopService() error {
-	cmd := exec.Command("launchctl", "stop", plistPath)
+	cmd := exec.Command("launchctl", "stop", daemonPlistPath)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("error stopping service: %w", err)
@@ -220,7 +268,7 @@ func (i *Install) stopService() error {
 
 // startService starts the service
 func (i *Install) startService() error {
-	cmd := exec.Command("launchctl", "start", plistPath)
+	cmd := exec.Command("launchctl", "start", daemonPlistPath)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("error starting service: %w", err)
@@ -239,4 +287,195 @@ func (i *Install) restartService() error {
 	time.Sleep(3 * time.Second)
 
 	return i.startService()
+}
+
+// getLoggedInUsers returns a map of UID to username for currently logged-in users
+func getLoggedInUsers() (map[string]string, error) {
+	cmd := exec.Command("who")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("could not get logged-in users: %w", err)
+	}
+
+	uidToUser := make(map[string]string)
+	lines := string(output)
+
+	// Parse who output - format is typically: username tty date time
+	var users []string
+	for _, line := range splitLines(lines) {
+		if len(line) > 0 {
+			// First field is the username
+			fields := splitFields(line)
+			if len(fields) > 0 {
+				users = append(users, fields[0])
+			}
+		}
+	}
+
+	// Get UIDs for each unique user
+	seen := make(map[string]bool)
+	for _, user := range users {
+		if seen[user] {
+			continue
+		}
+		seen[user] = true
+
+		cmd = exec.Command("id", "-u", user)
+		output, err = cmd.Output()
+		if err != nil {
+			continue // Skip users we can't get UID for
+		}
+		uid := string(output)
+		uid = trimSpace(uid)
+		if uid != "" && uid != "0" { // Skip root
+			uidToUser[uid] = user
+		}
+	}
+
+	return uidToUser, nil
+}
+
+// bootstrapUserAgents bootstraps the LaunchAgent for all currently logged-in users
+func bootstrapUserAgents() {
+	uidToUser, err := getLoggedInUsers()
+	if err != nil {
+		fmt.Printf("Warning: could not get logged-in users: %v\n", err)
+		return
+	}
+
+	if len(uidToUser) == 0 {
+		fmt.Println("No users currently logged in")
+		return
+	}
+
+	successCount := 0
+	for uid, username := range uidToUser {
+		domain := fmt.Sprintf("gui/%s", uid)
+		// Run as the user, not as root, so the agent inherits user privileges
+		cmd := exec.Command("sudo", "-u", username, "launchctl", "bootstrap", domain, agentPlistPath)
+		err := cmd.Run()
+		if err != nil {
+			// Ignore errors - may already be loaded
+			fmt.Printf("Note: Could not bootstrap user helper for %s (may already be running): %v\n", username, err)
+			continue
+		}
+		successCount++
+	}
+
+	if successCount > 0 {
+		fmt.Printf("Started user helper for %d logged-in user(s)\n", successCount)
+
+		// Trigger TCC permission prompts for each logged-in user
+		fmt.Println("\nTriggering TCC permission prompts for security monitoring...")
+		triggerTCCPrompts(uidToUser)
+	}
+}
+
+// triggerTCCPrompts attempts to trigger TCC permission prompts for all logged-in users
+// by briefly running the user-helper which will attempt to access System Events
+func triggerTCCPrompts(uidToUser map[string]string) {
+	// Construct path to the uem-agent binary
+	agentPath := binaryPath + string(os.PathSeparator) + serviceName
+
+	for _, username := range uidToUser {
+		// Run the user-helper briefly as each user to trigger TCC prompt
+		// The --collection-interval of 5 seconds means it will try once and exit
+		cmd := exec.Command("sudo", "-u", username, agentPath, "--user-helper", "--collection-interval", "5")
+
+		// Run in background - don't wait for it to complete
+		err := cmd.Start()
+		if err != nil {
+			fmt.Printf("Note: Could not trigger TCC prompt for %s: %v\n", username, err)
+			continue
+		}
+
+		fmt.Printf("Triggered TCC prompt for user: %s\n", username)
+	}
+
+	// Give user-helpers time to attempt System Events access and trigger prompts
+	fmt.Println("Waiting for TCC prompts to appear (5 seconds)...")
+	time.Sleep(5 * time.Second)
+
+	// Clean up any remaining user-helper processes
+	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+
+	fmt.Println("\nIf you see permission dialogs, click 'OK' to allow uem-agent to monitor security settings.")
+	fmt.Println("Or grant permission manually in: System Settings > Privacy & Security > Automation")
+}
+
+// unloadUserAgents unloads the LaunchAgent for all currently logged-in users
+func unloadUserAgents() {
+	uidToUser, err := getLoggedInUsers()
+	if err != nil {
+		// Can't get users, try to kill any user-helper processes directly
+		exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+		return
+	}
+
+	for uid, username := range uidToUser {
+		domain := fmt.Sprintf("gui/%s", uid)
+		target := fmt.Sprintf("%s/com.tenebris.uem-agent-user", domain)
+		// Run as the user to bootout from their domain
+		cmd := exec.Command("sudo", "-u", username, "launchctl", "bootout", target)
+		_ = cmd.Run() // Best effort, ignore errors
+	}
+
+	// Give processes time to exit
+	time.Sleep(2 * time.Second)
+
+	// Force kill any remaining user-helper processes
+	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+}
+
+// Helper functions for string processing
+func splitLines(s string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			lines = append(lines, s[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		lines = append(lines, s[start:])
+	}
+	return lines
+}
+
+func splitFields(s string) []string {
+	var fields []string
+	var current []byte
+	inField := false
+
+	for i := 0; i < len(s); i++ {
+		if s[i] == ' ' || s[i] == '\t' {
+			if inField {
+				fields = append(fields, string(current))
+				current = nil
+				inField = false
+			}
+		} else {
+			current = append(current, s[i])
+			inField = true
+		}
+	}
+	if inField {
+		fields = append(fields, string(current))
+	}
+	return fields
+}
+
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+
+	return s[start:end]
 }

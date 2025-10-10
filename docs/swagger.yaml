@@ -770,7 +770,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Removes one or more tags from the specified agent
+      description: Removes one or more tags from the specified agent (case-insensitive)
       parameters:
       - description: Agent ID
         in: path
@@ -892,7 +892,7 @@ paths:
       - Agent management
   /agent/by-tag/{tag}:
     get:
-      description: Retrieves all agents that have the specified tag
+      description: Retrieves all agents that have the specified tag (case-insensitive)
       parameters:
       - description: Tag
         in: path

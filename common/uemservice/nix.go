@@ -40,6 +40,7 @@ func (s *Service) start() error {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	s.logger.Infof(s.SEid+1, "%s %s (build %d) service started", s.ServiceName, s.ServiceVersion, s.ServiceBuild)
+	s.logger.Debugf(s.SEid+1, "Debug logging enabled")
 
 	if s.BackgroundFunc != nil {
 		go s.BackgroundFunc(s.logger)

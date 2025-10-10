@@ -47,6 +47,11 @@ func main() {
 		}
 	}
 
+	// Check for user-helper mode (platform-specific, macOS only)
+	if checkUserHelperMode() {
+		return // Will never reach here on macOS as it exits, but for clarity
+	}
+
 	// Make sure this program is running with elevated privileges
 	err := install.CheckRootPrivileges()
 	if err != nil {
@@ -249,6 +254,9 @@ func startService(optionalArgs ...bool) {
 		exit(1, false)
 	}
 
+	// Start user data listener (platform-specific, macOS only)
+	initUserDataListener(logger)
+
 	// Check for foreground option
 	if foreground {
 		simulateService(logger, global.TaskTicker)
@@ -334,6 +342,9 @@ func syncTime(elapsed int64) bool {
 // ServiceStopping will be called when the service is stopping
 func ServiceStopping(interfaces.Logger) {
 
+	// Stop user data listener (platform-specific, macOS only)
+	cleanupUserDataListener(logger)
+
 	// Save the configuration
 	//err := conf.Checkpoint()
 	//if err != nil {
@@ -351,7 +362,8 @@ func processRequests() {
 	cmd, err := functions.New(
 		functions.WithLogger(logger),
 		functions.WithConfig(conf),
-		functions.WithComms(communication))
+		functions.WithComms(communication),
+		functions.WithUserDataSource(getUserDataSource()))
 	if err != nil {
 		logger.Errorf(8050, "error initializing command functions module: %s", err.Error())
 		return
@@ -407,7 +419,8 @@ func sendStatus() {
 	cmd, err := functions.New(
 		functions.WithLogger(logger),
 		functions.WithConfig(conf),
-		functions.WithComms(communication))
+		functions.WithComms(communication),
+		functions.WithUserDataSource(getUserDataSource()))
 	if err != nil {
 		logger.Errorf(8060, "error initializing command module: %s", err.Error())
 		return
@@ -468,11 +481,12 @@ func newLogger() (interfaces.Logger, error) {
 	var l interfaces.Logger
 
 	// Try a full logger first based on the loaded configuration
+	debug := conf.AC.Get(schema.ConfigAgentDebug).Bool() || global.Debug
 	loggerOptions := []ulogger.Option{
 		ulogger.WithPrefix(global.LogName),
 		ulogger.WithLogStdout(conf.AC.Get(schema.ConfigAgentLogStdout).Bool()),
 		ulogger.WithRetention(conf.AC.Get(schema.ConfigAgentLogRetention).Int()),
-		ulogger.WithDebug(global.Debug)}
+		ulogger.WithDebug(debug)}
 
 	var optKey string
 	switch runtime.GOOS {
@@ -505,7 +519,7 @@ func newLogger() (interfaces.Logger, error) {
 			ulogger.WithLogFile(""),
 			ulogger.WithLogStdout(true),
 			ulogger.WithRetention(0),
-			ulogger.WithDebug(global.Debug))
+			ulogger.WithDebug(true))
 	}
 	return l, nil
 }

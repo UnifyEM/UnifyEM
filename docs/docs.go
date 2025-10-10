@@ -23,7 +23,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all agents that have the specified tag",
+                "description": "Retrieves all agents that have the specified tag (case-insensitive)",
                 "produces": [
                     "application/json"
                 ],
@@ -434,7 +434,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes one or more tags from the specified agent",
+                "description": "Removes one or more tags from the specified agent (case-insensitive)",
                 "consumes": [
                     "application/json"
                 ],
