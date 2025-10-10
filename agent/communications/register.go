@@ -6,6 +6,7 @@
 package communications
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -86,32 +87,82 @@ func (c *Communications) register() (string, error) {
 }
 
 // splitToken splits the token into server URL and registration token.
+// Supports both new format (base64-encoded JSON) and legacy format (URL with token in path).
 func splitToken(token string) (string, string, error) {
 
-	// Parse the token as a URL
-	parsedURL, err := url.Parse(token)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid token format: %w", err)
+	// Try new format first (base64-encoded JSON)
+	if decoded, err := base64.StdEncoding.DecodeString(token); err == nil {
+		var tokenData struct {
+			S string `json:"s"` // server URL
+			T string `json:"t"` // registration token
+		}
+		if json.Unmarshal(decoded, &tokenData) == nil &&
+			tokenData.S != "" && tokenData.T != "" {
+			// Validate and return the new format
+			return validateServerAndToken(tokenData.S, tokenData.T)
+		}
 	}
 
-	// Ensure the URL has a scheme and host
+	// Fall back to legacy format (URL-based)
+	return parseLegacyToken(token)
+}
+
+// validateServerAndToken validates the server URL and token, ensuring proper scheme.
+func validateServerAndToken(serverURL, regToken string) (string, string, error) {
+	parsedURL, err := url.Parse(serverURL)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid server URL: %w", err)
+	}
+
 	if parsedURL.Scheme == "" {
 		return "", "", fmt.Errorf("invalid token format: missing scheme")
 	}
 
-	// Ensure the URL has a scheme and host
 	if parsedURL.Host == "" {
 		return "", "", fmt.Errorf("invalid token format: missing host")
 	}
 
 	// Only allow http if global.Unsafe is true
 	if global.Unsafe {
-		// Allow http or https
 		if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 			return "", "", fmt.Errorf("invalid token format: scheme must be HTTP or HTTPS")
 		}
 	} else {
-		// Only allow https
+		if parsedURL.Scheme != "https" {
+			return "", "", fmt.Errorf("invalid token format: scheme must be HTTPS")
+		}
+	}
+
+	// Ensure no path, query, or fragment in server URL
+	parsedURL.Path = ""
+	parsedURL.RawQuery = ""
+	parsedURL.Fragment = ""
+	cleanServerURL := parsedURL.String()
+
+	return cleanServerURL, regToken, nil
+}
+
+// parseLegacyToken parses the legacy URL-based token format.
+func parseLegacyToken(token string) (string, string, error) {
+	parsedURL, err := url.Parse(token)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid token format: %w", err)
+	}
+
+	if parsedURL.Scheme == "" {
+		return "", "", fmt.Errorf("invalid token format: missing scheme")
+	}
+
+	if parsedURL.Host == "" {
+		return "", "", fmt.Errorf("invalid token format: missing host")
+	}
+
+	// Only allow http if global.Unsafe is true
+	if global.Unsafe {
+		if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+			return "", "", fmt.Errorf("invalid token format: scheme must be HTTP or HTTPS")
+		}
+	} else {
 		if parsedURL.Scheme != "https" {
 			return "", "", fmt.Errorf("invalid token format: scheme must be HTTPS")
 		}
@@ -119,7 +170,7 @@ func splitToken(token string) (string, string, error) {
 
 	// Extract the registration token from the path
 	pathParts := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
-	if len(pathParts) != 1 {
+	if len(pathParts) != 1 || pathParts[0] == "" {
 		return "", "", fmt.Errorf("invalid token format: registration token")
 	}
 	regToken := pathParts[0]
