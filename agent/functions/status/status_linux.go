@@ -202,6 +202,20 @@ func (h *Handler) password() string {
 	return "unknown"
 }
 
+// parseGSettingsValue extracts the actual value from gsettings output.
+// gsettings returns values in format "type value" (e.g., "uint32 300").
+// This function extracts just the value part.
+func parseGSettingsValue(output string) string {
+	val := strings.TrimSpace(output)
+	val = strings.Trim(val, "'")
+	// gsettings output format is "type value", so split and take the last field
+	fields := strings.Fields(val)
+	if len(fields) > 0 {
+		return fields[len(fields)-1]
+	}
+	return val
+}
+
 // getDisplayEnv tries to find a DISPLAY environment variable for a running X11/Wayland session.
 // Returns the DISPLAY value and true if found, otherwise "" and false.
 func (h *Handler) getDisplayEnv() (string, bool) {
@@ -275,7 +289,7 @@ func (h *Handler) screenLock() (string, error) {
 	idleOut, err2 := exec.Command("gsettings", "get", "org.gnome.desktop.session", "idle-delay").Output()
 	if err1 == nil && err2 == nil {
 		lockVal := strings.TrimSpace(string(lockOut))
-		idleVal := strings.Trim(strings.TrimSpace(string(idleOut)), "'")
+		idleVal := parseGSettingsValue(string(idleOut))
 		if lockVal == "true" {
 			// idle-delay is in seconds, must be > 0
 			if idleSec, err := strconv.Atoi(idleVal); err == nil && idleSec > 0 {
@@ -309,9 +323,7 @@ func (h *Handler) screenLockDelay() string {
 	// Try gsettings (GNOME, Ubuntu, Debian, CentOS default)
 	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.session", "idle-delay").Output()
 	if err == nil {
-		val := strings.TrimSpace(string(out))
-		val = strings.Trim(val, "'")
-		return val
+		return parseGSettingsValue(string(out))
 	}
 
 	// Try xfconf-query (XFCE)
