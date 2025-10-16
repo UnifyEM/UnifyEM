@@ -183,7 +183,7 @@ a.logger.Info(3202, "users listed", logFields)
 - `GET /agent/{id}` — Get details for a specific agent (including the `users` field).
 - `POST /agent/{id}` or `PUT /agent/{id}` — Update agent information.
 - `DELETE /agent/{id}` — Delete an agent.
-- `GET /agent/by-tag/{tag}` — List all agents with a specific tag.
+- `GET /agent/by-tag/{tag}` — List all agents with a specific tag. Use `tag=all` to get all agents.
 
 #### Agent User Assignment Endpoints
 
@@ -206,6 +206,7 @@ a.logger.Info(3202, "users listed", logFields)
 
 The CLI will:
 - For `tag=<tag>`, query `/agent/by-tag/{tag}` to get all agents with that tag, then perform the add/remove operation for each agent.
+- For `tag=all`, query `/agent/by-tag/all` to get all agents regardless of tags.
 - For a specific agent ID, perform the operation directly.
 
 ### Data Flow for Adding/Removing Users to/from Agents

@@ -281,6 +281,19 @@ func (a *API) getAgentsByTag(req *http.Request) userver.JResponse {
 			HTTPCode: http.StatusInternalServerError,
 			JSONData: schema.API500{Details: "error retrieving agents", Status: schema.APIStatusError, Code: http.StatusInternalServerError}}
 	}
+
+	// Special case: tag "all" returns all agents
+	if strings.ToLower(tag) == "all" {
+		return userver.JResponse{
+			HTTPCode: http.StatusOK,
+			JSONData: schema.AgentsByTagResponse{
+				Agents: agents.Agents,
+				Status: schema.APIStatusOK,
+				Code:   http.StatusOK,
+			},
+		}
+	}
+
 	var matched []schema.AgentMeta
 	for _, agent := range agents.Agents {
 		for _, t := range agent.Tags {
