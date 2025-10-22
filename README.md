@@ -5,7 +5,7 @@ Unify Endpoint Management (UnifyEM) is a free, open-source, self-hosted software
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
 
-The latest version is also available at https://github.com/UnifyEM/UnifyEM/releases/latest/download/uem-latest.tar.gzd
+The latest version is also available at https://github.com/UnifyEM/UnifyEM/releases/latest/download/uem-latest.tar.gz
 
 Windows and macOS binaries are signed to avoid distribution and installation issues. macOS Tahoe is particularly difficult about unsigned binaries.
 
