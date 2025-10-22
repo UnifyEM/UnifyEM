@@ -149,7 +149,7 @@ go build -o ../bin/uem-server
 
 Each component is a single statically-linked binary.
 
-**The author's script from his Ubuntu 24 UEM server is included as uem-build.sh. This script compiles uem-server and uem-cli and deploys them, stopping and re-starting uem-server as required. It then builds the various agents and copies them to the default file distribution directory. Note that this script uses sudo. Please review it prior to running it on your computer. Note that you must install the server following the instructions below, the script is to build and update the server, not the initial installation.**
+**Note: macOS Tahoe refuses to allow unsigned binaries to run. If you compile your own agent, you will need to sign it to avoid installation issues.**
 
 ### uem-server installation
 
