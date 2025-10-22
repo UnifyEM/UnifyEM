@@ -114,5 +114,6 @@ func (a *API) postCmd(req *http.Request) userver.JResponse {
 			Status:    schema.APIStatusOK,
 			Code:      http.StatusOK,
 			Details:   "request queued for agent",
-			RequestID: requestID}}
+			RequestID: requestID,
+			AgentID:   cmd.Parameters["agent_id"]}}
 }

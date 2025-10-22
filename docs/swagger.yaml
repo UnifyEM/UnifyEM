@@ -892,9 +892,9 @@ paths:
       - Agent management
   /agent/by-tag/{tag}:
     get:
-      description: Retrieves all agents that have the specified tag (case-insensitive)
+      description: Retrieves all agents that have the specified tag (case-insensitive). Use tag='all' to retrieve all agents.
       parameters:
-      - description: Tag
+      - description: Tag (use 'all' for all agents)
         in: path
         name: tag
         required: true

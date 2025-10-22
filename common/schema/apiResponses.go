@@ -162,8 +162,10 @@ type APIRegisterResponse struct {
 
 // APICmdResponse is used by the API to respond to a command request
 type APICmdResponse struct {
-	Status    string `json:"status" example:"ok"`
-	Code      int    `json:"code" example:"200"`
-	Details   string `json:"details,omitempty" example:"request queued for agent"`
-	RequestID string `json:"request_id,omitempty" example:"R-6f9dcb2e-2e1b-4c3a-8a67-5b3e0d740df6"`
+	Status            string `json:"status" example:"ok"`
+	Code              int    `json:"code" example:"200"`
+	Details           string `json:"details,omitempty" example:"request queued for agent"`
+	RequestID         string `json:"request_id,omitempty" example:"R-6f9dcb2e-2e1b-4c3a-8a67-5b3e0d740df6"`
+	AgentID           string `json:"agent_id,omitempty" example:"A-12345678-abcd-1234-5648-1234567890ab"`
+	AgentFriendlyName string `json:"agent_friendly_name,omitempty" example:"Tuxedo001 Linux Laptop"`
 }

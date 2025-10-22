@@ -108,6 +108,3 @@ required.
 can be used to query the status of the request including any response received from the agent.
 
 `uem-cli verstion` displays version, copyright, and legal information.
-
-
-
