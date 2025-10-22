@@ -1,6 +1,13 @@
 # UnifyEM
 
-Unify Endpoint Management (UnifyEM) is free, open source, self-hosted software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+Unify Endpoint Management (UnifyEM) is a free, open-source, self-hosted software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
+
+## Releases
+Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
+
+The latest version is also available at https://github.com/UnifyEM/UnifyEM/releases/latest/download/uem-latest.tar.gz
+
+## Overview
 
 (Asking users to send screenshots to demonstrate that they have basics such as disk encryption and screen lock enabled eats at the author's soul. )
 
