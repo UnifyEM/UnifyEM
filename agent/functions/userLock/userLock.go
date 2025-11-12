@@ -39,7 +39,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.RequestID = request.RequestID
 	response.Success = false
 
-	username, ok := request.Parameters["username"]
+	username, ok := request.Parameters["user"]
 	if !ok || username == "" {
 		response.Response = "username is missing or invalid"
 		return response, errors.New(response.Response)
@@ -56,7 +56,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		fields.NewField("cmd", request.Request),
 		fields.NewField("requester", request.Requester),
 		fields.NewField("request_id", request.RequestID),
-		fields.NewField("username", username),
+		fields.NewField("user", username),
 	)
 
 	a := osActions.New(h.logger)
