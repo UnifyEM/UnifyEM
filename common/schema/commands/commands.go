@@ -99,7 +99,7 @@ func init() {
 			UserDelete: {
 				Name:         UserAdd,
 				AckRequired:  true,
-				RequiredArgs: []string{"user"},
+				RequiredArgs: []string{"user", "agent_id"},
 				OptionalArgs: []string{},
 			},
 			UserAdmin: {
