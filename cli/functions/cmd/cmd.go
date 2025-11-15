@@ -194,6 +194,7 @@ func Register() *cobra.Command {
 }
 
 func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout int) error {
+
 	// Create communications object
 	c := communications.New(login.Login())
 
@@ -208,7 +209,7 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout 
 	// Track request IDs if waiting
 	var requestIDs []string
 
-	if hasTag && !hasAgentID {
+	if hasTag {
 		// Bulk action by tag
 		// Query the server for all agents with the tag
 		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
@@ -233,8 +234,8 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout 
 			}
 			newParams["agent_id"] = agent.AgentID
 			// Validate command for this agent
-			if err := commands.Validate(subCmd, newParams); err != nil {
-				fmt.Printf("Validation failed for agent %s: %v\n", agent.AgentID, err)
+			if err = commands.Validate(subCmd, newParams); err != nil {
+				fmt.Printf("command %s validation failed for agent %s: %s\n", agent.AgentID, err.Error())
 				if firstErr == nil {
 					firstErr = err
 				}
@@ -271,7 +272,7 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout 
 	// Single agent or normal case
 	err := commands.Validate(subCmd, params)
 	if err != nil {
-		return fmt.Errorf("command validation failed: %s\n", err.Error())
+		return fmt.Errorf("command %s validation failed: %s", subCmd, err.Error())
 	}
 
 	// Initialize a new command object

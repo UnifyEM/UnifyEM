@@ -137,7 +137,7 @@ func (c *Command) ExecuteRequest(request schema.AgentRequest) schema.AgentRespon
 	// Validate the request. This eliminates the need for each function to validate mandatory parameters, etc.
 	err := commands.Validate(request.Request, request.Parameters)
 	if err != nil {
-		response.Response = fmt.Sprintf("command validation failed: %s", err.Error())
+		response.Response = fmt.Sprintf("command validation for %s failed: %s", request.Request, err.Error())
 		return response
 	}
 

@@ -97,7 +97,7 @@ func init() {
 				OptionalArgs: []string{"admin"},
 			},
 			UserDelete: {
-				Name:         UserAdd,
+				Name:         UserDelete,
 				AckRequired:  true,
 				RequiredArgs: []string{"user", "agent_id"},
 				OptionalArgs: []string{},
@@ -136,7 +136,7 @@ func init() {
 	}
 
 	// Add the standard parameters to all functions
-	// Allows allow adding a hash. Administrators don't need to specify it, but the server will
+	// Always allow adding a hash. Administrators don't need to specify it, but the server will
 	// add it where required
 	for _, cmd := range cmds.Commands {
 		cmd.OptionalArgs = append(cmd.OptionalArgs, AgentID, RequestID, "hash")
