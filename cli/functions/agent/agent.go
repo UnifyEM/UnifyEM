@@ -168,7 +168,7 @@ func agentList(_ []string, _ *util.NVPairs) error {
 
 func agentGet(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Agent ID is required")
+		return errors.New("agent ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -178,7 +178,7 @@ func agentGet(args []string, _ *util.NVPairs) error {
 
 func agentDelete(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Agent ID is required")
+		return errors.New("agent ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -188,7 +188,7 @@ func agentDelete(args []string, _ *util.NVPairs) error {
 
 func agentSetName(args []string, _ *util.NVPairs) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID and name are required")
+		return errors.New("agent ID and name are required")
 	}
 
 	agentMeta := schema.NewAgentMeta(args[0])
@@ -202,7 +202,7 @@ func agentSetName(args []string, _ *util.NVPairs) error {
 // List tags for an agent
 func agentListTags(args []string) error {
 	if len(args) < 1 {
-		return errors.New("Agent ID is required")
+		return errors.New("agent ID is required")
 	}
 	c := communications.New(login.Login())
 	status, body, err := c.Get(schema.EndpointAgent + "/" + args[0] + "/tags")
@@ -213,7 +213,7 @@ func agentListTags(args []string) error {
 // Add tags to an agent
 func agentAddTags(args []string) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID and at least one tag are required")
+		return errors.New("agent ID and at least one tag are required")
 	}
 	req := schema.AgentTagsRequest{Tags: args[1:]}
 	c := communications.New(login.Login())
@@ -225,7 +225,7 @@ func agentAddTags(args []string) error {
 // Remove tags from an agent
 func agentRemoveTags(args []string) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID and at least one tag are required")
+		return errors.New("agent ID and at least one tag are required")
 	}
 	req := schema.AgentTagsRequest{Tags: args[1:]}
 	c := communications.New(login.Login())
@@ -237,7 +237,7 @@ func agentRemoveTags(args []string) error {
 // Add users to an agent or all agents with a tag
 func agentAddUsers(args []string) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID or tag=<tag> and at least one user are required")
+		return errors.New("agent ID or tag=<tag> and at least one user are required")
 	}
 	c := communications.New(login.Login())
 	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {
@@ -275,7 +275,7 @@ func agentAddUsers(args []string) error {
 // Remove users from an agent or all agents with a tag
 func agentRemoveUsers(args []string) error {
 	if len(args) < 2 {
-		return errors.New("Agent ID or tag=<tag> and at least one user are required")
+		return errors.New("agent ID or tag=<tag> and at least one user are required")
 	}
 	c := communications.New(login.Login())
 	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {

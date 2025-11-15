@@ -10,9 +10,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/server/db"

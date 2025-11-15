@@ -235,7 +235,7 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout 
 			newParams["agent_id"] = agent.AgentID
 			// Validate command for this agent
 			if err = commands.Validate(subCmd, newParams); err != nil {
-				fmt.Printf("command %s validation failed for agent %s: %s\n", agent.AgentID, err.Error())
+				fmt.Printf("command %s validation failed for agent %s: %s\n", subCmd, agent.AgentID, err.Error())
 				if firstErr == nil {
 					firstErr = err
 				}

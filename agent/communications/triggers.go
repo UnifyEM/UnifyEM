@@ -8,8 +8,9 @@ package communications
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/UnifyEM/UnifyEM/agent/execute"
 	"os"
+
+	"github.com/UnifyEM/UnifyEM/agent/execute"
 
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/common/schema"

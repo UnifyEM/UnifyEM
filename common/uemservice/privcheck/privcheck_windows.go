@@ -1,11 +1,12 @@
+//go:build windows
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-//go:build windows
-
 // MacOS (Darin) specific functions
+
 package privcheck
 
 import (

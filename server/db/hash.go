@@ -10,8 +10,9 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"golang.org/x/crypto/scrypt"
 	"strings"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 // Bcrypt is limited to 72 characters and tokens may exceed tht, so we use scrypt instead.

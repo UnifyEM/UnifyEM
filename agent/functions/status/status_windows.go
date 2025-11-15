@@ -64,7 +64,9 @@ func (h *Handler) osVersion() string {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.QUERY_VALUE)
 	if err == nil {
-		defer k.Close()
+		defer func(k registry.Key) {
+			_ = k.Close()
+		}(k)
 
 		productName, _, _ := k.GetStringValue("ProductName")
 		displayVersion, _, _ := k.GetStringValue("DisplayVersion")

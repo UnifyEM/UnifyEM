@@ -6,8 +6,9 @@
 package global
 
 import (
-	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"runtime"
+
+	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
 
 const (

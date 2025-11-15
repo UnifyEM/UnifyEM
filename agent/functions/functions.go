@@ -42,6 +42,7 @@ type CmdHandler interface {
 	Cmd(schema.AgentRequest) (schema.AgentResponse, error)
 }
 
+//goland:noinspection DuplicatedCode
 func New(options ...func(*Command) error) (*Command, error) {
 	c := &Command{
 		handlers: make(map[string]CmdHandler),
@@ -151,6 +152,7 @@ func (c *Command) ExecuteRequest(request schema.AgentRequest) schema.AgentRespon
 	// Dispatch the request and return the response
 	response, err = handler.Cmd(request)
 	if err != nil {
+		//goland:noinspection GoDfaErrorMayBeNotNil
 		response.Response = fmt.Sprintf("command execution failed: %s", err.Error())
 		response.Success = false
 	} else {

@@ -15,10 +15,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"golang.org/x/net/netutil"
 	"net"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/netutil"
 
 	"github.com/gorilla/mux"
 

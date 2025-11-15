@@ -1,9 +1,9 @@
+//go:build windows
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
-
-//go:build windows
 
 package main
 
@@ -18,12 +18,12 @@ func checkUserHelperMode() bool {
 }
 
 // initUserDataListener is a no-op on Windows
-func initUserDataListener(log interfaces.Logger) {
+func initUserDataListener(_ interfaces.Logger) {
 	// Not implemented on Windows
 }
 
 // cleanupUserDataListener is a no-op on Windows
-func cleanupUserDataListener(log interfaces.Logger) {
+func cleanupUserDataListener(_ interfaces.Logger) {
 	// Not implemented on Windows
 }
 

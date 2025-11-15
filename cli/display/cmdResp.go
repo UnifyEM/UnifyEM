@@ -8,6 +8,7 @@ package display
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/UnifyEM/UnifyEM/cli/credentials"
 
 	"github.com/UnifyEM/UnifyEM/cli/global"

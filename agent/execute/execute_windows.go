@@ -1,9 +1,9 @@
+//go:build windows
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
-
-//go:build windows
 
 package execute
 
@@ -30,9 +30,11 @@ func Execute(logger interfaces.Logger, file string, args []string) error {
 	// Redirect stdin, stdout, stderr to NUL
 	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
-		return fmt.Errorf("Failed to open NUL: %w", err)
+		return fmt.Errorf("failed to open NUL: %w", err)
 	}
-	defer devNull.Close()
+	defer func(devNull *os.File) {
+		_ = devNull.Close()
+	}(devNull)
 
 	cmd.Stdin = devNull
 	cmd.Stdout = devNull

@@ -8,10 +8,11 @@ package userver
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/UnifyEM/UnifyEM/common/fields"
 )

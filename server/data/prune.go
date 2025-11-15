@@ -6,9 +6,10 @@
 package data
 
 import (
+	"time"
+
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/server/global"
-	"time"
 )
 
 // PruneDB removes old data from the database

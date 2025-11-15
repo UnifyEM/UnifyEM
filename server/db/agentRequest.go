@@ -8,8 +8,9 @@ package db
 import (
 	"errors"
 	"fmt"
-	"github.com/UnifyEM/UnifyEM/common/fields"
 	"time"
+
+	"github.com/UnifyEM/UnifyEM/common/fields"
 
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )

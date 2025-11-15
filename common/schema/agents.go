@@ -42,31 +42,31 @@ type AgentStatus struct {
 	Details     map[string]string `json:"details"`
 }
 
-// Request for adding/removing tags
+// AgentTagsRequest Request for adding/removing tags
 type AgentTagsRequest struct {
 	Tags []string `json:"tags"`
 }
 
-// Request for adding/removing users
+// AgentUsersRequest Request for adding/removing users
 type AgentUsersRequest struct {
 	Users []string `json:"users"`
 }
 
-// Response for user operations
+// AgentUsersResponse Response for user operations
 type AgentUsersResponse struct {
 	Users  []string `json:"users"`
 	Status string   `json:"status"`
 	Code   int      `json:"code"`
 }
 
-// Response for tag operations
+// AgentTagsResponse Response for tag operations
 type AgentTagsResponse struct {
 	Tags   []string `json:"tags"`
 	Status string   `json:"status"`
 	Code   int      `json:"code"`
 }
 
-// Response for agents by tag
+// AgentsByTagResponse Response for agents by tag
 type AgentsByTagResponse struct {
 	Agents []AgentMeta `json:"agents"`
 	Status string      `json:"status"`
