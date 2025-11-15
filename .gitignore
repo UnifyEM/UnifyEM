@@ -12,6 +12,7 @@ bin/
 .idea
 .idea/*
 .vscode
+.claude
 .DS*
 build/
 *.swp
