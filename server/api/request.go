@@ -62,6 +62,14 @@ func (a *API) getRequest(req *http.Request) userver.JResponse {
 				JSONData: schema.API404{Details: "request not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
 		}
 	}
+
+	// Mask sensitive parameters before returning via API
+	for i := range requests.Requests {
+		if _, exists := requests.Requests[i].Parameters["password"]; exists {
+			requests.Requests[i].Parameters["password"] = "********"
+		}
+	}
+
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
 		JSONData: schema.APIRequestStatusResponse{
