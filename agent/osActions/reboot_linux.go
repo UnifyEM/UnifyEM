@@ -31,12 +31,11 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 
 		// Fall back to shutdown command
 		if reboot {
-			cmd = exec.Command("shutdown", "-r", "now")
+			_, err = runCmd.Combined("shutdown", "-r", "now")
 		} else {
-			cmd = exec.Command("shutdown", "-h", "now")
+			_, err = runCmd.Combined("shutdown", "-h", "now")
 		}
 
-		err = cmd.Run()
 		if err != nil {
 			a.logger.Errorf(8309, "Failed to execute shutdown command: %s", err.Error())
 
