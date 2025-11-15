@@ -86,9 +86,11 @@ common/schema/api.go
 
 Admin comments use the server's API. For CLI syntax, use `./uem-cli --help` or `uem-cli.exe --help` on Windows.
 
-`uem-cli agent <subcommand> <args>` is used to obtain information about agents, setting their name, adding and removing tags, and setting (possibly resetting) triggers.
+`uem-cli agent <subcommand> <args>` is used to obtain information about agents, setting their name, adding and removing
+tags, and setting (possibly resetting) triggers.
 
-`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests , specify agent_id, or a tag to apply the command to.
+`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests , specify agent_id, or a tag to apply the
+command to.
 
 `uem-cli config <agents | server> <get | set> [args]` is used to set and retrieve server configuration parameters.
 

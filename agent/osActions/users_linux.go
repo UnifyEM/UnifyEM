@@ -308,7 +308,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		}
 	} else {
 		// Remove user from admin group
-		_, err = runCmd.Combined("deluser", uq, adminGroup)
+		_, err = runCmd.Combined("usermod", "-rG", adminGroup, uq)
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from %s group: %w", uq, adminGroup, err)
 		}

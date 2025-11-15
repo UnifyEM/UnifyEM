@@ -13,7 +13,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
-// safeUsername wraps a username in quotes and ensures that it only includes valid characters
+// safeUsername ensures that it only includes valid characters
 //
 //goland:noinspection GoUnusedFunction
 func safeUsername(s string) (string, error) {
@@ -25,10 +25,10 @@ func safeUsername(s string) (string, error) {
 			return "", fmt.Errorf("invalid character '%c' in username", char)
 		}
 	}
-	return fmt.Sprintf("\"%s\"", filtered.String()), nil
+	return filtered.String(), nil
 }
 
-// safePassword wraps a password in quotes and ensures that it only includes valid characters
+// safePassword ensures that it only includes valid characters
 //
 //goland:noinspection GoUnusedFunction
 func safePassword(s string) (string, error) {
@@ -40,7 +40,7 @@ func safePassword(s string) (string, error) {
 			return "", fmt.Errorf("invalid character '%c' in password", char)
 		}
 	}
-	return fmt.Sprintf("\"%s\"", filtered.String()), nil
+	return filtered.String(), nil
 }
 
 // stringClean removes all non-printable characters and multiple spaces from a string

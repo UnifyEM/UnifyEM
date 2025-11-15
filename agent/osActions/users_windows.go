@@ -13,6 +13,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/StackExchange/wmi"
+
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
@@ -125,9 +127,7 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	//cmd := exec.Command("net", "user", uq, "/active:no")
-	//err = cmd.Run()
-	_, err = cmd.CombinedOutput("net", "user", uq, "/active:no")
+	_, err = runCmd.Combined("net", "user", uq, "/active:no")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
 	}
@@ -197,15 +197,8 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
 
-	// Add the user to the "Users" group
-	_, err = runCmd.Combined("net", "localgroup", "Users", uq, "/add")
-	if err != nil {
-		return fmt.Errorf("failed to add user %s to Users group: %w", uq, err)
-	}
-
 	// Add the user's password to allow boot drive bitlocker access
-	strippedPQ := strings.Trim(pq, "\"")           // removes leading/trailing double quotes
-	strippedPQ = strings.ReplaceAll(pq, "'", "''") // escape single quotes
+	strippedPQ := strings.ReplaceAll(pq, "'", "''") // escape single quotes
 	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
@@ -240,16 +233,44 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		return err
 	}
 
-	var group string
 	if admin {
-		group = "Administrators"
+		err = a.addToGroup(uq, "Administrators")
+		if err != nil {
+			return fmt.Errorf("failed to add user %s from Administators group: %w", uq, err)
+		}
 	} else {
-		group = "Users"
+		err = a.removeFromGroup(uq, "Administrators")
+		if err != nil {
+			return fmt.Errorf("failed to remove user %s from Administators group: %w", uq, err)
+		}
+		// Just a best practice, but not really needed
+		_ = a.addToGroup(uq, "User")
 	}
+	return nil
+}
 
-	_, err = runCmd.Combined("net", "localgroup", group, uq, "/add")
+func (a *Actions) addToGroup(user, group string) error {
+	out, err := runCmd.Combined("net", "localgroup", group, user, "/ADD")
 	if err != nil {
-		return fmt.Errorf("failed to set user %s as %s: %w", uq, group, err)
+		if strings.Contains(string(out), "is already a member") {
+			// Consider this a success
+			return nil
+		}
+
+		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+	}
+	return nil
+}
+
+func (a *Actions) removeFromGroup(user, group string) error {
+	out, err := runCmd.Combined("net", "localgroup", group, user, "/DELETE")
+	if err != nil {
+		if strings.Contains(string(out), "is not a member") {
+			// Consider this a success
+			return nil
+		}
+
+		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
 	}
 	return nil
 }

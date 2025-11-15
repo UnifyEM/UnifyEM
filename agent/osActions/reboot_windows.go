@@ -112,7 +112,7 @@ func attemptInitiateSystemShutdownEx(reboot bool) error {
 
 // Attempt to use ExitWindowsEx
 func attemptExitWindowsEx(reboot bool) error {
-	if err = enableShutdownPrivilege(); err != nil {
+	if err := enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
 
@@ -148,7 +148,7 @@ func attemptShutdownCommand(reboot bool) error {
 		cmdArgs = []string{"shutdown", "/r", "/t", "0"} // Reboot
 	}
 
-	_, err = runCmd.Combined(cmdArgs...)
+	_, err := runCmd.Combined(cmdArgs...)
 	if err != nil {
 		return fmt.Errorf("shutdown command failed: %w", err)
 	}
