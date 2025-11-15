@@ -180,8 +180,9 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 					Parameters: request.Parameters,
 				})
 
-				// Update the agent status
-				if markSent {
+				// Update the request status
+				if markSent && !request.AckRequired {
+					// Only mark as complete if acknowledgment is not required
 					request.Status = schema.RequestStatusComplete
 				} else {
 					request.Status = schema.RequestStatusPending

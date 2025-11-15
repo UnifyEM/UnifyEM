@@ -1,0 +1,103 @@
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+package cmd
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/UnifyEM/UnifyEM/cli/display"
+	"github.com/UnifyEM/UnifyEM/cli/global"
+	"github.com/UnifyEM/UnifyEM/common/schema"
+)
+
+// waitForResponses polls the server for request status until all requests complete or timeout occurs
+func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
+	if len(requestIDs) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nWaiting for response(s) (timeout: %ds)...\n", timeout)
+
+	startTime := time.Now()
+	pendingRequests := make(map[string]bool)
+	for _, id := range requestIDs {
+		pendingRequests[id] = true
+	}
+
+	// Poll until all requests are complete or timeout
+	for len(pendingRequests) > 0 {
+		// Check timeout after each poll cycle
+		elapsed := int(time.Since(startTime).Seconds())
+		if elapsed >= timeout {
+			fmt.Printf("\nTimeout after %ds. Displaying last known status:\n", elapsed)
+
+			// Display status of remaining pending requests
+			for requestID := range pendingRequests {
+				displayRequestStatus(c, requestID)
+			}
+			return fmt.Errorf("timeout waiting for response(s)")
+		}
+
+		// Poll each pending request
+		for requestID := range pendingRequests {
+			statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
+			if err != nil {
+				// Network error - continue polling
+				continue
+			}
+
+			if statusCode != 200 {
+				// Request not found or error - remove from pending
+				delete(pendingRequests, requestID)
+				continue
+			}
+
+			// Parse response
+			var resp schema.APIRequestStatusResponse
+			if err := json.Unmarshal(data, &resp); err != nil {
+				continue
+			}
+
+			// Check if request has completed
+			if len(resp.Data.Requests) > 0 {
+				request := resp.Data.Requests[0]
+				if isRequestComplete(request.Status) {
+					// Display the completed request
+					fmt.Printf("\n")
+					display.ErrorWrapper(display.RequestList(statusCode, data, nil))
+					delete(pendingRequests, requestID)
+				}
+			}
+		}
+
+		// Sleep before next poll cycle (only if there are still pending requests)
+		if len(pendingRequests) > 0 {
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	return nil
+}
+
+// displayRequestStatus shows the current status of a request
+func displayRequestStatus(c global.Comms, requestID string) {
+	statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
+	if err == nil {
+		fmt.Printf("\n")
+		display.ErrorWrapper(display.RequestList(statusCode, data, nil))
+	} else {
+		fmt.Printf("\nUnable to retrieve status for request %s: %v\n", requestID, err)
+	}
+}
+
+// isRequestComplete checks if a request status indicates completion
+func isRequestComplete(status string) bool {
+	return status == schema.RequestStatusComplete ||
+		status == schema.RequestStatusFailed ||
+		status == schema.RequestStatusInvalid
+}

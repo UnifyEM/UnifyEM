@@ -227,13 +227,51 @@ UEM_SERVER=http://127.0.0.1:8080
 
 Additional administrator accounts, along with managing them via the API, will be added in the near future. Until this occurs, the only admin-level credentials are usernames and passwords set from the uem-server command line.
 
-### uem-agent installation
+#### Waiting for Agent Responses
 
-Reminder: The agent is not yet supported on Linux. Attempting to compile it on Linux will fail. This will be addressed in the near future.
+By default, when commands are sent to agents using `uem-cli cmd`, the CLI returns immediately after the server queues the command and provides a request ID. Administrators can then check the status and response using `uem-cli request get <request_id>`.
+
+For testing and interactive use, two optional flags are available to wait for agent responses:
+
+- `--wait`: Wait for the agent to respond before returning. The CLI will poll the server every 5 seconds until the agent responds or the timeout is reached.
+- `--timeout <seconds>`: Specify the timeout in seconds when using `--wait` (default: 300 seconds).
+
+For testing purposes, you may wish to set the agent communication intervals to reduce the time spent waiting for a reply. For example, 
+
+```bash
+uem-cli config agents set sync_interval=10
+uem-cli config agents set sync_pending=10
+uem-cli config agents set sync_retry=10
+```
+
+Examples:
+
+```bash
+# Send command and wait for response (5 minute timeout)
+uem-cli cmd ping agent_id=A-12345678-abcd-1234-5678-1234567890ab --wait
+
+# Send command and wait with custom timeout (10 minutes)
+uem-cli cmd status agent_id=A-12345678-abcd-1234-5678-1234567890ab --wait --timeout=600
+
+# Send command to multiple agents by tag and wait for all responses
+uem-cli cmd ping tag=production --wait
+
+# Send command without waiting (default behavior)
+uem-cli cmd ping agent_id=A-12345678-abcd-1234-5678-1234567890ab
+```
+
+When `--wait` is used:
+1. The initial server response (HTTP status and request ID) is displayed immediately
+2. The CLI polls the server every 5 seconds for the agent's response
+3. When the agent responds, the full response is displayed
+4. If the timeout is reached, the last known status is displayed along with a timeout message
+5. For tag-based commands (multiple agents), the CLI waits for all agents to respond or timeout
+
+### uem-agent installation
 
 The agent can be installed by running:
 
-```
+```bash
 ./uem-agent install <installation token>
 ```
 
