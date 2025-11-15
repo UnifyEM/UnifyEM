@@ -145,18 +145,17 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	_, err := runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", uq)
+	_, err = runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", uq)
 	if err != nil {
 		// Try alternative location if /usr/sbin/nologin doesn't exist
-		cmd = exec.Command("usermod", "-s", "/bin/false", uq)
-		err = cmd.Run()
+		_, err = runCmd.Combined("usermod", "-s", "/bin/false", uq)
 		if err != nil {
 			return fmt.Errorf("failed to lock user %s: %w", uq, err)
 		}
 	}
 
 	// Also lock the password
-	_, err := runCmd.Combined("passwd", "-l", uq)
+	_, err = runCmd.Combined("passwd", "-l", uq)
 	if err != nil {
 		a.logger.Errorf(8311, "Failed to lock password for user %s: %s", uq, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -184,13 +183,13 @@ func (a *Actions) unlockUser(username string) error {
 		}
 	}
 
-	_, err := runCmd.Combined("usermod", "-s", shell, uq)
+	_, err = runCmd.Combined("usermod", "-s", shell, uq)
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
 
 	// Also unlock the password
-	_, err := runCmd.Combined("passwd", "-u", uq)
+	_, err = runCmd.Combined("passwd", "-u", uq)
 	if err != nil {
 		a.logger.Errorf(8312, "Failed to unlock password for user %s: %s", uq, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -242,7 +241,7 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user
-	_, err := runCmd.Combined("useradd", "-m", "-s", "/bin/bash", uq)
+	_, err = runCmd.Combined("useradd", "-m", "-s", "/bin/bash", uq)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
@@ -276,7 +275,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 	adminGroup := "sudo" // Default for Debian/Ubuntu
 
 	// Check if sudo group exists
-	_, err := runCmd.Combined("getent", "group", "sudo")
+	_, err = runCmd.Combined("getent", "group", "sudo")
 	if err != nil {
 		// Try wheel group (RHEL/CentOS/Fedora)
 		_, err = runCmd.Combined("getent", "group", "wheel")
