@@ -324,3 +324,33 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 	}
 	return nil
 }
+
+// deleteUser removes a user from the system
+func (a *Actions) deleteUser(username string) error {
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return err
+	}
+
+	// Remove sudoers file if it exists
+	sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
+	if _, statErr := os.Stat(sudoersFile); statErr == nil {
+		removeErr := os.Remove(sudoersFile)
+		if removeErr != nil {
+			a.logger.Warningf(8313, "Failed to remove sudoers file for user %s: %v", uq, removeErr)
+			// Continue even if this fails
+		}
+	}
+
+	// Delete the user
+	_, err = runCmd.Combined("userdel", uq)
+	if err != nil {
+		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+
+	return nil
+}

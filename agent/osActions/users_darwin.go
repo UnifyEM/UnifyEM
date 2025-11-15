@@ -241,3 +241,30 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 	}
 	return nil
 }
+
+// deleteUser removes a user from the system
+func (a *Actions) deleteUser(username string) error {
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return err
+	}
+
+	// Attempt to remove from FileVault (best effort - may fail if FileVault not enabled or user not enrolled)
+	_, err = runCmd.Combined("fdesetup", "remove", "-user", uq)
+	if err != nil {
+		// Log warning but continue - FileVault removal is not critical
+		a.logger.Warningf(8409, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
+	}
+
+	// Delete the user
+	_, err = runCmd.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
+	if err != nil {
+		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+
+	return nil
+}

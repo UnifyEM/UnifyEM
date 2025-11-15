@@ -34,8 +34,8 @@ func Register() *cobra.Command {
 	}
 
 	// Add persistent flags for wait functionality
-	cmd.PersistentFlags().Bool("wait", false, "wait for agent response before returning")
-	cmd.PersistentFlags().Int("timeout", 300, "timeout in seconds when waiting (default: 300)")
+	cmd.PersistentFlags().BoolP("wait", "w", false, "wait for agent response before returning")
+	cmd.PersistentFlags().IntP("timeout", "t", 300, "timeout in seconds when waiting (default: 300)")
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   commands.DownloadExecute + " agent_id=<agent ID> | tag=<tag> url=<URL> [arg1=value1] [arg2=value2] ...",
@@ -118,6 +118,17 @@ func Register() *cobra.Command {
 		Use:   commands.UserAdd + " agent_id=<agent ID> | tag=<tag> user=<username> password=<password> [admin=true|false]",
 		Short: "add a user",
 		Long:  "add a user to the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserAdd, args, util.NewNVPairs(args), wait, timeout)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username>",
+		Short: "delete a user",
+		Long:  "delete a user from the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			wait, _ := cmd.Flags().GetBool("wait")
 			timeout, _ := cmd.Flags().GetInt("timeout")

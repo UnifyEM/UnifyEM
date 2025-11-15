@@ -145,7 +145,7 @@ func (a *Actions) unlockUser(username string) error {
 		return err
 	}
 
-	_, err = runCmd.Combined("net", "user", uq, "/active:yes")
+	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:yes")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
@@ -192,7 +192,7 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user and set the password
-	_, err = runCmd.Combined("net", "user", uq, pq, "/add")
+	_, err = runCmd.Combined("net", "user", uq, pq, "/ADD")
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
@@ -272,5 +272,25 @@ func (a *Actions) removeFromGroup(user, group string) error {
 
 		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
 	}
+	return nil
+}
+
+// deleteUser removes a user from the system
+func (a *Actions) deleteUser(username string) error {
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return err
+	}
+
+	// Delete the user
+	_, err = runCmd.Combined("net", "user", uq, "/DELETE")
+	if err != nil {
+		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+
 	return nil
 }

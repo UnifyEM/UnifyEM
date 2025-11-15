@@ -3,7 +3,7 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-package userPassword
+package userDelete
 
 import (
 	"errors"
@@ -45,12 +45,6 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
-	password, ok := request.Parameters["password"]
-	if !ok || password == "" {
-		response.Response = "password is missing or invalid"
-		return response, errors.New(response.Response)
-	}
-
 	// Assemble log fields
 	f := fields.NewFields(
 		fields.NewField("cmd", request.Request),
@@ -60,15 +54,15 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.SetPassword(username, password)
+	err := a.DeleteUser(username)
 	if err != nil {
-		h.logger.Error(8212, "failed to set password", f)
-		response.Response = fmt.Sprintf("failed to set password: %s", err.Error())
+		h.logger.Error(8201, "failed to add user", f)
+		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())
 		return response, err
 	}
 
-	h.logger.Info(8211, "password set", f)
+	h.logger.Info(8200, "user deleted", f)
 	response.Success = true
-	response.Response = fmt.Sprintf("password set successfully for user %s", username)
+	response.Response = fmt.Sprintf("successfully deleted user %s", username)
 	return response, nil
 }

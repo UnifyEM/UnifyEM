@@ -28,6 +28,7 @@ const (
 	Status          = "status"
 	Upgrade         = "upgrade"
 	UserAdd         = "user_add"
+	UserDelete      = "user_delete"
 	UserAdmin       = "user_admin"
 	UserPassword    = "user_password"
 	UserList        = "user_list"
@@ -87,13 +88,19 @@ func init() {
 				Name:         Upgrade,
 				AckRequired:  false,
 				RequiredArgs: []string{"agent_id"},
-				OptionalArgs: []string{""},
+				OptionalArgs: []string{},
 			},
 			UserAdd: {
 				Name:         UserAdd,
 				AckRequired:  true,
 				RequiredArgs: []string{"user", "password", "agent_id"},
 				OptionalArgs: []string{"admin"},
+			},
+			UserDelete: {
+				Name:         UserAdd,
+				AckRequired:  true,
+				RequiredArgs: []string{"user"},
+				OptionalArgs: []string{},
 			},
 			UserAdmin: {
 				Name:         UserAdmin,

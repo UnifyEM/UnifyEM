@@ -73,12 +73,12 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	err := a.AddUser(username, password, makeAdmin)
 	if err != nil {
 		h.logger.Error(8201, "failed to add user", f)
-		response.Response = fmt.Sprintf("failed to add user: %s", err.Error())
+		response.Response = fmt.Sprintf("failed to add user %s: %s", username, err.Error())
 		return response, err
 	}
 
 	h.logger.Info(8200, "user added", f)
 	response.Success = true
-	response.Response = "user added successfully"
+	response.Response = fmt.Sprintf("successfully added user %s", username)
 	return response, nil
 }
