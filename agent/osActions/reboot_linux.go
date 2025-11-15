@@ -10,10 +10,13 @@ package osActions
 
 import (
 	"errors"
+
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 )
 
 // shutdownOrReboot attempts a clean shutdown/reboot
 func (a *Actions) shutdownOrReboot(reboot bool) error {
+	var err error
 
 	// Try systemctl first (systemd-based distributions)
 	if reboot {
