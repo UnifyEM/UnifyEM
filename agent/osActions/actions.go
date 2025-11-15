@@ -34,6 +34,10 @@ func (a *Actions) AddUser(user, password string, admin bool) error {
 	return a.addUser(user, password, admin)
 }
 
+func (a *Actions) DeleteUser(user string) error {
+	return a.deleteUser(user)
+}
+
 // LockUser locks out the specified user (or the current user if the
 // user string is empty and optionally executes a shutdown
 func (a *Actions) LockUser(user string, shutdown bool) error {

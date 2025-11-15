@@ -132,7 +132,7 @@ func Register() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			wait, _ := cmd.Flags().GetBool("wait")
 			timeout, _ := cmd.Flags().GetInt("timeout")
-			return execute(commands.UserAdd, args, util.NewNVPairs(args), wait, timeout)
+			return execute(commands.UserDelete, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 

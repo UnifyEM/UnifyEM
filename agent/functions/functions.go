@@ -19,6 +19,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/functions/upgrade"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdd"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdmin"
+	"github.com/UnifyEM/UnifyEM/agent/functions/userDelete"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userList"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userLock"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userPassword"
@@ -72,6 +73,7 @@ func New(options ...func(*Command) error) (*Command, error) {
 	c.addHandler(commands.Upgrade, upgrade.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserList, userList.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserAdd, userAdd.New(c.config, c.logger, c.comms))
+	c.addHandler(commands.UserDelete, userDelete.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserAdmin, userAdmin.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserPassword, userPassword.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserLock, userLock.New(c.config, c.logger, c.comms))

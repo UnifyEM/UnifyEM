@@ -164,7 +164,7 @@ func console() int {
 		fmt.Println("\nService uninstalled successfully")
 		return 0
 
-	case "upgrade":
+	case "upgrade", "update":
 		// Delay for 30 seconds to allow the service to send outstanding messages
 		fmt.Println("Waiting 30 seconds for the running service to send outstanding messages...")
 		time.Sleep(30 * time.Second)
