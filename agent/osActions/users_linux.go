@@ -1,10 +1,11 @@
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for Linux
 //go:build linux
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for Linux
 package osActions
 
 import (
@@ -15,14 +16,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
 // getUsers retrieves a list of all users on the system
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
+
 	// Get a list of users using getent
-	cmd := exec.Command("getent", "passwd")
-	output, err := cmd.Output()
+	output, err := runCmd.Stdout("getent", "passwd")
 	if err != nil {
 		return schema.DeviceUserList{}, fmt.Errorf("failed to get user list: %w", err)
 	}
@@ -107,15 +109,13 @@ func getSudoGroupMembers() (map[string]struct{}, error) {
 	}
 
 	// Try getent group sudo
-	cmd := exec.Command("getent", "group", "sudo")
-	output, err1 := cmd.Output()
+	output, err1 := runCmd.Stdout("getent", "group", "sudo")
 	if err1 == nil && len(output) > 0 {
 		parseMembers(output)
 	}
 
 	// Try getent group wheel
-	cmd = exec.Command("getent", "group", "wheel")
-	output, err2 := cmd.Output()
+	output, err2 := runCmd.Stdout("getent", "group", "wheel")
 	if err2 == nil && len(output) > 0 {
 		parseMembers(output)
 	}
@@ -145,8 +145,7 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("usermod", "-s", "/usr/sbin/nologin", uq)
-	err = cmd.Run()
+	_, err := runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", uq)
 	if err != nil {
 		// Try alternative location if /usr/sbin/nologin doesn't exist
 		cmd = exec.Command("usermod", "-s", "/bin/false", uq)
@@ -157,8 +156,7 @@ func (a *Actions) lockUser(username string) error {
 	}
 
 	// Also lock the password
-	cmd = exec.Command("passwd", "-l", uq)
-	err = cmd.Run()
+	_, err := runCmd.Combined("passwd", "-l", uq)
 	if err != nil {
 		a.logger.Errorf(8311, "Failed to lock password for user %s: %s", uq, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -186,15 +184,13 @@ func (a *Actions) unlockUser(username string) error {
 		}
 	}
 
-	cmd := exec.Command("usermod", "-s", shell, uq)
-	err = cmd.Run()
+	_, err := runCmd.Combined("usermod", "-s", shell, uq)
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
 
 	// Also unlock the password
-	cmd = exec.Command("passwd", "-u", uq)
-	err = cmd.Run()
+	_, err := runCmd.Combined("passwd", "-u", uq)
 	if err != nil {
 		a.logger.Errorf(8312, "Failed to unlock password for user %s: %s", uq, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -246,8 +242,7 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user
-	cmd := exec.Command("useradd", "-m", "-s", "/bin/bash", uq)
-	err = cmd.Run()
+	_, err := runCmd.Combined("useradd", "-m", "-s", "/bin/bash", uq)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
@@ -281,12 +276,10 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 	adminGroup := "sudo" // Default for Debian/Ubuntu
 
 	// Check if sudo group exists
-	cmd := exec.Command("getent", "group", "sudo")
-	err = cmd.Run()
+	_, err := runCmd.Combined("getent", "group", "sudo")
 	if err != nil {
 		// Try wheel group (RHEL/CentOS/Fedora)
-		cmd = exec.Command("getent", "group", "wheel")
-		err = cmd.Run()
+		_, err = runCmd.Combined("getent", "group", "wheel")
 		if err != nil {
 			return fmt.Errorf("neither sudo nor wheel group exists")
 		}
@@ -295,8 +288,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 
 	if admin {
 		// Add user to admin group
-		cmd = exec.Command("usermod", "-aG", adminGroup, uq)
-		err = cmd.Run()
+		_, err := runCmd.Combined("usermod", "-aG", adminGroup, uq)
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to %s group: %w", uq, adminGroup, err)
 		}
@@ -316,8 +308,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		}
 	} else {
 		// Remove user from admin group
-		cmd = exec.Command("deluser", uq, adminGroup)
-		err = cmd.Run()
+		_, err = runCmd.Combined("deluser", uq, adminGroup)
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from %s group: %w", uq, adminGroup, err)
 		}

@@ -1,4 +1,9 @@
 #!/bin/sh
+################################################################################
+# Copyright (c) 2024-2025 Tenebris Technologies Inc.                           #
+# Please see the LICENSE file for details                                      #
+################################################################################
+
 #
 # If moving the script outside the repo, update REPO below
 REPO="$(cd "$(dirname "$0")" && pwd)"

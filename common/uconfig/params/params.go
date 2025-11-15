@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // Package params implements a simple key/value store with constraints that can be serialized to JSON.
 // It

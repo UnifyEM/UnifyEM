@@ -1,27 +1,26 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for macOS
 //go:build darwin
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for macOS
 package osActions
 
 import (
 	"bufio"
 	"fmt"
-	"os/exec"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 
 	// Get a list of users
-	cmd := exec.Command("dscl", ".", "list", "/Users")
-	output, err := cmd.Output()
+	output, err := runCmd.Stdout("dscl", ".", "list", "/Users")
 	if err != nil {
 		return schema.DeviceUserList{}, err
 	}
@@ -71,8 +70,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 
 // getAdminGroupMembers retrieves the members of the admin group
 func getAdminGroupMembers() (map[string]struct{}, error) {
-	cmd := exec.Command("dscl", ".", "read", "/Groups/admin", "GroupMembership")
-	output, err := cmd.Output()
+	output, err := runCmd.Stdout("dscl", ".", "read", "/Groups/admin", "GroupMembership")
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +89,7 @@ func canUserLogin(username string) bool {
 		return false
 	}
 
-	cmd := exec.Command("dscl", ".", "-read", "/Users/"+username, "UserShell")
-	output, err := cmd.Output()
+	output, err := runCmd.Stdout("dscl", ".", "-read", "/Users/"+username, "UserShell")
 	if err != nil {
 		return false
 	}
@@ -115,8 +112,7 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/bash", "/usr/bin/false")
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/bash", "/usr/bin/false")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
 	}
@@ -134,8 +130,7 @@ func (a *Actions) unlockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false", "/bin/bash")
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false", "/bin/bash")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
@@ -158,8 +153,7 @@ func (a *Actions) setPassword(username, password string) error {
 		return err
 	}
 
-	cmd := exec.Command("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
 	}
@@ -183,36 +177,31 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user
-	cmd := exec.Command("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq))
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq))
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
 
 	// Set the user's password
-	cmd = exec.Command("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
 	}
 
 	// Set the user's shell
-	cmd = exec.Command("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/bash")
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/bash")
 	if err != nil {
 		return fmt.Errorf("failed to set shell for user %s: %w", username, err)
 	}
 
 	// Set the user's home directory
-	cmd = exec.Command("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "NFSHomeDirectory", fmt.Sprintf("/Users/%s", username))
-	err = cmd.Run()
+	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "NFSHomeDirectory", fmt.Sprintf("/Users/%s", username))
 	if err != nil {
 		return fmt.Errorf("failed to set home directory for user %s: %w", uq, err)
 	}
 
 	// Add the user to the list of users who can unlock the disk
-	cmd = exec.Command("fdesetup", "add", "-user", uq, "-password", pq)
-	err = cmd.Run()
+	_, err = runCmd.Combined("fdesetup", "add", "-user", uq, "-password", pq)
 	if err != nil {
 		if strings.Contains(err.Error(), "FileVault is not enabled") {
 			// Handle the case where FileVault is not enabled
@@ -240,14 +229,12 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 	}
 
 	if admin {
-		cmd := exec.Command("dseditgroup", "-o", "edit", "-a", uq, "-t", "user", "admin")
-		err := cmd.Run()
+		_, err = runCmd.Combined("dseditgroup", "-o", "edit", "-a", uq, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to admin group: %w", uq, err)
 		}
 	} else {
-		cmd := exec.Command("dseditgroup", "-o", "edit", "-d", uq, "-t", "user", "admin")
-		err := cmd.Run()
+		_, err = runCmd.Combined("dseditgroup", "-o", "edit", "-d", uq, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from admin group: %w", uq, err)
 		}

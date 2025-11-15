@@ -1,11 +1,11 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
-// Code for operating systems other than windows
 //go:build !windows
 
+// Code for operating systems other than windows
 package uemservice
 
 import (

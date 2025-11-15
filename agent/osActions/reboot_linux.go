@@ -1,31 +1,29 @@
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for Linux
 //go:build linux
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for Linux
 package osActions
 
 import (
 	"errors"
-	"os/exec"
 )
 
 // shutdownOrReboot attempts a clean shutdown/reboot
 func (a *Actions) shutdownOrReboot(reboot bool) error {
-	var cmd *exec.Cmd
 
 	// Try systemctl first (systemd-based distributions)
 	if reboot {
-		cmd = exec.Command("systemctl", "reboot")
+		_, err = runCmd.Combined("systemctl", "reboot")
 	} else {
-		cmd = exec.Command("systemctl", "poweroff")
+		_, err = runCmd.Combined("systemctl", "poweroff")
 	}
 
-	err := cmd.Run()
 	if err != nil {
-		a.logger.Errorf(8307, "Failed to execute systemctl command: %s", err.Error())
+		a.logger.Errorf(8307, "Failed to execute systemctl command: %w", err.Error())
 		a.logger.Info(8308, "Falling back to shutdown command", nil)
 
 		// Fall back to shutdown command
@@ -41,12 +39,11 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 
 			// Last resort, try the older init-based commands
 			if reboot {
-				cmd = exec.Command("reboot")
+				_, err = runCmd.Combined("reboot")
 			} else {
-				cmd = exec.Command("poweroff")
+				_, err = runCmd.Combined("poweroff")
 			}
 
-			err = cmd.Run()
 			if err != nil {
 				a.logger.Errorf(8310, "Failed to execute reboot/poweroff command: %s", err.Error())
 				return errors.New("all shutdown/reboot methods failed")

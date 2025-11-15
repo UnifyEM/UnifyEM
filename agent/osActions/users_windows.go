@@ -1,21 +1,19 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for windows
 //go:build windows
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for windows
 package osActions
 
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
-	"github.com/StackExchange/wmi"
-
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -127,8 +125,9 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, "/active:no")
-	err = cmd.Run()
+	//cmd := exec.Command("net", "user", uq, "/active:no")
+	//err = cmd.Run()
+	_, err = cmd.CombinedOutput("net", "user", uq, "/active:no")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
 	}
@@ -146,8 +145,7 @@ func (a *Actions) unlockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, "/active:yes")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, "/active:yes")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
@@ -170,8 +168,7 @@ func (a *Actions) setPassword(username, password string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, pq)
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, pq)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
 	}
@@ -195,15 +192,13 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user and set the password
-	cmd := exec.Command("net", "user", uq, pq, "/add")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, pq, "/add")
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
 
 	// Add the user to the "Users" group
-	cmd = exec.Command("net", "localgroup", "Users", uq, "/add")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "localgroup", "Users", uq, "/add")
 	if err != nil {
 		return fmt.Errorf("failed to add user %s to Users group: %w", uq, err)
 	}
@@ -211,7 +206,7 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	// Add the user's password to allow boot drive bitlocker access
 	strippedPQ := strings.Trim(pq, "\"")           // removes leading/trailing double quotes
 	strippedPQ = strings.ReplaceAll(pq, "'", "''") // escape single quotes
-	cmd = exec.Command(
+	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
@@ -219,8 +214,6 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 			strippedPQ,
 		),
 	)
-
-	err = cmd.Run()
 	if err != nil {
 		if strings.Contains(err.Error(), "BitLocker is not enabled") {
 			// Handle the case where BitLocker is not enabled
@@ -254,8 +247,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		group = "Users"
 	}
 
-	cmd := exec.Command("net", "localgroup", group, uq, "/add")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "localgroup", group, uq, "/add")
 	if err != nil {
 		return fmt.Errorf("failed to set user %s as %s: %w", uq, group, err)
 	}
