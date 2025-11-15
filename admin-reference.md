@@ -50,6 +50,8 @@ user_add agent_id=<agent ID> user=<user> password=<password> [admin=<true | fals
 
 user_admin agent_id=<agent ID> user=<user> admin=<true | false>
 
+user_delete agent_id=<agent ID> user=<user>
+
 user_password agent_id=<agent ID> user=<user> password=<password>
 
 user_list agent_id=<agent ID>
@@ -89,8 +91,13 @@ Admin comments use the server's API. For CLI syntax, use `./uem-cli --help` or `
 `uem-cli agent <subcommand> <args>` is used to obtain information about agents, setting their name, adding and removing
 tags, and setting (possibly resetting) triggers.
 
-`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests , specify agent_id, or a tag to apply the
-command to.
+`uem-cli cmd <subcommand> <args>` is used to send agent-specific requests, specify agent_id, or a tag to apply the
+command to. By default, commands return immediately after being queued on the server with a unique request ID. Two
+optional flags are available:
+  - `--wait` or `-w`: Wait for the agent to respond before returning. The CLI will poll the server every 5 seconds.
+  - `--timeout <seconds>` or `-t <seconds>`: Specify timeout in seconds when using --wait (default: 300 seconds).
+
+Example: `uem-cli cmd ping agent_id=A-12345678... --wait --timeout=600`
 
 `uem-cli config <agents | server> <get | set> [args]` is used to set and retrieve server configuration parameters.
 
