@@ -22,7 +22,6 @@ func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 	}
 
 	fmt.Printf("\nWaiting for response(s) (timeout: %ds)...\n", timeout)
-
 	startTime := time.Now()
 	pendingRequests := make(map[string]bool)
 	for _, id := range requestIDs {
@@ -76,7 +75,7 @@ func checkAndDisplayIfComplete(c global.Comms, requestID string) bool {
 
 	// Parse response
 	var resp schema.APIRequestStatusResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
+	if err = json.Unmarshal(data, &resp); err != nil {
 		// Parse error - keep polling
 		return false
 	}
