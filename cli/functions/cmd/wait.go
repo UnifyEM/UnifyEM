@@ -34,13 +34,30 @@ func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 		// Check timeout after each poll cycle
 		elapsed := int(time.Since(startTime).Seconds())
 		if elapsed >= timeout {
-			fmt.Printf("\nTimeout after %ds. Displaying last known status:\n", elapsed)
-
-			// Display status of remaining pending requests
+			// Collect agent IDs from pending requests
+			var nonResponsiveAgents []string
 			for requestID := range pendingRequests {
-				displayRequestStatus(c, requestID)
+				statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
+				if err == nil && statusCode == 200 {
+					var resp schema.APIRequestStatusResponse
+					if err := json.Unmarshal(data, &resp); err == nil {
+						if len(resp.Data.Requests) > 0 {
+							nonResponsiveAgents = append(nonResponsiveAgents, resp.Data.Requests[0].AgentID)
+						}
+					}
+				}
 			}
-			return fmt.Errorf("timeout waiting for response(s)")
+
+			// Display timeout message with non-responsive agents
+			fmt.Printf("\n")
+			fmt.Printf("Wait timed out after %ds\n", elapsed)
+			if len(nonResponsiveAgents) > 0 {
+				fmt.Printf("The following agent(s) have not responded yet:\n")
+				for _, agentID := range nonResponsiveAgents {
+					fmt.Printf("  - %s\n", agentID)
+				}
+			}
+			return nil
 		}
 
 		// Poll each pending request
