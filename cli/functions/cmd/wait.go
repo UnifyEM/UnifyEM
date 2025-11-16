@@ -34,62 +34,21 @@ func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 		// Check timeout after each poll cycle
 		elapsed := int(time.Since(startTime).Seconds())
 		if elapsed >= timeout {
-			// Collect agent IDs from pending requests
-			var nonResponsiveAgents []string
-			for requestID := range pendingRequests {
-				statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
-				if err == nil && statusCode == 200 {
-					var resp schema.APIRequestStatusResponse
-					if err := json.Unmarshal(data, &resp); err == nil {
-						if len(resp.Data.Requests) > 0 {
-							nonResponsiveAgents = append(nonResponsiveAgents, resp.Data.Requests[0].AgentID)
-						}
-					}
-				}
-			}
-
-			// Display timeout message with non-responsive agents
-			fmt.Printf("\n")
-			fmt.Printf("Wait timed out after %ds\n", elapsed)
-			if len(nonResponsiveAgents) > 0 {
-				fmt.Printf("The following agent(s) have not responded yet:\n")
-				for _, agentID := range nonResponsiveAgents {
-					fmt.Printf("  - %s\n", agentID)
-				}
-			}
+			displayTimeoutMessage(c, pendingRequests, elapsed)
 			return nil
 		}
 
-		// Poll each pending request
+		// Poll each pending request and collect completed ones
+		completedRequests := make([]string, 0)
 		for requestID := range pendingRequests {
-			statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
-			if err != nil {
-				// Network error - continue polling
-				continue
+			if checkAndDisplayIfComplete(c, requestID) {
+				completedRequests = append(completedRequests, requestID)
 			}
+		}
 
-			if statusCode != 200 {
-				// Request not found or error - remove from pending
-				delete(pendingRequests, requestID)
-				continue
-			}
-
-			// Parse response
-			var resp schema.APIRequestStatusResponse
-			if err := json.Unmarshal(data, &resp); err != nil {
-				continue
-			}
-
-			// Check if request has completed
-			if len(resp.Data.Requests) > 0 {
-				request := resp.Data.Requests[0]
-				if isRequestComplete(request.Status) {
-					// Display the completed request
-					fmt.Printf("\n")
-					display.ErrorWrapper(display.RequestList(statusCode, data, nil))
-					delete(pendingRequests, requestID)
-				}
-			}
+		// Remove completed requests from pending map (safe to do after iteration)
+		for _, requestID := range completedRequests {
+			delete(pendingRequests, requestID)
 		}
 
 		// Sleep before next poll cycle (only if there are still pending requests)
@@ -99,6 +58,68 @@ func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 	}
 
 	return nil
+}
+
+// checkAndDisplayIfComplete polls a single request and displays it if complete
+// Returns true if the request is complete, false otherwise
+func checkAndDisplayIfComplete(c global.Comms, requestID string) bool {
+	statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
+	if err != nil {
+		// Network error - keep polling
+		return false
+	}
+
+	if statusCode != 200 {
+		// Request not found or error - consider it complete to remove from pending
+		return true
+	}
+
+	// Parse response
+	var resp schema.APIRequestStatusResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		// Parse error - keep polling
+		return false
+	}
+
+	// Check if request has completed
+	if len(resp.Data.Requests) > 0 {
+		request := resp.Data.Requests[0]
+		if isRequestComplete(request.Status) {
+			// Display the completed request
+			fmt.Printf("\n")
+			display.ErrorWrapper(display.RequestList(statusCode, data, nil))
+			return true
+		}
+	}
+
+	return false
+}
+
+// displayTimeoutMessage shows timeout information and lists non-responsive agents
+func displayTimeoutMessage(c global.Comms, pendingRequests map[string]bool, elapsed int) {
+	// Collect agent IDs from pending requests
+	var nonResponsiveAgents []string
+	for requestID := range pendingRequests {
+		statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
+		if err == nil && statusCode == 200 {
+			var resp schema.APIRequestStatusResponse
+			if err := json.Unmarshal(data, &resp); err == nil {
+				if len(resp.Data.Requests) > 0 {
+					nonResponsiveAgents = append(nonResponsiveAgents, resp.Data.Requests[0].AgentID)
+				}
+			}
+		}
+	}
+
+	// Display timeout message with non-responsive agents
+	fmt.Printf("\n")
+	fmt.Printf("Wait timed out after %ds\n", elapsed)
+	if len(nonResponsiveAgents) > 0 {
+		fmt.Printf("The following agent(s) have not responded yet:\n")
+		for _, agentID := range nonResponsiveAgents {
+			fmt.Printf("  - %s\n", agentID)
+		}
+	}
 }
 
 // displayRequestStatus shows the current status of a request
