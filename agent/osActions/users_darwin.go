@@ -6,6 +6,7 @@
  ******************************************************************************/
 
 // Code for macOS
+
 package osActions
 
 import (
@@ -36,7 +37,6 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 	var users schema.DeviceUserList
 	for scanner.Scan() {
 		user := scanner.Text()
-
 		if len(user) < 1 {
 			continue
 		}
@@ -65,6 +65,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 	if err = scanner.Err(); err != nil {
 		return schema.DeviceUserList{}, err
 	}
+
 	return users, nil
 }
 
@@ -94,7 +95,12 @@ func canUserLogin(username string) bool {
 		return false
 	}
 
-	shell := strings.TrimSpace(strings.Split(string(output), ":")[1])
+	split := strings.Split(string(output), ":")
+	if len(split) < 2 {
+		return true
+	}
+
+	shell := strings.TrimSpace(split[1])
 	if shell == "/usr/sbin/uucico" {
 		return false
 	}
@@ -176,45 +182,54 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 		return err
 	}
 
-	// Create the user
-	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq))
+	// Set up the command
+	var cmd = []string{"sysadminctl", "-addUser", uq, "-shell", "/bin/zsh", "-password", pq, "-home", fmt.Sprintf("/Users/%s", uq)}
+
+	// Add admin if required
+	if admin {
+		cmd = append(cmd, "-admin")
+	}
+	_, err = runCmd.Combined(cmd...)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
 
-	// Set the user's password
-	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
-	if err != nil {
-		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
-	}
-
-	// Set the user's shell
-	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/bash")
-	if err != nil {
-		return fmt.Errorf("failed to set shell for user %s: %w", username, err)
-	}
-
-	// Set the user's home directory
-	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "NFSHomeDirectory", fmt.Sprintf("/Users/%s", username))
-	if err != nil {
-		return fmt.Errorf("failed to set home directory for user %s: %w", uq, err)
-	}
-
-	// Add the user to the list of users who can unlock the disk
-	_, err = runCmd.Combined("fdesetup", "add", "-user", uq, "-password", pq)
-	if err != nil {
-		if strings.Contains(err.Error(), "FileVault is not enabled") {
-			// Handle the case where FileVault is not enabled
-			return nil
-		} else {
-			return fmt.Errorf("failed to add user %s to FileVault: %w", uq, err)
+	/*
+		// Create the user
+		_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/zsh")
+		if err != nil {
+			return fmt.Errorf("failed to create user %s: %w", uq, err)
 		}
-	}
 
-	// Check if the user should be an admin
-	if admin {
-		return a.setAdmin(username, true)
-	}
+		// Set the user's password
+		_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), pq)
+		if err != nil {
+			return fmt.Errorf("failed to set password for user %s: %w", uq, err)
+		}
+
+		// Set the user's home directory
+		_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "NFSHomeDirectory", fmt.Sprintf("/Users/%s", username))
+		if err != nil {
+			return fmt.Errorf("failed to set home directory for user %s: %w", uq, err)
+		}
+
+		// Add the user to the list of users who can unlock the disk
+		_, err = runCmd.Combined("fdesetup", "add", "-user", uq, "-password", pq)
+		if err != nil {
+			if strings.Contains(err.Error(), "FileVault is not enabled") {
+				// Handle the case where FileVault is not enabled
+				return nil
+			} else {
+				return fmt.Errorf("failed to add user %s to FileVault: %w", uq, err)
+			}
+		}
+
+		// Check if the user should be an admin
+		if admin {
+			return a.setAdmin(username, true)
+		}
+
+	*/
 	return nil
 }
 
@@ -261,7 +276,8 @@ func (a *Actions) deleteUser(username string) error {
 	}
 
 	// Delete the user
-	_, err = runCmd.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
+	//_, err = runCmd.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
+	_, err = runCmd.Combined("sysadmininctl", "-deleteUser", uq, "-keepHome")
 	if err != nil {
 		return fmt.Errorf("failed to delete user %s: %w", uq, err)
 	}
