@@ -8,7 +8,6 @@ The latest version is also available at https://github.com/UnifyEM/UnifyEM/relea
 Windows and macOS binaries are signed to avoid distribution and installation issues. macOS Tahoe is particularly difficult about unsigned binaries.
 
 ## Overview
-[uem-build.sh](uem-build.sh)
 Unify Endpoint Management (UnifyEM) is a **free, open-source, self-hosted** software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
 
 The authors do not intend to provide a SaaS offering. If you are interested in doing so, please feel free to contact the authors.
