@@ -15,27 +15,23 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
-// waitForResponses polls the server for request status until all requests complete or timeout occurs
+// waitForResponses polls the server for request status until all requests complete or a timeout occurs
 func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 	if len(requestIDs) == 0 {
 		return nil
 	}
 
-	fmt.Printf("\nWaiting for response(s) (timeout: %ds)...\n", timeout)
-	startTime := time.Now()
+	// Create a map of pending requests
 	pendingRequests := make(map[string]bool)
 	for _, id := range requestIDs {
 		pendingRequests[id] = true
 	}
 
+	fmt.Printf("\nWaiting for response(s) (timeout: %ds)...\n", timeout)
+	startTime := time.Now()
+
 	// Poll until all requests are complete or timeout
 	for len(pendingRequests) > 0 {
-		// Check timeout after each poll cycle
-		elapsed := int(time.Since(startTime).Seconds())
-		if elapsed >= timeout {
-			displayTimeoutMessage(c, pendingRequests, elapsed)
-			return nil
-		}
 
 		// Poll each pending request and collect completed ones
 		completedRequests := make([]string, 0)
@@ -48,6 +44,13 @@ func waitForResponses(c global.Comms, requestIDs []string, timeout int) error {
 		// Remove completed requests from pending map (safe to do after iteration)
 		for _, requestID := range completedRequests {
 			delete(pendingRequests, requestID)
+		}
+
+		// Check timeout
+		elapsed := int(time.Since(startTime).Seconds())
+		if elapsed >= timeout {
+			displayTimeoutMessage(c, pendingRequests, elapsed)
+			return nil
 		}
 
 		// Sleep before next poll cycle (only if there are still pending requests)
@@ -96,6 +99,7 @@ func checkAndDisplayIfComplete(c global.Comms, requestID string) bool {
 
 // displayTimeoutMessage shows timeout information and lists non-responsive agents
 func displayTimeoutMessage(c global.Comms, pendingRequests map[string]bool, elapsed int) {
+
 	// Collect agent IDs from pending requests
 	var nonResponsiveAgents []string
 	for requestID := range pendingRequests {
@@ -121,6 +125,7 @@ func displayTimeoutMessage(c global.Comms, pendingRequests map[string]bool, elap
 	}
 }
 
+/*
 // displayRequestStatus shows the current status of a request
 func displayRequestStatus(c global.Comms, requestID string) {
 	statusCode, data, err := c.Get(schema.EndpointRequest + "/" + requestID)
@@ -131,6 +136,7 @@ func displayRequestStatus(c global.Comms, requestID string) {
 		fmt.Printf("\nUnable to retrieve status for request %s: %v\n", requestID, err)
 	}
 }
+*/
 
 // isRequestComplete checks if a request status indicates completion
 func isRequestComplete(status string) bool {

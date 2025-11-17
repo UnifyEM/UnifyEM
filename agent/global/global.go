@@ -35,6 +35,8 @@ const (
 
 // These constants are used for development and testing purposes only and disable important security features.
 // For production use, the following constants should all be false.
+//
+//goland:noinspection GoUnusedConst
 const (
 	Unsafe      = true // Allows self-signed certificates and HTTP
 	DisableHash = true // Don't require hash verification on file downloads

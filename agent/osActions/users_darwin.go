@@ -125,7 +125,7 @@ func (a *Actions) lockUser(username string) error {
 	return nil
 }
 
-// unlockUser changes the user's shell back to /bin/bash to allow access
+// unlockUser changes the user's shell back to /bin/zsh to allow access
 func (a *Actions) unlockUser(username string) error {
 	if username == "" {
 		return fmt.Errorf("username cannot be empty")
@@ -136,7 +136,7 @@ func (a *Actions) unlockUser(username string) error {
 		return err
 	}
 
-	_, err = runCmd.Combined("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false", "/bin/bash")
+	_, err = runCmd.Combined("dscl", ".", "-change", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false", "/bin/zsh")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
