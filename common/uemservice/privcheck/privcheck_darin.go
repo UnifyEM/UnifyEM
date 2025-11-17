@@ -1,10 +1,11 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+//go:build darwin
+
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // MacOS (Darin) specific functions
-//go:build darwin
 
 package privcheck
 

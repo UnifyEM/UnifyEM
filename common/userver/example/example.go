@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // This is a simple example of how to implement an HTTP server using the userver package
 

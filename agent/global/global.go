@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // Package global provides global variables and functions for UEMAgent that can be imported by any other package
 package global
@@ -35,6 +35,8 @@ const (
 
 // These constants are used for development and testing purposes only and disable important security features.
 // For production use, the following constants should all be false.
+//
+//goland:noinspection GoUnusedConst
 const (
 	Unsafe      = true // Allows self-signed certificates and HTTP
 	DisableHash = true // Don't require hash verification on file downloads

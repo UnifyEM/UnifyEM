@@ -1,21 +1,22 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for windows
 //go:build windows
+
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for Windows
 
 package osActions
 
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/StackExchange/wmi"
 
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -127,8 +128,7 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, "/active:no")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, "/active:no")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
 	}
@@ -146,8 +146,7 @@ func (a *Actions) unlockUser(username string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, "/active:yes")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:yes")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
@@ -170,8 +169,7 @@ func (a *Actions) setPassword(username, password string) error {
 		return err
 	}
 
-	cmd := exec.Command("net", "user", uq, pq)
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, pq)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
 	}
@@ -195,23 +193,14 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 	}
 
 	// Create the user and set the password
-	cmd := exec.Command("net", "user", uq, pq, "/add")
-	err = cmd.Run()
+	_, err = runCmd.Combined("net", "user", uq, pq, "/ADD")
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", uq, err)
 	}
 
-	// Add the user to the "Users" group
-	cmd = exec.Command("net", "localgroup", "Users", uq, "/add")
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to add user %s to Users group: %w", uq, err)
-	}
-
 	// Add the user's password to allow boot drive bitlocker access
-	strippedPQ := strings.Trim(pq, "\"")           // removes leading/trailing double quotes
-	strippedPQ = strings.ReplaceAll(pq, "'", "''") // escape single quotes
-	cmd = exec.Command(
+	strippedPQ := strings.ReplaceAll(pq, "'", "''") // escape single quotes
+	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
@@ -219,8 +208,6 @@ func (a *Actions) addUser(username, password string, admin bool) error {
 			strippedPQ,
 		),
 	)
-
-	err = cmd.Run()
 	if err != nil {
 		if strings.Contains(err.Error(), "BitLocker is not enabled") {
 			// Handle the case where BitLocker is not enabled
@@ -247,17 +234,64 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		return err
 	}
 
-	var group string
 	if admin {
-		group = "Administrators"
+		err = a.addToGroup(uq, "Administrators")
+		if err != nil {
+			return fmt.Errorf("failed to add user %s from Administators group: %w", uq, err)
+		}
 	} else {
-		group = "Users"
+		err = a.removeFromGroup(uq, "Administrators")
+		if err != nil {
+			return fmt.Errorf("failed to remove user %s from Administators group: %w", uq, err)
+		}
+		// Just a best practice, but not really needed
+		_ = a.addToGroup(uq, "User")
+	}
+	return nil
+}
+
+func (a *Actions) addToGroup(user, group string) error {
+	out, err := runCmd.Combined("net", "localgroup", group, user, "/ADD")
+	if err != nil {
+		if strings.Contains(string(out), "is already a member") {
+			// Consider this a success
+			return nil
+		}
+
+		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+	}
+	return nil
+}
+
+func (a *Actions) removeFromGroup(user, group string) error {
+	out, err := runCmd.Combined("net", "localgroup", group, user, "/DELETE")
+	if err != nil {
+		if strings.Contains(string(out), "is not a member") {
+			// Consider this a success
+			return nil
+		}
+
+		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+	}
+	return nil
+}
+
+// deleteUser removes a user from the system
+func (a *Actions) deleteUser(username string) error {
+	if username == "" {
+		return fmt.Errorf("username cannot be empty")
 	}
 
-	cmd := exec.Command("net", "localgroup", group, uq, "/add")
-	err = cmd.Run()
+	uq, err := safeUsername(username)
 	if err != nil {
-		return fmt.Errorf("failed to set user %s as %s: %w", uq, group, err)
+		return err
 	}
+
+	// Delete the user
+	_, err = runCmd.Combined("net", "user", uq, "/DELETE")
+	if err != nil {
+		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+
 	return nil
 }

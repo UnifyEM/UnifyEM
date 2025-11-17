@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package cmd
 
@@ -33,12 +33,18 @@ func Register() *cobra.Command {
 		},
 	}
 
+	// Add persistent flags for wait functionality
+	cmd.PersistentFlags().BoolP("wait", "w", false, "wait for agent response before returning")
+	cmd.PersistentFlags().IntP("timeout", "t", 300, "timeout in seconds when waiting (default: 300)")
+
 	cmd.AddCommand(&cobra.Command{
 		Use:   commands.DownloadExecute + " agent_id=<agent ID> | tag=<tag> url=<URL> [arg1=value1] [arg2=value2] ...",
 		Short: "download and execute a file",
 		Long:  "download a file from the specified URL and execute it on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.DownloadExecute, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.DownloadExecute, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -47,7 +53,9 @@ func Register() *cobra.Command {
 		Short: "ping an agent",
 		Long:  "instruct the server to ping the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Ping, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Ping, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -56,7 +64,9 @@ func Register() *cobra.Command {
 		Short: "execute a command",
 		Long:  "execute the specified command on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Execute, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Execute, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -65,7 +75,9 @@ func Register() *cobra.Command {
 		Short: "reboot an agent",
 		Long:  "instruct the server to reboot the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Reboot, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Reboot, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -74,7 +86,9 @@ func Register() *cobra.Command {
 		Short: "shutdown an agent",
 		Long:  "instruct the server to shutdown the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Shutdown, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Shutdown, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -83,7 +97,9 @@ func Register() *cobra.Command {
 		Short: "get agent status",
 		Long:  "request the status of the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Status, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Status, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -92,7 +108,9 @@ func Register() *cobra.Command {
 		Short: "agent upgrade",
 		Long:  "instruct the agent to download and install the latest version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.Upgrade, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.Upgrade, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -101,7 +119,20 @@ func Register() *cobra.Command {
 		Short: "add a user",
 		Long:  "add a user to the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserAdd, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserAdd, args, util.NewNVPairs(args), wait, timeout)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username>",
+		Short: "delete a user",
+		Long:  "delete a user from the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserDelete, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -110,7 +141,9 @@ func Register() *cobra.Command {
 		Short: "grant or revoke admin privileges",
 		Long:  "set or remove the specified user as an admin on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserAdmin, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserAdmin, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -119,7 +152,9 @@ func Register() *cobra.Command {
 		Short: "set user password",
 		Long:  "set the password for the specified user on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserPassword, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserPassword, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -128,7 +163,9 @@ func Register() *cobra.Command {
 		Short: "list users",
 		Long:  "list the users on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserList, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserList, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -137,7 +174,9 @@ func Register() *cobra.Command {
 		Short: "lock user account",
 		Long:  "lock the specified user on the specified agent and optionally shutdown the device",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserLock, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserLock, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 
@@ -146,13 +185,16 @@ func Register() *cobra.Command {
 		Short: "unlock user account",
 		Long:  "unlock the specified user account on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(commands.UserUnlock, args, util.NewNVPairs(args))
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.UserUnlock, args, util.NewNVPairs(args), wait, timeout)
 		},
 	})
 	return cmd
 }
 
-func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
+func execute(subCmd string, _ []string, pairs *util.NVPairs, wait bool, timeout int) error {
+
 	// Create communications object
 	c := communications.New(login.Login())
 
@@ -164,7 +206,10 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
 		return fmt.Errorf("cannot specify both agent_id and tag")
 	}
 
-	if hasTag && !hasAgentID {
+	// Track request IDs if waiting
+	var requestIDs []string
+
+	if hasTag {
 		// Bulk action by tag
 		// Query the server for all agents with the tag
 		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
@@ -189,8 +234,8 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
 			}
 			newParams["agent_id"] = agent.AgentID
 			// Validate command for this agent
-			if err := commands.Validate(subCmd, newParams); err != nil {
-				fmt.Printf("Validation failed for agent %s: %v\n", agent.AgentID, err)
+			if err = commands.Validate(subCmd, newParams); err != nil {
+				fmt.Printf("command %s validation failed for agent %s: %s\n", subCmd, agent.AgentID, err.Error())
 				if firstErr == nil {
 					firstErr = err
 				}
@@ -200,15 +245,34 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
 			cmdReq := schema.NewCmdRequest()
 			cmdReq.Cmd = subCmd
 			cmdReq.Parameters = newParams
-			display.ErrorWrapper(display.CmdResp(c.Post(schema.EndpointCmd, cmdReq)))
+
+			// Post command and capture request ID
+			statusCode, data, err := c.Post(schema.EndpointCmd, cmdReq)
+
+			// Always display the initial response
+			display.ErrorWrapper(display.CmdResp(statusCode, data, err))
+
+			// Capture request ID if successful
+			if err == nil && statusCode == 200 {
+				var cmdResp schema.APICmdResponse
+				if err := json.Unmarshal(data, &cmdResp); err == nil && cmdResp.RequestID != "" {
+					requestIDs = append(requestIDs, cmdResp.RequestID)
+				}
+			}
 		}
+
+		// If waiting and we have request IDs, poll for responses
+		if wait && len(requestIDs) > 0 {
+			return waitForResponses(c, requestIDs, timeout)
+		}
+
 		return firstErr
 	}
 
 	// Single agent or normal case
 	err := commands.Validate(subCmd, params)
 	if err != nil {
-		return fmt.Errorf("command validation failed: %s\n", err.Error())
+		return fmt.Errorf("command %s validation failed: %s", subCmd, err.Error())
 	}
 
 	// Initialize a new command object
@@ -216,7 +280,24 @@ func execute(subCmd string, _ []string, pairs *util.NVPairs) error {
 	cmd.Cmd = subCmd
 	cmd.Parameters = params
 
-	// Post the command to the server and display the result
-	display.ErrorWrapper(display.CmdResp(c.Post(schema.EndpointCmd, cmd)))
+	// Post the command to the server
+	statusCode, data, err := c.Post(schema.EndpointCmd, cmd)
+
+	// Always display the initial response
+	display.ErrorWrapper(display.CmdResp(statusCode, data, err))
+
+	// Capture request ID if successful
+	if err == nil && statusCode == 200 {
+		var cmdResp schema.APICmdResponse
+		if err := json.Unmarshal(data, &cmdResp); err == nil && cmdResp.RequestID != "" {
+			requestIDs = append(requestIDs, cmdResp.RequestID)
+		}
+	}
+
+	// If waiting and we have request IDs, poll for responses
+	if wait && len(requestIDs) > 0 {
+		return waitForResponses(c, requestIDs, timeout)
+	}
+
 	return nil
 }

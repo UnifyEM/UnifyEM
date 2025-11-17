@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package functions
 
@@ -19,6 +19,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/functions/upgrade"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdd"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdmin"
+	"github.com/UnifyEM/UnifyEM/agent/functions/userDelete"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userList"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userLock"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userPassword"
@@ -41,6 +42,7 @@ type CmdHandler interface {
 	Cmd(schema.AgentRequest) (schema.AgentResponse, error)
 }
 
+//goland:noinspection DuplicatedCode
 func New(options ...func(*Command) error) (*Command, error) {
 	c := &Command{
 		handlers: make(map[string]CmdHandler),
@@ -72,6 +74,7 @@ func New(options ...func(*Command) error) (*Command, error) {
 	c.addHandler(commands.Upgrade, upgrade.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserList, userList.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserAdd, userAdd.New(c.config, c.logger, c.comms))
+	c.addHandler(commands.UserDelete, userDelete.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserAdmin, userAdmin.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserPassword, userPassword.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserLock, userLock.New(c.config, c.logger, c.comms))
@@ -135,7 +138,7 @@ func (c *Command) ExecuteRequest(request schema.AgentRequest) schema.AgentRespon
 	// Validate the request. This eliminates the need for each function to validate mandatory parameters, etc.
 	err := commands.Validate(request.Request, request.Parameters)
 	if err != nil {
-		response.Response = fmt.Sprintf("command validation failed: %s", err.Error())
+		response.Response = fmt.Sprintf("command validation for %s failed: %s", request.Request, err.Error())
 		return response
 	}
 
@@ -149,6 +152,7 @@ func (c *Command) ExecuteRequest(request schema.AgentRequest) schema.AgentRespon
 	// Dispatch the request and return the response
 	response, err = handler.Cmd(request)
 	if err != nil {
+		//goland:noinspection GoDfaErrorMayBeNotNil
 		response.Response = fmt.Sprintf("command execution failed: %s", err.Error())
 		response.Success = false
 	} else {

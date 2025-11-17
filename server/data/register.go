@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package data
 
@@ -10,9 +10,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/server/db"

@@ -1,17 +1,18 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package userver
 
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/net/context"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/UnifyEM/UnifyEM/common/fields"
 )

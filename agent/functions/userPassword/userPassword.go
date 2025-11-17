@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package userPassword
 
@@ -69,6 +69,6 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 
 	h.logger.Info(8211, "password set", f)
 	response.Success = true
-	response.Response = "password set successfully"
+	response.Response = fmt.Sprintf("password set successfully for user %s", username)
 	return response, nil
 }

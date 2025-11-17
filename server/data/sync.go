@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package data
 
@@ -108,6 +108,13 @@ func (d *Data) processAgentResponse(agentID string, response schema.AgentRespons
 	}
 
 	request.ResponseData = response.Data
+
+	// Redact sensitive parameters from completed or failed requests
+	if request.Status == schema.RequestStatusComplete || request.Status == schema.RequestStatusFailed {
+		if _, exists := request.Parameters["password"]; exists {
+			request.Parameters["password"] = "********"
+		}
+	}
 
 	// Update the request record
 	err = d.database.SetAgentRequest(request)

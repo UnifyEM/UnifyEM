@@ -1,18 +1,20 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
-
-// Code for windows
 //go:build windows
+
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Code for Windows
 
 package osActions
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"golang.org/x/sys/windows"
-	"os/exec"
 )
 
 //goland:noinspection GoSnakeCaseUsage
@@ -142,13 +144,12 @@ func attemptExitWindowsEx(reboot bool) error {
 
 // Attempt to use the `shutdown` command
 func attemptShutdownCommand(reboot bool) error {
-	cmdArgs := []string{"/s", "/t", "0"} // Default: Shutdown
+	cmdArgs := []string{"shutdown", "/s", "/t", "0"} // Default: Shutdown
 	if reboot {
-		cmdArgs = []string{"/r", "/t", "0"} // Reboot
+		cmdArgs = []string{"shutdown", "/r", "/t", "0"} // Reboot
 	}
 
-	cmd := exec.Command("shutdown", cmdArgs...)
-	err := cmd.Run()
+	_, err := runCmd.Combined(cmdArgs...)
 	if err != nil {
 		return fmt.Errorf("shutdown command failed: %w", err)
 	}

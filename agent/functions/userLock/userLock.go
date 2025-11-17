@@ -1,12 +1,13 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package userLock
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
@@ -69,6 +70,6 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 
 	h.logger.Info(8207, "user locked", f)
 	response.Success = true
-	response.Response = "user locked successfully"
+	response.Response = fmt.Sprintf("user %s locked successfully", username)
 	return response, nil
 }

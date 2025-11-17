@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package userAdmin
 
@@ -70,12 +70,12 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	err := a.SetAdmin(username, makeAdmin)
 	if err != nil {
 		h.logger.Error(8204, "failed to set admin status", f)
-		response.Response = fmt.Sprintf("failed to set admin status: %s", err.Error())
+		response.Response = fmt.Sprintf("failed to set admin status for user %s: %s", username, err.Error())
 		return response, err
 	}
 
 	h.logger.Info(8203, "admin status set", f)
 	response.Success = true
-	response.Response = "admin status set successfully"
+	response.Response = fmt.Sprintf("admin status for user %s successfully set to %t", username, makeAdmin)
 	return response, nil
 }

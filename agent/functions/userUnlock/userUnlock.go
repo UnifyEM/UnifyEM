@@ -1,12 +1,13 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package userUnlock
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -62,6 +63,6 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 
 	h.logger.Info(8209, "user unlocked", f)
 	response.Success = true
-	response.Response = "user unlocked successfully"
+	response.Response = fmt.Sprintf("user %s unlocked successfully", username)
 	return response, nil
 }

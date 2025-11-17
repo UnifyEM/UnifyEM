@@ -1,7 +1,5 @@
 # UnifyEM
 
-Unify Endpoint Management (UnifyEM) is a free, open-source, self-hosted software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
-
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
 
@@ -10,8 +8,10 @@ The latest version is also available at https://github.com/UnifyEM/UnifyEM/relea
 Windows and macOS binaries are signed to avoid distribution and installation issues. macOS Tahoe is particularly difficult about unsigned binaries.
 
 ## Overview
+[uem-build.sh](uem-build.sh)
+Unify Endpoint Management (UnifyEM) is a **free, open-source, self-hosted** software. It is designed to help individuals, small, and medium-sized organizations effectively monitor, manage, and secure their endpoints. By streamlining the oversight and maintenance of devices across a business, UnifyEM supports critical security, compliance, and audit objectives.
 
-(Asking users to send screenshots to demonstrate that they have basics such as disk encryption and screen lock enabled eats at the author's soul. )
+The authors do not intend to provide a SaaS offering. If you are interested in doing so, please feel free to contact the authors.
 
 The Apache licence was chosen to facilitate widespread adoption and encourage contributions from the community. If this presents issues for your organization please contact us for alternate licensing arrangements.
 
@@ -41,10 +41,10 @@ Supported operating systems:
 
 ## Known issues and work-in-progress
 
-- On macOS, when running as a service, the agent is unable to access some information in the user's context such as screen lock status and therefore reports in accurate or unknown information. We are exploring a few different options to address this issue.
-- We have begun to implement "users" within the system. This is a longer-term effort and a few architectural decisions still need to be made. The initial focus will be to help administrators keep track of what hosts a user has access to and perform operations such as locking a user's accounts across all hosts they have access to.
+- When adding a user on macOS, the new user may not be able to access the system if it is protected by FileVault. Further investiation is required.
+- The `uem-cli user` commands are a work in progress and do not add users to endpoints. To add a user to an endpoint, see `uem-cli cmd user_add --help`.
 - Disk wipe has not yet been implemented.
-- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault, but much broader testing is required.
+- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker. Testing and feedback would be greatly appreciated.
 
 ## Whois is UnifyEM for?
 
@@ -55,23 +55,23 @@ businesses, including:
 - Organizational control over endpoints (locking, and ultimately erasing if required)
 - Providing security-related evidence for SOC 2 and ISO 27001 audits
 
-This software is not intended to replace sophisticated platform-specific solutions. For example, if your organization uses exclusively Microsoft Entra ID (formerly known as AzureAD) connected Windows PCs, Intune is a better solution. If you only have Apple devices, please check out Apple's MDM capabilities.
+This software is not intended to replace sophisticated platform-specific solutions. For example, if your organization uses exclusively Microsoft Entra ID (formerly known as AzureAD) connected Windows PCs, Intune is likely a better solution.
 
 On the other hand, if you have a mix of platforms in your organization, UnifyEM is designed for you. If it doesn't do what you need, please create an issue and let us know.
 
 ## Why does UnifyEM exist?
 
-Every application has a story. This software was inspired by more than three decades of cybersecurity experience and propelled by the need to secure endpoints, streamline administration, and provide evidence of compliance for SOC and ISO audits. It also reflects the primary author's growing frustration with open source projects that gate critical features behind commercial licences, and the increasing costs of software that fail to justify their price tag.
+Every application has a story. This software was inspired by more than three decades of cybersecurity experience and propelled by the need to secure endpoints, streamline administration, and provide evidence of compliance for SOC and ISO audits. It also reflects the primary author's growing frustration with open source projects that gate critical features behind commercial licences, and the increasing cost of software that fails to justify the price tag.
 
-Asking users to send screenshots as evidence that their firewall and screen lock are enabled is inefficient, and paying more to automate the process than it costs to provide the employee with Google Workspace or Office 365 is difficult to justify. While there are a few low-cost MDM providers, it is difficult to recommend a cloud-based endpoint management solution that cannot withstand even cursory due-diligence.
+Asking users to send screenshots as evidence that their firewall and screen lock are enabled is inefficient. Awesome commercial MDM products are available, but many are unreasonably expensive. Those designed for Apple products usually require jumping through hoops such as obtaining and registering some devices for Apple Business Manager (ABM). In some cases, this requires wiping the device. There are low-cost MDM providers, but it is difficult to recommend cloud-based endpoint management solutions that are unable to provide even cursory security documentation.
 
-The author has no intention of adding commercial features to this free open source software. However, if you or your organization find this software useful and wish to sponsor new features, desire paid support, or would like assistance with your cybersecurity program, please feel free to contact us via our website at https://tenebris.com.
+If you or your organization find this software useful and wish to sponsor new features, desire paid support, or would like assistance with your cybersecurity program, please feel free to contact us via our website at https://tenebris.com.
 
 ## Acknowledgements
 
-This project is sponsored by Tenebris Technologies Inc., a Canadian cybersecurity consultancy incorporated in 1996. Eric Jacksch, the company's founder, president, and principal consultant is the primary author.
+This project is sponsored by Tenebris Technologies Inc., a Canadian cybersecurity consultancy incorporated in 1996.
 
-Contributions and sponsorships are welcome, would be greatfully appreciated, and will be recognized here.
+Contributions and sponsorships are welcome, would be sincerely appreciated, and will be recognized here.
 
 ## Cautions
 
@@ -79,7 +79,7 @@ During testing, we highly recommend that the `PROTECTED` option is set to `true`
 
 The `wipe` trigger (not yet implemented) is destructive. It is designed to delete data on the endpoint and make it as difficult as possible to recover.
 
-The `lock` trigger changes the password of the currently logged-in user to a random string and reboots the computer. Assuming the drive is encrypted, this should prevent further access. The agent attempts to send the username and random password to the server on a best-effort basis. Administrators are advised to ensure that an admin account is in place to faciliate access to data stored on the device.
+The `lock` trigger changes the password of the currently logged-in user to a random string and reboots the computer. Assuming the drive is encrypted, this should prevent further access. The agent attempts to send the username and random password to the server on a best-effort basis. Administrators are advised to ensure that an admin account is in place to facilitate access to data stored on the device.
 
 Combining `uninstall` with the `lock` or `wipe` triggers may have unpredictable results.
 
@@ -119,11 +119,11 @@ If the agent's record is deleted from the server database, access will be denied
 
 To remove an agent, the preferable method is to send an uninstall command. This will cause the agent to uninstall itself as a service and stop running. However, in the event of a security issue, changing the registration token (`uem-cli regtoken new`) and then deleting the agent record from the server (`uem-cli agent delete <agent ID>`) will prevent the agent from being able to re-register.
 
-## Security Model Summary
+## Security Model Overview
 
 The security model is quickly evolving and will be more fully documented at a later date.
 
-Agents register to the server using the installaton key and are given an access key and a refresh key. By default, the refresh key does not expire. The agent stores the refresh key. The access key is kept in RAM and is used to authenticate to the server. If it expires or the agent restarts, the refresh key is used to obtain a new access key. If the configuration is changed such that the refresh key expires, the agent will attempt a new registation. Note that a new registration gives the agent a new identity since it would be unwise to allow an agent to re-register with an unproven identity.
+Agents register to the server using the installation key and are given an access key and a refresh key. By default, the refresh key does not expire. The agent stores the refresh key. The access key is kept in RAM and is used to authenticate to the server. If it expires or the agent restarts, the refresh key is used to obtain a new access key. If the configuration is changed such that the refresh key expires, the agent will attempt a new registation. Note that a new registration gives the agent a new identity since it would be unwise to allow an agent to re-register with an unproven identity.
 
 If the CA pinning feature is enabled, when the agent next connects to the server, it retains a hash of the CA public key (the last certificate in a verify chain). From that point forward, it will refuse to connect to the server if the server's SSL/TLS certificate does not chain to the same CA. This allows certificates from services such as LetsEncrypt to be used while providing some MITM attack mitigation.
 
@@ -227,13 +227,51 @@ UEM_SERVER=http://127.0.0.1:8080
 
 Additional administrator accounts, along with managing them via the API, will be added in the near future. Until this occurs, the only admin-level credentials are usernames and passwords set from the uem-server command line.
 
-### uem-agent installation
+#### Waiting for Agent Responses
 
-Reminder: The agent is not yet supported on Linux. Attempting to compile it on Linux will fail. This will be addressed in the near future.
+By default, when commands are sent to agents using `uem-cli cmd`, the CLI returns immediately after the server queues the command and provides a request ID. Administrators can then check the status and response using `uem-cli request get <request_id>`.
+
+For testing and interactive use, two optional flags are available to wait for agent responses:
+
+- `--wait`: Wait for the agent to respond before returning. The CLI will poll the server every 5 seconds until the agent responds or the timeout is reached.
+- `--timeout <seconds>`: Specify the timeout in seconds when using `--wait` (default: 300 seconds).
+
+For testing purposes, you may wish to set the agent communication intervals to reduce the time spent waiting for a reply. For example, 
+
+```bash
+uem-cli config agents set sync_interval=10
+uem-cli config agents set sync_pending=10
+uem-cli config agents set sync_retry=10
+```
+
+Examples:
+
+```bash
+# Send command and wait for response (5 minute timeout)
+uem-cli cmd ping agent_id=A-12345678-abcd-1234-5678-1234567890ab --wait
+
+# Send command and wait with custom timeout (10 minutes)
+uem-cli cmd status agent_id=A-12345678-abcd-1234-5678-1234567890ab --wait --timeout=600
+
+# Send command to multiple agents by tag and wait for all responses
+uem-cli cmd ping tag=production --wait
+
+# Send command without waiting (default behavior)
+uem-cli cmd ping agent_id=A-12345678-abcd-1234-5678-1234567890ab
+```
+
+When `--wait` is used:
+1. The initial server response (HTTP status and request ID) is displayed immediately
+2. The CLI polls the server every 5 seconds for the agent's response
+3. When the agent responds, the full response is displayed
+4. If the timeout is reached, the last known status is displayed along with a timeout message
+5. For tag-based commands (multiple agents), the CLI waits for all agents to respond or timeout
+
+### uem-agent installation
 
 The agent can be installed by running:
 
-```
+```bash
 ./uem-agent install <installation token>
 ```
 

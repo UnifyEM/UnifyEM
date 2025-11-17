@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // Package userdata manages user-context data reception from user-helper processes
 package userdata
@@ -20,6 +20,8 @@ import (
 )
 
 // UserDataListener manages the Unix socket server for receiving user-context data
+//
+//goland:noinspection GoNameStartsWithPackageName
 type UserDataListener struct {
 	logger          interfaces.Logger
 	listener        net.Listener
@@ -39,7 +41,7 @@ func New(logger interfaces.Logger) *UserDataListener {
 // Start begins listening on the Unix socket
 func (l *UserDataListener) Start() error {
 	// Remove stale socket if it exists
-	os.Remove(global.SocketPath)
+	_ = os.Remove(global.SocketPath)
 
 	listener, err := net.Listen("unix", global.SocketPath)
 	if err != nil {
@@ -48,7 +50,7 @@ func (l *UserDataListener) Start() error {
 
 	// Set permissions so user processes can connect
 	if err := os.Chmod(global.SocketPath, global.SocketPerms); err != nil {
-		listener.Close()
+		_ = listener.Close()
 		return fmt.Errorf("failed to set socket permissions: %w", err)
 	}
 
@@ -80,10 +82,12 @@ func (l *UserDataListener) acceptLoop() {
 
 // handleConnection processes a single user-helper connection
 func (l *UserDataListener) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	// Set read deadline
-	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 
 	var data status.UserContextData
 	decoder := json.NewDecoder(conn)
@@ -138,7 +142,7 @@ func (l *UserDataListener) Stop() error {
 	}
 
 	// Clean up socket file
-	os.Remove(global.SocketPath)
+	_ = os.Remove(global.SocketPath)
 
 	l.logger.Infof(3105, "User data listener stopped")
 	return nil

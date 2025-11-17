@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package db
 
@@ -10,8 +10,9 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"golang.org/x/crypto/scrypt"
 	"strings"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 // Bcrypt is limited to 72 characters and tokens may exceed tht, so we use scrypt instead.

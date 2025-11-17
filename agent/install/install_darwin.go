@@ -1,11 +1,11 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
-
-// MacOS (Darin) specific functions
 //go:build darwin
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// MacOS (Darin) specific functions
 package install
 
 import (
@@ -397,7 +397,7 @@ func triggerTCCPrompts(uidToUser map[string]string) {
 	time.Sleep(5 * time.Second)
 
 	// Clean up any remaining user-helper processes
-	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+	_ = exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
 
 	fmt.Println("\nIf you see permission dialogs, click 'OK' to allow uem-agent to monitor security settings.")
 	fmt.Println("Or grant permission manually in: System Settings > Privacy & Security > Automation")
@@ -408,7 +408,7 @@ func unloadUserAgents() {
 	uidToUser, err := getLoggedInUsers()
 	if err != nil {
 		// Can't get users, try to kill any user-helper processes directly
-		exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+		_ = exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
 		return
 	}
 
@@ -424,7 +424,7 @@ func unloadUserAgents() {
 	time.Sleep(2 * time.Second)
 
 	// Force kill any remaining user-helper processes
-	exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
+	_ = exec.Command("pkill", "-f", "uem-agent.*--user-helper").Run()
 }
 
 // Helper functions for string processing

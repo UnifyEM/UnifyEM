@@ -1,15 +1,16 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package communications
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/UnifyEM/UnifyEM/agent/execute"
 	"os"
+
+	"github.com/UnifyEM/UnifyEM/agent/execute"
 
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/common/schema"

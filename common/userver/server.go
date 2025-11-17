@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 // Package userver implements a production grade HTTP server using the
 // standard Go libraries and gorilla/mux. It provides a simple way to create
@@ -15,10 +15,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"golang.org/x/net/netutil"
 	"net"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/netutil"
 
 	"github.com/gorilla/mux"
 

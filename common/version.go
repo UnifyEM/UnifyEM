@@ -1,11 +1,11 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package common
 
 const (
-	Version = "0.0.37"
-	Build   = 59
+	Version = "0.0.40"
+	Build   = 66
 )

@@ -1,3 +1,8 @@
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
 package data
 
 import (
@@ -12,7 +17,7 @@ import (
 // AddUser adds a new user to the database. Returns error if username already exists.
 func (d *Data) AddUser(user schema.UserCreateRequest) (schema.UserMeta, error) {
 	// Check for existing username
-	existing, _ := d.GetUserByUsername(user.User)
+	existing, _ := d.GetUserByID(user.User)
 	if existing != nil {
 		return schema.UserMeta{}, fmt.Errorf("user already exists")
 	}
@@ -34,17 +39,6 @@ func (d *Data) AddUser(user schema.UserCreateRequest) (schema.UserMeta, error) {
 
 // GetUserByID retrieves a user by UserID.
 func (d *Data) GetUserByID(user string) (*schema.UserMeta, error) {
-	var meta schema.UserMeta
-	err := d.database.GetData(db.BucketUserMeta, user, &meta)
-	if err != nil {
-		return nil, err
-	}
-	return &meta, nil
-}
-
-// GetUserByUsername retrieves a user by username.
-// Deprecated: Use GetUserByID instead.
-func (d *Data) GetUserByUsername(user string) (*schema.UserMeta, error) {
 	var meta schema.UserMeta
 	err := d.database.GetData(db.BucketUserMeta, user, &meta)
 	if err != nil {

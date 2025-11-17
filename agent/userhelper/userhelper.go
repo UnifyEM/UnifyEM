@@ -1,11 +1,11 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
-
-// Package userhelper provides user-context data collection for macOS
 //go:build darwin
 
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
+
+// Package userhelper provides user-context data collection for macOS
 package userhelper
 
 import (
@@ -176,10 +176,12 @@ func (h *UserHelper) sendToDaemon(data status.UserContextData) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to daemon socket: %w", err)
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		_ = conn.Close()
+	}(conn)
 
 	// Set write deadline
-	conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 
 	// Send JSON payload
 	encoder := json.NewEncoder(conn)

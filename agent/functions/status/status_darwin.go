@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package status
 
@@ -347,7 +347,7 @@ func (h *Handler) getUserScreenSaverStatus(username string) (enabled bool, requi
 		script := `tell application "System Events" to get require password to wake of security preferences`
 		out, err := h.runUserAppleScript(username, script)
 		if err == nil {
-			requirePassword = (out == "true")
+			requirePassword = out == "true"
 			return enabled, requirePassword, delay, nil
 		}
 		h.logger.Warningf(2711, "Could not determine askForPassword for user %s, reporting as unknown", username)

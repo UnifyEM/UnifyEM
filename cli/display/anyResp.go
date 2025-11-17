@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package display
 
@@ -14,7 +14,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
-// GenericResp handles any response from the server and pretty-prints it to stdout
+// AnyResp handles any response from the server and pretty-prints it to stdout
 // It also checks for an expired access token
 func AnyResp(statusCode int, data []byte, err error) error {
 

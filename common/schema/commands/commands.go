@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package commands
 
@@ -28,6 +28,7 @@ const (
 	Status          = "status"
 	Upgrade         = "upgrade"
 	UserAdd         = "user_add"
+	UserDelete      = "user_delete"
 	UserAdmin       = "user_admin"
 	UserPassword    = "user_password"
 	UserList        = "user_list"
@@ -87,13 +88,19 @@ func init() {
 				Name:         Upgrade,
 				AckRequired:  false,
 				RequiredArgs: []string{"agent_id"},
-				OptionalArgs: []string{""},
+				OptionalArgs: []string{},
 			},
 			UserAdd: {
 				Name:         UserAdd,
 				AckRequired:  true,
 				RequiredArgs: []string{"user", "password", "agent_id"},
 				OptionalArgs: []string{"admin"},
+			},
+			UserDelete: {
+				Name:         UserDelete,
+				AckRequired:  true,
+				RequiredArgs: []string{"user", "agent_id"},
+				OptionalArgs: []string{},
 			},
 			UserAdmin: {
 				Name:         UserAdmin,
@@ -129,7 +136,7 @@ func init() {
 	}
 
 	// Add the standard parameters to all functions
-	// Allows allow adding a hash. Administrators don't need to specify it, but the server will
+	// Always allow adding a hash. Administrators don't need to specify it, but the server will
 	// add it where required
 	for _, cmd := range cmds.Commands {
 		cmd.OptionalArgs = append(cmd.OptionalArgs, AgentID, RequestID, "hash")

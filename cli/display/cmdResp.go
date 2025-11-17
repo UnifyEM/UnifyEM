@@ -1,13 +1,14 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// See LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package display
 
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/UnifyEM/UnifyEM/cli/credentials"
 
 	"github.com/UnifyEM/UnifyEM/cli/global"

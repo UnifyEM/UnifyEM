@@ -1,7 +1,7 @@
-//
-// Copyright (c) 2024-2025 Tenebris Technologies Inc.
-// Please see the LICENSE file for details
-//
+/******************************************************************************
+ * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Please see the LICENSE file for details                                    *
+ ******************************************************************************/
 
 package data
 
@@ -180,8 +180,9 @@ func (d *Data) GetAgentRequests(agentID string, markSent bool) ([]schema.AgentRe
 					Parameters: request.Parameters,
 				})
 
-				// Update the agent status
-				if markSent {
+				// Update the request status
+				if markSent && !request.AckRequired {
+					// Only mark as complete if acknowledgment is not required
 					request.Status = schema.RequestStatusComplete
 				} else {
 					request.Status = schema.RequestStatusPending
