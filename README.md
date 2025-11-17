@@ -289,7 +289,13 @@ This component has not yet been developed.
 
 ## Copyright and license
 
-Copyright (c) 2024-2025 by Tenebris Technologies Inc. and available for use under Apache License 2.0. Please see the LICENSE file for full information.
+Copyright (c) 2024-2025 by Tenebris Technologies Inc. Please see the LICENSE file for full information.
+
+This software is licensed under the Apache License, Version 2.0 (the "License"). You may not use this software except in compliance with the licence. You may obtain a copy at: 
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+See the License for the specific language governing permissions and limitations under the License.
 
 ## No Warranty (zilch, none, void, nil, null, "", {}, 0x00, 0b00000000, EOF)
 
