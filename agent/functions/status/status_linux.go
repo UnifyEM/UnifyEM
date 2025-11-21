@@ -400,3 +400,8 @@ func (h *Handler) bootTime() string {
 	}
 	return "unknown"
 }
+
+// checkServiceAccount is not implemented for Linux
+func (h *Handler) checkServiceAccount() string {
+	return "N/A"
+}

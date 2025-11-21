@@ -417,3 +417,8 @@ func (h *Handler) getUserRegistryKey() (registry.Key, error) {
 	}
 	return userKey, nil
 }
+
+// checkServiceAccount is not implemented for Windows
+func (h *Handler) checkServiceAccount() string {
+	return "N/A"
+}
