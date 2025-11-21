@@ -60,6 +60,23 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		}
 	}
 
+	adminUser, ok := request.Parameters["adminUser"]
+	if !ok {
+		adminUser = ""
+	}
+	adminPassword, ok := request.Parameters["adminPassword"]
+	if !ok {
+		adminPassword = ""
+	}
+
+	userInfo := osActions.UserInfo{
+		Username:      username,
+		Password:      password,
+		Admin:         makeAdmin,
+		AdminUser:     adminUser,
+		AdminPassword: adminPassword,
+	}
+
 	// Assemble log fields
 	f := fields.NewFields(
 		fields.NewField("cmd", request.Request),
@@ -70,7 +87,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.AddUser(username, password, makeAdmin)
+	err := a.AddUser(userInfo)
 	if err != nil {
 		h.logger.Error(8201, "failed to add user", f)
 		response.Response = fmt.Sprintf("failed to add user %s: %s", username, err.Error())

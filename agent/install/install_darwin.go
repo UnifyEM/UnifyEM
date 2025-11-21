@@ -5,7 +5,6 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// MacOS (Darin) specific functions
 package install
 
 import (
@@ -137,7 +136,16 @@ func (i *Install) installService() error {
 	// We only need to bootstrap for currently logged-in users
 	bootstrapUserAgents()
 
-	return nil
+	// There must be a password
+	if i.user == "" || i.pass == "" {
+		err = i.promptCredentials()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Create or update the service account
+	return i.ServiceAccount()
 }
 
 // Uninstall the service
@@ -237,8 +245,14 @@ func CheckRootPrivileges() error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
+
+		// Exit with the same code as the sudo command
+		// Don't wrap this as a "failed to gain privileges" error
 		if err != nil {
-			return fmt.Errorf("failed to gain root privileges: %w", err)
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}

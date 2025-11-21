@@ -13,6 +13,13 @@ import (
 type Actions struct {
 	logger interfaces.Logger
 }
+type UserInfo struct {
+	Username      string // name of new user
+	Password      string // password for new user
+	Admin         bool   // should user be an administrator
+	AdminUser     string // username of an existing admin (required on some platforms)
+	AdminPassword string // password of the existing admin (required on some platforms)
+}
 
 func New(logger interfaces.Logger) *Actions {
 	return &Actions{logger: logger}
@@ -30,8 +37,12 @@ func (a *Actions) GetUsers() (schema.DeviceUserList, error) {
 	return a.getUsers()
 }
 
-func (a *Actions) AddUser(user, password string, admin bool) error {
-	return a.addUser(user, password, admin)
+func (a *Actions) AddUser(newUser UserInfo) error {
+	return a.addUser(newUser)
+}
+
+func (a *Actions) UserExists(username string) (bool, error) {
+	return a.userExists(username)
 }
 
 func (a *Actions) DeleteUser(user string) error {
@@ -61,10 +72,14 @@ func (a *Actions) UnLockUser(user string) error {
 	return a.unlockUser(user)
 }
 
-func (a *Actions) SetPassword(user, password string) error {
-	return a.setPassword(user, password)
+func (a *Actions) SetPassword(userInfo UserInfo) error {
+	return a.setPassword(userInfo)
 }
 
 func (a *Actions) SetAdmin(user string, admin bool) error {
 	return a.setAdmin(user, admin)
+}
+
+func (a *Actions) TestCredentials(user string, pass string) error {
+	return a.testCredentials(user, pass)
 }

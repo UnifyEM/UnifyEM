@@ -36,14 +36,13 @@ Supported operating systems:
 - **Linux:** Developed and tested on Ubuntu 24.04 x64.
 - **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
-- **Future development:** Android, iOS, iPadOS?
 
 ## Known issues and work-in-progress
 
-- When adding a user on macOS, the new user may not be able to access the system if it is protected by FileVault. Further investiation is required.
+- On MacOS adding a user or resetting a user's password is complicated by FileVault. In summary, uem-agent needs a username and password to and admin-level account that has secure token for FileVault. To accomplish this, administrator credentials are required to install uem-agent on macOS. They are used to create a service account and obtain a secure token for it. The security overview will be updated once the implemention is completed and tested.
 - The `uem-cli user` commands are a work in progress and do not add users to endpoints. To add a user to an endpoint, see `uem-cli cmd user_add --help`.
 - Disk wipe has not yet been implemented.
-- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker. Testing and feedback would be greatly appreciated.
+- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault. Testing and feedback would be greatly appreciated.
 
 ## Whois is UnifyEM for?
 
@@ -100,7 +99,7 @@ The agent sync interval is controlled by uem-server. We recommend setting a shor
 
 By submitting any code or documentation to this project, you confirm that you own the necessary rights to do so, agree to license your contribution under the project’s open source terms, and warrant that it is free of any third-party claims or conflicts. If you are not authorized to contribute under these conditions, please refrain from submitting.
 
-## Overview
+## Architectural Overview
 
 All communication is originated by uem-agent, uem-cli, and uem-webui to the uem-server over HTTPS.
 

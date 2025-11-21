@@ -5,7 +5,6 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for Linux
 package osActions
 
 import (
@@ -199,17 +198,18 @@ func (a *Actions) unlockUser(username string) error {
 }
 
 // setPassword sets the password for the specified user
-func (a *Actions) setPassword(username, password string) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
+func (a *Actions) setPassword(userInfo UserInfo) error {
+
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(password)
+	pq, err := safePassword(userInfo.Password)
 	if err != nil {
 		return err
 	}
@@ -225,17 +225,18 @@ func (a *Actions) setPassword(username, password string) error {
 }
 
 // addUser creates a new user and sets their password
-func (a *Actions) addUser(username, password string, admin bool) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
+func (a *Actions) addUser(userInfo UserInfo) error {
+
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(password)
+	pq, err := safePassword(userInfo.Password)
 	if err != nil {
 		return err
 	}
@@ -351,5 +352,33 @@ func (a *Actions) deleteUser(username string) error {
 		return fmt.Errorf("failed to delete user %s: %w", uq, err)
 	}
 
+	return nil
+}
+
+// userExists checks if a user exists on the system
+func (a *Actions) userExists(username string) (bool, error) {
+	if username == "" {
+		return false, fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = runCmd.Stdout("getent", "passwd", uq)
+	if err != nil {
+		// Check if the error is because the user doesn't exist
+		if strings.Contains(err.Error(), "exit status 2") {
+			return false, nil
+		}
+		// Some other error occurred
+		return false, fmt.Errorf("failed to check if user %s exists: %w", uq, err)
+	}
+
+	return true, nil
+}
+
+func (a *Actions) testCredentials(user string, pass string) error {
 	return nil
 }

@@ -73,6 +73,7 @@ func main() {
 // OS-agnostic console mode
 func console() int {
 	var err error
+	var installer *install.Install
 
 	fmt.Println("")
 
@@ -98,19 +99,62 @@ func console() int {
 	switch strings.ToLower(os.Args[1]) {
 
 	case "install":
-		if len(os.Args) != 3 {
+		if len(os.Args) < 3 {
 			fmt.Println("Installation key required")
 			usage()
 			return 1
 		}
 
-		installer := install.New(conf, logger)
-		err = installer.Install(os.Args[2])
+		ops := []install.Option{
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+			install.WithToken(os.Args[2]),
+		}
+
+		if len(os.Args) >= 5 {
+			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+		}
+
+		// Instantiate installer
+		installer, err = install.New(ops...)
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.Install()
 		if err != nil {
 			fmt.Printf("Installation failed: %v\n", err)
 			return 1
 		}
 		fmt.Println("\nService installed successfully")
+		_ = conf.Checkpoint()
+		return 0
+
+	case "service-account":
+
+		ops := []install.Option{
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+		}
+
+		if len(os.Args) >= 4 {
+			ops = append(ops, install.WithCredentials(os.Args[2], os.Args[3]))
+		}
+
+		// Instantiate installer
+		installer, err = install.New(ops...)
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.ServiceAccount()
+		if err != nil {
+			fmt.Printf("Failed: %v\n", err)
+			return 1
+		}
+		fmt.Println("\nService account installed or updated successfully.")
 		_ = conf.Checkpoint()
 		return 0
 
@@ -121,8 +165,17 @@ func console() int {
 			return 1
 		}
 
-		installer := install.New(conf, logger)
-		err = installer.ReKey(os.Args[2])
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+			install.WithToken(os.Args[2]))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.ReKey()
 		if err != nil {
 			fmt.Printf("Rekey failed: %v\n", err)
 			return 1
@@ -132,8 +185,16 @@ func console() int {
 		return 0
 
 	case "reset":
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		// Attempt to stop agent
-		installer := install.New(conf, logger)
 		err = installer.Stop()
 		if err != nil {
 			fmt.Printf("\nError stopping agent: %s\n", err.Error())
@@ -155,7 +216,15 @@ func console() int {
 		return 0
 
 	case "uninstall":
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		err = installer.Uninstall()
 		if err != nil {
 			fmt.Printf("Uninstallation failed: %v\n", err)
@@ -170,7 +239,15 @@ func console() int {
 		time.Sleep(30 * time.Second)
 
 		// Upgrade the service
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		err = installer.Upgrade()
 		if err != nil {
 			fmt.Printf("Upgrade failed: %v\n", err)
@@ -180,7 +257,15 @@ func console() int {
 		return 0
 
 	case "check":
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		installer.Check()
 		return 0
 
@@ -193,7 +278,29 @@ func console() int {
 }
 
 func usage() {
-	fmt.Printf("Usage: %s <install <key> | rekey <key> | uninstall | upgrade | check | version>\n", os.Args[0])
+	fmt.Printf("Usage: %s <command> <arguments>\n\n", os.Args[0])
+	fmt.Println("Commands:")
+
+	fmt.Printf("  check\n")
+
+	if runtime.GOOS == "darwin" {
+		fmt.Printf("  install <key> <admin-username> <admin-password>\n")
+	} else {
+		fmt.Printf("  install <key>\n")
+	}
+
+	fmt.Printf("  rekey <key>\n")
+
+	if runtime.GOOS == "darwin" {
+		fmt.Printf("  service-account <admin-username> <admin-password>\n")
+	} else {
+		fmt.Printf("  service-account\n")
+	}
+
+	fmt.Printf("  uninstall\n")
+	fmt.Printf("  upgrade\n")
+
+	fmt.Printf("  version\n")
 }
 
 func exit(code int, delay bool) {

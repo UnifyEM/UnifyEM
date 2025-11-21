@@ -5,16 +5,12 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for Windows
-
 package osActions
 
 import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/StackExchange/wmi"
 
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -38,6 +34,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 		Disabled     bool
 		LocalAccount bool
 	}
+
 	query := "SELECT Name, Domain, Disabled, LocalAccount FROM Win32_UserAccount"
 	err = wmi.Query(query, &wmiUsers)
 	if err != nil {
@@ -128,7 +125,7 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
-	_, err = runCmd.Combined("net", "user", uq, "/active:no")
+	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:no")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
 	}
@@ -154,17 +151,18 @@ func (a *Actions) unlockUser(username string) error {
 }
 
 // setPassword sets the password for the specified user
-func (a *Actions) setPassword(username, password string) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
+func (a *Actions) setPassword(userInfo UserInfo) error {
+
+	if userInfo.username == "" || userInfo.password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(password)
+	pq, err := safePassword(userInfo.password)
 	if err != nil {
 		return err
 	}
@@ -177,17 +175,18 @@ func (a *Actions) setPassword(username, password string) error {
 }
 
 // addUser creates a new user and sets their password
-func (a *Actions) addUser(username, password string, admin bool) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
+func (a *Actions) addUser(userInfo UserInfo) error {
+
+	if userInfo.username == "" || userInfo.password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(password)
+	pq, err := safePassword(userInfo.password)
 	if err != nil {
 		return err
 	}
@@ -293,5 +292,34 @@ func (a *Actions) deleteUser(username string) error {
 		return fmt.Errorf("failed to delete user %s: %w", uq, err)
 	}
 
+	return nil
+}
+
+// userExists checks if a user exists on the system
+func (a *Actions) userExists(username string) (bool, error) {
+	if username == "" {
+		return false, fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return false, err
+	}
+
+	out, err := runCmd.Combined("net", "user", uq)
+	if err != nil {
+		// Check if the error is because the user doesn't exist
+		outStr := string(out)
+		if strings.Contains(outStr, "not found") || strings.Contains(outStr, "could not be found") {
+			return false, nil
+		}
+		// Some other error occurred
+		return false, fmt.Errorf("failed to check if user %s exists: %w", uq, err)
+	}
+
+	return true, nil
+}
+
+func (a *Actions) testCredentials(user string, pass string) error {
 	return nil
 }
