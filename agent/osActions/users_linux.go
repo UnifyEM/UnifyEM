@@ -236,11 +236,6 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 		return err
 	}
 
-	pq, err := safePassword(userInfo.Password)
-	if err != nil {
-		return err
-	}
-
 	// Create the user
 	_, err = runCmd.Combined("useradd", "-m", "-s", "/bin/bash", uq)
 	if err != nil {
@@ -248,13 +243,13 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Set the user's password
-	err = a.setPassword(uq, pq)
+	err = a.setPassword(userInfo)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
 	}
 
 	// Check if the user should be an admin
-	if admin {
+	if userInfo.Admin {
 		return a.setAdmin(uq, true)
 	}
 
@@ -381,4 +376,9 @@ func (a *Actions) userExists(username string) (bool, error) {
 
 func (a *Actions) testCredentials(user string, pass string) error {
 	return nil
+}
+
+// refreshServiceAccount is a stub on Linux - returns empty string and nil error
+func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
+	return "", nil
 }

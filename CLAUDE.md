@@ -96,6 +96,11 @@ Commands flow through three layers:
 
 ## Adding New Agent Commands
 
+**IMPORTANT**: All three components must be implemented for a command to work:
+1. Command definition in `common/schema/commands/` (required for server validation)
+2. CLI command in `cli/functions/cmd/` (required for administrators to issue commands)
+3. Agent handler in `agent/functions/` (required for agent to execute commands)
+
 Follow this exact sequence (see `development.md` for details):
 
 1. **Define command** in `common/schema/commands/commands.go`:

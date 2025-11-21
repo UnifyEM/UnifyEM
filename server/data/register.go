@@ -21,9 +21,11 @@ import (
 )
 
 type RegistrationData struct {
-	AgentID      string
-	AccessToken  string
-	RefreshToken string
+	AgentID         string
+	AccessToken     string
+	RefreshToken    string
+	ServerPublicSig string
+	ServerPublicEnc string
 }
 
 // Register validates a registration token and returns an agent ID and password or a failure
@@ -78,10 +80,16 @@ func (d *Data) Register(regRequest schema.AgentRegisterRequest, remoteIP string)
 	meta.LastIP = remoteIP
 	meta.Version = regRequest.Version
 	meta.Build = regRequest.Build
+	meta.ClientPublicSig = regRequest.ClientPublicSig
+	meta.ClientPublicEnc = regRequest.ClientPublicEnc
 	err = d.database.SetAgentMeta(meta)
 	if err != nil {
 		return RegistrationData{}, fmt.Errorf("db error initializing agent metadata: %w", err)
 	}
+
+	// Get server public keys from configuration
+	r.ServerPublicSig = d.conf.SP.Get(global.ConfigServerECPublicSig).String()
+	r.ServerPublicEnc = d.conf.SP.Get(global.ConfigServerECPublicEnc).String()
 
 	return r, nil
 }

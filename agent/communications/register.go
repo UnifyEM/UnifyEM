@@ -42,10 +42,16 @@ func (c *Communications) register() (string, error) {
 		return "", err
 	}
 
+	// Get agent's public keys from configuration
+	clientPublicSig := c.conf.AP.Get(global.ConfigAgentECPublicSig).String()
+	clientPublicEnc := c.conf.AP.Get(global.ConfigAgentECPublicEnc).String()
+
 	req := schema.AgentRegisterRequest{
-		Token:   regToken,
-		Version: global.Version,
-		Build:   global.Build,
+		Token:           regToken,
+		Version:         global.Version,
+		Build:           global.Build,
+		ClientPublicSig: clientPublicSig,
+		ClientPublicEnc: clientPublicEnc,
 	}
 
 	// Send the registration request
@@ -73,6 +79,14 @@ func (c *Communications) register() (string, error) {
 	c.conf.AP.Set(global.ConfigServerURL, server)
 	c.conf.AP.Set(global.ConfigAgentID, serverResponse.AgentID)
 	c.conf.AP.Set(global.ConfigRefreshToken, serverResponse.RefreshToken)
+
+	// Save server public keys (key pinning - only store if not empty)
+	if serverResponse.ServerPublicSig != "" {
+		c.conf.AP.Set(global.ConfigServerPublicSig, serverResponse.ServerPublicSig)
+	}
+	if serverResponse.ServerPublicEnc != "" {
+		c.conf.AP.Set(global.ConfigServerPublicEnc, serverResponse.ServerPublicEnc)
+	}
 
 	// Store the access token and server info locally
 	c.jwt = serverResponse.AccessToken

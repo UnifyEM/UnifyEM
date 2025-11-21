@@ -21,6 +21,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/install"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
 	"github.com/UnifyEM/UnifyEM/common"
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -277,6 +278,44 @@ func console() int {
 	return 1
 }
 
+// ensureECKeys checks if EC keypairs exist and generates them if missing
+func ensureECKeys(conf *global.AgentConfig, logger interfaces.Logger) error {
+	// Check if all 4 keys exist
+	privateSig := conf.AP.Get(global.ConfigAgentECPrivateSig).String()
+	publicSig := conf.AP.Get(global.ConfigAgentECPublicSig).String()
+	privateEnc := conf.AP.Get(global.ConfigAgentECPrivateEnc).String()
+	publicEnc := conf.AP.Get(global.ConfigAgentECPublicEnc).String()
+
+	// If any key is missing, generate new keypairs
+	if privateSig == "" || publicSig == "" || privateEnc == "" || publicEnc == "" {
+		logger.Info(8103, "EC keypairs not found, generating new keypairs", nil)
+
+		// Generate keypairs
+		newPrivateSig, newPublicSig, newPrivateEnc, newPublicEnc, err := crypto.GenerateKeyPairs()
+		if err != nil {
+			return fmt.Errorf("failed to generate EC keypairs: %w", err)
+		}
+
+		// Store in configuration
+		conf.AP.Set(global.ConfigAgentECPrivateSig, newPrivateSig)
+		conf.AP.Set(global.ConfigAgentECPublicSig, newPublicSig)
+		conf.AP.Set(global.ConfigAgentECPrivateEnc, newPrivateEnc)
+		conf.AP.Set(global.ConfigAgentECPublicEnc, newPublicEnc)
+
+		// Save configuration
+		err = conf.Checkpoint()
+		if err != nil {
+			return fmt.Errorf("failed to save EC keypairs to configuration: %w", err)
+		}
+
+		logger.Info(8104, "EC keypairs generated and saved successfully", nil)
+	} else {
+		logger.Info(8105, "EC keypairs already exist", nil)
+	}
+
+	return nil
+}
+
 func usage() {
 	fmt.Printf("Usage: %s <command> <arguments>\n\n", os.Args[0])
 	fmt.Println("Commands:")
@@ -343,6 +382,13 @@ func startService(optionalArgs ...bool) {
 	if logErr != nil {
 		fmt.Printf("error creating logger: %v\n", err)
 		// Continue so that a logging issue doesn't prevent updates, etc.
+	}
+
+	// Ensure EC keypairs exist, generate if missing
+	err = ensureECKeys(conf, logger)
+	if err != nil {
+		logger.Errorf(8102, "failed to ensure EC keypairs: %s", err.Error())
+		// Continue - EC keys are not critical for startup
 	}
 
 	// Create agent and response queue
@@ -412,6 +458,11 @@ func ServiceTasks(interfaces.Logger) {
 			lastStatus = now
 			sendStatus()
 		}
+	}
+
+	// Send service credentials if pending
+	if conf.CredentialsPendingSend() {
+		sendServiceCredentials()
 	}
 
 	// Check in with the server if it has been more than global.SyncInterval seconds or a shorter
@@ -553,6 +604,47 @@ func sendStatus() {
 	err = executeRequest(cmd, request)
 	if err != nil {
 		logger.Errorf(8062, "error executing status request: %s", err.Error())
+	}
+}
+
+// sendServiceCredentials creates an internal request to send encrypted service credentials to the server
+func sendServiceCredentials() {
+	// Only send if server public key is available
+	serverPublicEnc := conf.AP.Get(global.ConfigServerPublicEnc).String()
+	if serverPublicEnc == "" {
+		logger.Warning(8115, "server public key not available, deferring credential send", nil)
+		return
+	}
+
+	cmd, err := functions.New(
+		functions.WithLogger(logger),
+		functions.WithConfig(conf),
+		functions.WithComms(communication),
+		functions.WithUserDataSource(getUserDataSource()))
+	if err != nil {
+		logger.Errorf(8116, "error initializing command module: %s", err.Error())
+		return
+	}
+
+	// Get our agentID from the configuration
+	agentID := conf.AP.Get(global.ConfigAgentID).String()
+	if agentID == "" {
+		logger.Warning(8117, "agent ID not set, deferring credential send", nil)
+		return
+	}
+
+	// Create the request
+	request := schema.NewAgentRequest()
+	request.AgentID = agentID
+	request.RequestID = "update_service_account"
+	request.Request = "update_service_account"
+	request.Parameters = make(map[string]string)
+	request.Parameters["agent_id"] = agentID
+
+	// Execute the request
+	err = executeRequest(cmd, request)
+	if err != nil {
+		logger.Errorf(8118, "error executing update_service_account request: %s", err.Error())
 	}
 }
 

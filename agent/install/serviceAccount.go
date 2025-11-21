@@ -49,6 +49,14 @@ func (i *Install) createServiceAccount(actions *osActions.Actions) error {
 		return fmt.Errorf("error creating service account %s: %w", common.ServiceAccount, err)
 	}
 
+	// Store encrypted credentials in config
+	err = i.config.SetServiceCredentials(common.ServiceAccount, newPassword)
+	if err != nil {
+		i.logger.Warningf(8111, "failed to store service credentials: %s", err.Error())
+	} else {
+		i.logger.Info(8112, "service credentials encrypted and stored", nil)
+	}
+
 	fmt.Printf("DEBUG: Created service account %s password %s\n", common.ServiceAccount, newPassword)
 	return nil
 }
@@ -70,6 +78,14 @@ func (i *Install) updateServiceAccount(actions *osActions.Actions) error {
 
 	if err != nil {
 		return fmt.Errorf("error updating service account %s: %w", common.ServiceAccount, err)
+	}
+
+	// Store encrypted credentials in config
+	err = i.config.SetServiceCredentials(common.ServiceAccount, newPassword)
+	if err != nil {
+		i.logger.Warningf(8113, "failed to store service credentials: %s", err.Error())
+	} else {
+		i.logger.Info(8114, "service credentials encrypted and stored", nil)
 	}
 
 	fmt.Printf("DEBUG: Updated service account %s password %s\n", common.ServiceAccount, newPassword)

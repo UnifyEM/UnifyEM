@@ -82,6 +82,17 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
+		Use:   commands.RefreshServiceAccount + " agent_id=<agent ID> | tag=<tag>",
+		Short: "refresh service account",
+		Long:  "instruct the agent to generate a new service account password and send it to the server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			wait, _ := cmd.Flags().GetBool("wait")
+			timeout, _ := cmd.Flags().GetInt("timeout")
+			return execute(commands.RefreshServiceAccount, args, util.NewNVPairs(args), wait, timeout)
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
 		Use:   commands.Shutdown + " agent_id=<agent ID> | tag=<tag>",
 		Short: "shutdown an agent",
 		Long:  "instruct the server to shutdown the specified agent",

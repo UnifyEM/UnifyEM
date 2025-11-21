@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
@@ -406,6 +407,31 @@ func (a *Actions) userExists(username string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// refreshServiceAccount changes the service account password using the old password for authentication
+// Returns the new password on success
+func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
+	if username == "" || oldPassword == "" {
+		return "", fmt.Errorf("username and old password are required")
+	}
+
+	uq, err := safeUsername(username)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate a new random password
+	newPassword := crypto.RandomPassword()
+
+	// Use dscl to change the password, authenticating with the old password
+	// Format: dscl . -passwd /Users/<username> <oldpassword> <newpassword>
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), oldPassword, newPassword)
+	if err != nil {
+		return "", fmt.Errorf("failed to change password for user %s: %w", uq, err)
+	}
+
+	return newPassword, nil
 }
 
 // testCredentials verifies that the username and password are valid,

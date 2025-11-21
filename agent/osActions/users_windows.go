@@ -14,6 +14,7 @@ import (
 
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
+	"github.com/yusufpapurcu/wmi"
 )
 
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
@@ -153,16 +154,16 @@ func (a *Actions) unlockUser(username string) error {
 // setPassword sets the password for the specified user
 func (a *Actions) setPassword(userInfo UserInfo) error {
 
-	if userInfo.username == "" || userInfo.password == "" {
+	if userInfo.Username == "" || userInfo.Password == "" {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(userInfo.password)
+	pq, err := safePassword(userInfo.Password)
 	if err != nil {
 		return err
 	}
@@ -177,16 +178,16 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 // addUser creates a new user and sets their password
 func (a *Actions) addUser(userInfo UserInfo) error {
 
-	if userInfo.username == "" || userInfo.password == "" {
+	if userInfo.Username == "" || userInfo.Password == "" {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	pq, err := safePassword(userInfo.password)
+	pq, err := safePassword(userInfo.Password)
 	if err != nil {
 		return err
 	}
@@ -217,8 +218,8 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Check if the user should be an admin
-	if admin {
-		return a.setAdmin(username, true)
+	if userInfo.Admin {
+		return a.setAdmin(uq, true)
 	}
 	return nil
 }
@@ -322,4 +323,9 @@ func (a *Actions) userExists(username string) (bool, error) {
 
 func (a *Actions) testCredentials(user string, pass string) error {
 	return nil
+}
+
+// refreshServiceAccount is a stub on Windows - returns empty string and nil error
+func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
+	return "", nil
 }

@@ -51,8 +51,16 @@ func (c *Communications) refreshToken() (string, error) {
 			return "", errors.New("error fetching ServerURL")
 		}
 
+		// Get agent's public keys from configuration (for rekey scenarios)
+		clientPublicSig := c.conf.AP.Get(global.ConfigAgentECPublicSig).String()
+		clientPublicEnc := c.conf.AP.Get(global.ConfigAgentECPublicEnc).String()
+
 		// Create a refresh request to the server
-		req := schema.RefreshRequest{RefreshToken: rToken}
+		req := schema.RefreshRequest{
+			RefreshToken:    rToken,
+			ClientPublicSig: clientPublicSig,
+			ClientPublicEnc: clientPublicEnc,
+		}
 
 		// Post the refresh request to the server
 		data, err := c.post(serverURL, schema.EndpointRefresh, false, req)
@@ -77,6 +85,25 @@ func (c *Communications) refreshToken() (string, error) {
 			}
 			return token, rErr
 		}
+
+		// Update server public keys if provided (for rekey scenarios)
+		if refreshResponse.ServerPublicSig != "" {
+			// Only update if different (key pinning)
+			existing := c.conf.AP.Get(global.ConfigServerPublicSig).String()
+			if existing != refreshResponse.ServerPublicSig {
+				c.conf.AP.Set(global.ConfigServerPublicSig, refreshResponse.ServerPublicSig)
+				c.logger.Info(8020, "server public signature key updated", nil)
+			}
+		}
+		if refreshResponse.ServerPublicEnc != "" {
+			// Only update if different (key pinning)
+			existing := c.conf.AP.Get(global.ConfigServerPublicEnc).String()
+			if existing != refreshResponse.ServerPublicEnc {
+				c.conf.AP.Set(global.ConfigServerPublicEnc, refreshResponse.ServerPublicEnc)
+				c.logger.Info(8021, "server public encryption key updated", nil)
+			}
+		}
+
 		c.logger.Info(8013, "access token refresh successful", nil)
 		return refreshResponse.AccessToken, nil
 

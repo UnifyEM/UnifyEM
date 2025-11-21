@@ -74,10 +74,12 @@ func (a *API) postRegister(req *http.Request) userver.JResponse {
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
 		JSONData: schema.APIRegisterResponse{
-			Status:       schema.APIStatusOK,
-			Code:         http.StatusOK,
-			Details:      "registered",
-			AgentID:      regInfo.AgentID,
-			AccessToken:  regInfo.AccessToken,
-			RefreshToken: regInfo.RefreshToken}}
+			Status:          schema.APIStatusOK,
+			Code:            http.StatusOK,
+			Details:         "registered",
+			AgentID:         regInfo.AgentID,
+			AccessToken:     regInfo.AccessToken,
+			RefreshToken:    regInfo.RefreshToken,
+			ServerPublicSig: regInfo.ServerPublicSig,
+			ServerPublicEnc: regInfo.ServerPublicEnc}}
 }

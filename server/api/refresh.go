@@ -46,7 +46,7 @@ func (a *API) postRefresh(req *http.Request) userver.JResponse {
 	logInfo := fields.NewFields(
 		fields.NewField("src_ip", remoteIP))
 
-	accessToken, err := a.data.RefreshToken(loginRequest.RefreshToken)
+	tokenData, err := a.data.RefreshToken(loginRequest.RefreshToken, loginRequest.ClientPublicSig, loginRequest.ClientPublicEnc)
 	if err != nil {
 		logInfo.Append(fields.NewField("refresh-result", "failed"), fields.NewField("error", err.Error()))
 		a.logger.Error(2865, "access token refresh failed", logInfo)
@@ -58,5 +58,10 @@ func (a *API) postRefresh(req *http.Request) userver.JResponse {
 
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
-		JSONData: schema.APITokenRefreshResponse{Status: schema.APIStatusOK, Code: http.StatusOK, AccessToken: accessToken}}
+		JSONData: schema.APITokenRefreshResponse{
+			Status:          schema.APIStatusOK,
+			Code:            http.StatusOK,
+			AccessToken:     tokenData.AccessToken,
+			ServerPublicSig: tokenData.ServerPublicSig,
+			ServerPublicEnc: tokenData.ServerPublicEnc}}
 }

@@ -83,3 +83,10 @@ func (a *Actions) SetAdmin(user string, admin bool) error {
 func (a *Actions) TestCredentials(user string, pass string) error {
 	return a.testCredentials(user, pass)
 }
+
+// RefreshServiceAccount generates a new password for the service account
+// It uses the old password to authenticate the change
+// Returns the new password on success
+func (a *Actions) RefreshServiceAccount(username, oldPassword string) (string, error) {
+	return a.refreshServiceAccount(username, oldPassword)
+}

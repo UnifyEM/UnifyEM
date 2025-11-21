@@ -113,14 +113,18 @@ func (a *API) postSync(req *http.Request) userver.JResponse {
 			Responses:     syncRequest.Responses,
 		})
 
+	// Get service credentials for this agent (encrypted with agent's public key)
+	serviceCredentials := a.data.GetServiceCredentials(authDetails.ID)
+
 	// Return the response
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
 		JSONData: schema.APISyncResponse{
-			Status:   schema.APIStatusOK,
-			Code:     http.StatusOK,
-			Conf:     a.conf.AC.GetMap(),
-			Triggers: triggers,
-			Details:  "ok",
-			Requests: requests}}
+			Status:             schema.APIStatusOK,
+			Code:               http.StatusOK,
+			Conf:               a.conf.AC.GetMap(),
+			Triggers:           triggers,
+			Details:            "ok",
+			Requests:           requests,
+			ServiceCredentials: serviceCredentials}}
 }

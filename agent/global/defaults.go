@@ -14,15 +14,21 @@ import (
 )
 
 const (
-	ConfigPrivate      = "client_private"
-	ConfigRegToken     = "reg_token"
-	ConfigLost         = "config_lost"
-	ConfigAgentLogFile = "log_file"
-	ConfigAgentDataDir = "data_dir"
-	ConfigAgentID      = "agent_id"
-	ConfigServerURL    = "server_url"
-	ConfigRefreshToken = "refresh_token"
-	ConfigCAHash       = "ca_hash"
+	ConfigPrivate           = "client_private"
+	ConfigRegToken          = "reg_token"
+	ConfigLost              = "config_lost"
+	ConfigAgentLogFile      = "log_file"
+	ConfigAgentDataDir      = "data_dir"
+	ConfigAgentID           = "agent_id"
+	ConfigServerURL         = "server_url"
+	ConfigRefreshToken      = "refresh_token"
+	ConfigCAHash            = "ca_hash"
+	ConfigServerPublicSig   = "server_public_sig"
+	ConfigServerPublicEnc   = "server_public_enc"
+	ConfigAgentECPrivateSig = "ec_private_sig"
+	ConfigAgentECPublicSig  = "ec_public_sig"
+	ConfigAgentECPrivateEnc = "ec_private_enc"
+	ConfigAgentECPublicEnc  = "ec_public_enc"
 )
 
 // setDefaults makes sure the sets exist, sets default values, and constraints
@@ -39,6 +45,12 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	ap.SetConstraint(ConfigAgentID, 0, 0, "")
 	ap.SetConstraint(ConfigServerURL, 0, 0, "")
 	ap.SetConstraint(ConfigCAHash, 0, 0, "")
+	ap.SetConstraint(ConfigServerPublicSig, 0, 0, "")
+	ap.SetConstraint(ConfigServerPublicEnc, 0, 0, "")
+	ap.SetConstraint(ConfigAgentECPrivateSig, 0, 0, "")
+	ap.SetConstraint(ConfigAgentECPublicSig, 0, 0, "")
+	ap.SetConstraint(ConfigAgentECPrivateEnc, 0, 0, "")
+	ap.SetConstraint(ConfigAgentECPublicEnc, 0, 0, "")
 
 	// Return the sets
 	return ac, ap

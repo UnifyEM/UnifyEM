@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/common/schema/commands"
+	"github.com/UnifyEM/UnifyEM/server/global"
 )
 
 type SyncData struct {
@@ -88,6 +90,16 @@ func (d *Data) processAgentResponse(agentID string, response schema.AgentRespons
 		return d.queueResponse(agentID, response)
 	}
 
+	// Agents can send service credentials on their own
+	// This is indicated by the request ID being "update_service_account"
+	if response.RequestID == "update_service_account" {
+		err := d.processServiceCredentials(agentID, response)
+		if err != nil {
+			return err
+		}
+		return d.queueResponse(agentID, response)
+	}
+
 	// Validate the agent response
 	request, err := d.database.GetAgentRequest(response.RequestID)
 	if err != nil {
@@ -131,6 +143,47 @@ func (d *Data) processAgentResponse(agentID string, response schema.AgentRespons
 	}
 
 	return d.queueResponse(agentID, response)
+}
+
+// processServiceCredentials handles incoming service credentials from agents
+// Credentials arrive double-encrypted: first with agent's public key, then with server's public key
+// This function decrypts the outer layer and stores the agent-encrypted version in the database
+func (d *Data) processServiceCredentials(agentID string, response schema.AgentResponse) error {
+	if response.ServiceCredentials == "" {
+		return fmt.Errorf("no service credentials in response")
+	}
+
+	// Get server's private encryption key
+	serverPrivateEnc := d.conf.SP.Get(global.ConfigServerECPrivateEnc).String()
+	if serverPrivateEnc == "" {
+		return fmt.Errorf("server private encryption key not available")
+	}
+
+	// Decrypt outer layer (server encryption) to get agent-encrypted credentials
+	decrypted, err := crypto.Decrypt(response.ServiceCredentials, serverPrivateEnc)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt service credentials: %w", err)
+	}
+
+	// Get current agent metadata
+	meta, err := d.database.GetAgentMeta(agentID)
+	if err != nil {
+		return fmt.Errorf("failed to get agent metadata: %w", err)
+	}
+
+	// Store the agent-encrypted credentials
+	meta.ServiceCredentials = string(decrypted)
+
+	// Update agent metadata
+	err = d.database.SetAgentMeta(meta)
+	if err != nil {
+		return fmt.Errorf("failed to update agent metadata with credentials: %w", err)
+	}
+
+	d.logger.Info(2710, "service credentials stored for agent",
+		fields.NewFields(fields.NewField("agentID", agentID)))
+
+	return nil
 }
 
 // agentStatus handles incoming status messages from agents

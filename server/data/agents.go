@@ -32,6 +32,16 @@ func (d *Data) AgentExists(agentID string) error {
 	return d.database.AgentExists(agentID)
 }
 
+// GetServiceCredentials returns service credentials for an agent
+// Credentials are stored encrypted with the agent's public key
+func (d *Data) GetServiceCredentials(agentID string) string {
+	meta, err := d.database.GetAgentMeta(agentID)
+	if err != nil {
+		return ""
+	}
+	return meta.ServiceCredentials
+}
+
 // AgentDelete removes an agent from the database including any requests
 func (d *Data) AgentDelete(agentID string) error {
 	var err error
