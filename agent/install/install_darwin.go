@@ -242,6 +242,7 @@ func CheckRootPrivileges() error {
 	if os.Geteuid() != 0 {
 		fmt.Println("\nThis program must be run as root, restarting with sudo...")
 		cmd := exec.Command("sudo", os.Args...)
+		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()

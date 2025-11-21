@@ -66,7 +66,7 @@ func (i *Install) updateServiceAccount(actions *osActions.Actions) error {
 
 	err := actions.SetAdmin(common.ServiceAccount, true)
 	if err != nil {
-		return fmt.Errorf("error setting service account %e as admin: %w", common.ServiceAccount, err)
+		return fmt.Errorf("error setting service account %s as admin: %w", common.ServiceAccount, err)
 	}
 
 	err = actions.SetPassword(
