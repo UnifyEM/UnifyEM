@@ -138,17 +138,37 @@ func (d *Data) RefreshToken(refreshToken string, clientPublicSig string, clientP
 			return TokenRefreshData{}, fmt.Errorf("failed to get agent metadata: %w", err)
 		}
 
-		// Update keys if provided
+		// Check for agent public key changes (should never happen - indicates potential security issue)
+		keyUpdated := false
 		if clientPublicSig != "" {
-			meta.ClientPublicSig = clientPublicSig
+			if meta.ClientPublicSig == "" {
+				// No existing key - store it
+				meta.ClientPublicSig = clientPublicSig
+				keyUpdated = true
+				d.logger.Info(6020, "agent public signature key received and stored", nil)
+			} else if meta.ClientPublicSig != clientPublicSig {
+				// Key changed - security warning, do NOT update
+				d.logger.Warning(6022, "different agent public signature key received and ignored (possible security issue)", nil)
+			}
 		}
 		if clientPublicEnc != "" {
-			meta.ClientPublicEnc = clientPublicEnc
+			if meta.ClientPublicEnc == "" {
+				// No existing key - store it
+				meta.ClientPublicEnc = clientPublicEnc
+				keyUpdated = true
+				d.logger.Info(6021, "agent public encryption key received and stored", nil)
+			} else if meta.ClientPublicEnc != clientPublicEnc {
+				// Key changed - security warning, do NOT update
+				d.logger.Warning(6023, "different agent public encryption key received and ignored (possible security issue)", nil)
+			}
 		}
 
-		err = d.database.SetAgentMeta(meta)
-		if err != nil {
-			return TokenRefreshData{}, fmt.Errorf("failed to update agent metadata: %w", err)
+		// Only update metadata if keys were actually changed
+		if keyUpdated {
+			err = d.database.SetAgentMeta(meta)
+			if err != nil {
+				return TokenRefreshData{}, fmt.Errorf("failed to update agent metadata: %w", err)
+			}
 		}
 	}
 

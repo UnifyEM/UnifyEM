@@ -82,6 +82,15 @@ func (d *Data) Register(regRequest schema.AgentRegisterRequest, remoteIP string)
 	meta.Build = regRequest.Build
 	meta.ClientPublicSig = regRequest.ClientPublicSig
 	meta.ClientPublicEnc = regRequest.ClientPublicEnc
+
+	// Log key receipt during registration
+	if regRequest.ClientPublicSig != "" {
+		d.logger.Info(6018, "agent public signature key received and stored during registration", nil)
+	}
+	if regRequest.ClientPublicEnc != "" {
+		d.logger.Info(6019, "agent public encryption key received and stored during registration", nil)
+	}
+
 	err = d.database.SetAgentMeta(meta)
 	if err != nil {
 		return RegistrationData{}, fmt.Errorf("db error initializing agent metadata: %w", err)

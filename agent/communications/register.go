@@ -83,9 +83,11 @@ func (c *Communications) register() (string, error) {
 	// Save server public keys (key pinning - only store if not empty)
 	if serverResponse.ServerPublicSig != "" {
 		c.conf.AP.Set(global.ConfigServerPublicSig, serverResponse.ServerPublicSig)
+		c.logger.Info(8018, "server public signature key received and stored", nil)
 	}
 	if serverResponse.ServerPublicEnc != "" {
 		c.conf.AP.Set(global.ConfigServerPublicEnc, serverResponse.ServerPublicEnc)
+		c.logger.Info(8019, "server public encryption key received and stored", nil)
 	}
 
 	// Store the access token and server info locally

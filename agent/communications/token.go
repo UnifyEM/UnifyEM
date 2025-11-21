@@ -86,21 +86,27 @@ func (c *Communications) refreshToken() (string, error) {
 			return token, rErr
 		}
 
-		// Update server public keys if provided (for rekey scenarios)
+		// Check for server public key changes (should never happen - indicates potential security issue)
 		if refreshResponse.ServerPublicSig != "" {
-			// Only update if different (key pinning)
 			existing := c.conf.AP.Get(global.ConfigServerPublicSig).String()
-			if existing != refreshResponse.ServerPublicSig {
+			if existing == "" {
+				// No existing key - store it
 				c.conf.AP.Set(global.ConfigServerPublicSig, refreshResponse.ServerPublicSig)
-				c.logger.Info(8020, "server public signature key updated", nil)
+				c.logger.Info(8020, "server public signature key received and stored", nil)
+			} else if existing != refreshResponse.ServerPublicSig {
+				// Key changed - security warning, do NOT update
+				c.logger.Warning(8022, "different server public signature key received and ignored (possible security issue)", nil)
 			}
 		}
 		if refreshResponse.ServerPublicEnc != "" {
-			// Only update if different (key pinning)
 			existing := c.conf.AP.Get(global.ConfigServerPublicEnc).String()
-			if existing != refreshResponse.ServerPublicEnc {
+			if existing == "" {
+				// No existing key - store it
 				c.conf.AP.Set(global.ConfigServerPublicEnc, refreshResponse.ServerPublicEnc)
-				c.logger.Info(8021, "server public encryption key updated", nil)
+				c.logger.Info(8021, "server public encryption key received and stored", nil)
+			} else if existing != refreshResponse.ServerPublicEnc {
+				// Key changed - security warning, do NOT update
+				c.logger.Warning(8023, "different server public encryption key received and ignored (possible security issue)", nil)
 			}
 		}
 
