@@ -132,13 +132,13 @@ func (c *AgentConfig) SetServiceCredentials(username, password string) error {
 // Returns username and password as separate strings
 func (c *AgentConfig) GetServiceCredentials() (username, password string, err error) {
 	if c.serviceCredentialsEncrypted == "" {
-		return "", "", fmt.Errorf("no credentials stored")
+		return "", "", fmt.Errorf("no credentials available")
 	}
 
 	// Get agent's private encryption key
 	agentPrivateEnc := c.AP.Get(ConfigAgentECPrivateEnc).String()
 	if agentPrivateEnc == "" {
-		return "", "", fmt.Errorf("agent private encryption key not available")
+		return "", "", fmt.Errorf("agent private key not available")
 	}
 
 	// Decrypt with agent's private key
@@ -168,13 +168,13 @@ func (c *AgentConfig) SetServiceCredentialsEncrypted(encrypted string) {
 // This marks credentials as sent (no longer pending)
 func (c *AgentConfig) GetServiceCredentialsForServer() (string, error) {
 	if c.serviceCredentialsEncrypted == "" {
-		return "", fmt.Errorf("no credentials stored")
+		return "", fmt.Errorf("no credentials available")
 	}
 
 	// Get server's public encryption key
 	serverPublicEnc := c.AP.Get(ConfigServerPublicEnc).String()
 	if serverPublicEnc == "" {
-		return "", fmt.Errorf("server public encryption key not available")
+		return "", fmt.Errorf("server public key not available")
 	}
 
 	// Encrypt the already-encrypted credentials with server's public key (double encryption)
