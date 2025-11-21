@@ -403,5 +403,5 @@ func (h *Handler) bootTime() string {
 
 // checkServiceAccount is not implemented for Linux
 func (h *Handler) checkServiceAccount() string {
-	return "N/A"
+	return "n/a"
 }

@@ -53,11 +53,18 @@ func (i *Install) createServiceAccount(actions *osActions.Actions) error {
 	err = i.config.SetServiceCredentials(common.ServiceAccount, newPassword)
 	if err != nil {
 		i.logger.Warningf(8111, "failed to store service credentials: %s", err.Error())
-	} else {
-		i.logger.Info(8112, "service credentials encrypted and stored", nil)
+		return fmt.Errorf("failed to store service credentials: %w", err)
 	}
 
-	fmt.Printf("DEBUG: Created service account %s password %s\n", common.ServiceAccount, newPassword)
+	i.logger.Info(8112, "service credentials encrypted and stored in memory", nil)
+	fmt.Printf("Service account %s created with random password\n", common.ServiceAccount)
+
+	// Send credentials to server
+	err = i.sendServiceCredentialsToServer()
+	if err != nil {
+		return fmt.Errorf("failed to send service credentials to server: %w", err)
+	}
+
 	return nil
 }
 
@@ -84,10 +91,17 @@ func (i *Install) updateServiceAccount(actions *osActions.Actions) error {
 	err = i.config.SetServiceCredentials(common.ServiceAccount, newPassword)
 	if err != nil {
 		i.logger.Warningf(8113, "failed to store service credentials: %s", err.Error())
-	} else {
-		i.logger.Info(8114, "service credentials encrypted and stored", nil)
+		return fmt.Errorf("failed to store service credentials: %w", err)
 	}
 
-	fmt.Printf("DEBUG: Updated service account %s password %s\n", common.ServiceAccount, newPassword)
+	i.logger.Info(8114, "service credentials encrypted and stored in memory", nil)
+	fmt.Printf("Service account %s updated with new random password\n", common.ServiceAccount)
+
+	// Send credentials to server
+	err = i.sendServiceCredentialsToServer()
+	if err != nil {
+		return fmt.Errorf("failed to send service credentials to server: %w", err)
+	}
+
 	return nil
 }

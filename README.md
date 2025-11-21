@@ -1,5 +1,7 @@
 # UnifyEM
 
+*** Note: Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
 
@@ -104,7 +106,7 @@ All communication is originated by uem-agent, uem-cli, and uem-webui to the uem-
 
 While the Go libraries fully support HTTPS, at this point of development the preferred approach is for uem-server to listen for HTTP on localhost and use NGINX for HTTPS termination. This allows Certbot to easily obtain and renew certificates for HTTPS.
 
-Agent installation requires a server-specific installation key that contains the server's FQDN and a registration token (enrollment code), similar to how most endpoint security products operate. The agent uses this information to register with the server and obtain unique credentials.
+Agent installation requires a server-specific installation key that contains the server's FQDN and a registration token (enrollment code), similar to how most endpoint security products operate. The agent uses this information to register with the server and obtain unique credentials. On macOS the username and password of an administrator with FileVault access is also required for installation (additional details below).
 
 Agents register automatically using the registration token and receive a unique agent ID, an access token, and a refresh token. The agent ID and refresh token are stored in the agent configuration. The access token is kept in memory. If the access token is denied, the agent will request a new one using the refresh token. If the refresh token is denied, the agent will attempt re-registration. If successful, the agent will receive a new unique agent ID.
 
