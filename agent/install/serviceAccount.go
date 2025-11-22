@@ -11,6 +11,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/osActions"
 	"github.com/UnifyEM/UnifyEM/common"
 	uemCrypto "github.com/UnifyEM/UnifyEM/common/crypto"
+	"github.com/UnifyEM/UnifyEM/common/fields"
 )
 
 func (i *Install) ServiceAccount() error {
@@ -57,7 +58,8 @@ func (i *Install) createServiceAccount(actions *osActions.Actions) error {
 	}
 
 	i.logger.Info(8112, "service credentials encrypted and stored in memory", nil)
-	fmt.Printf("Service account %s created with random password\n", common.ServiceAccount)
+	i.logger.Info(8418, "service account created with random password",
+		fields.NewFields(fields.NewField("account", common.ServiceAccount)))
 
 	// Send credentials to server
 	err = i.sendServiceCredentialsToServer()
@@ -95,7 +97,8 @@ func (i *Install) refreshServiceAccount(actions *osActions.Actions) error {
 	}
 
 	i.logger.Info(8114, "service credentials encrypted and stored in memory", nil)
-	fmt.Printf("Service account %s updated with new random password\n", common.ServiceAccount)
+	i.logger.Info(8419, "service account updated with new random password",
+		fields.NewFields(fields.NewField("account", common.ServiceAccount)))
 
 	// Send credentials to server
 	err = i.sendServiceCredentialsToServer()

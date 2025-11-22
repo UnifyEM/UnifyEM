@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/common/crypto"
+	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
@@ -169,7 +170,8 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 	// knowing the current one
 	err = a.removeFileVault(uq)
 	if err != nil {
-		fmt.Printf("Failed to remove user %s from FileVault: %v", uq, err)
+		a.logger.Warningf(8415, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
+		// Don't return - if they're in FV and removal failed, password change will fail below
 	}
 
 	// Set the password
@@ -361,6 +363,8 @@ func (a *Actions) addFileVault(userInfo UserInfo) error {
 		a.logger.Warningf(8412, "Failed to update preboot after adding user %s to FileVault: %v", un, err)
 	}
 
+	a.logger.Info(8417, "user successfully added to FileVault with secure token",
+		fields.NewFields(fields.NewField("user", un)))
 	return nil
 }
 

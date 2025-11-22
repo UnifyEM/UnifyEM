@@ -111,8 +111,13 @@ func (c *Communications) Sync() {
 
 	// Store service credentials if provided (encrypted with agent's public key)
 	if serverResponse.ServiceCredentials != "" {
-		c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
-		c.logger.Info(8030, "service credentials received from server", nil)
+		// Only store if we don't already have fresh credentials pending send
+		if c.conf.CredentialsPendingSend() {
+			c.logger.Info(8030, "ignoring service credentials from server (have fresh credentials pending send)", nil)
+		} else {
+			c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
+			c.logger.Info(8031, "service credentials received and stored from server", nil)
+		}
 	}
 
 	// Checkpoint the configuration

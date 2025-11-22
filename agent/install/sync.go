@@ -12,6 +12,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
+	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/common/schema/commands"
 )
@@ -102,7 +103,7 @@ func (i *Install) sendServiceCredentialsToServer() error {
 	}
 
 	// First sync: register with server and get server public key
-	fmt.Println("Syncing with server to complete registration...")
+	i.logger.Info(8420, "syncing with server to complete registration", nil)
 	err = i.syncWithRetry(comms, "registration")
 	if err != nil {
 		return fmt.Errorf("failed to complete registration sync: %w", err)
@@ -119,12 +120,11 @@ func (i *Install) sendServiceCredentialsToServer() error {
 		return fmt.Errorf("agent ID not received during registration")
 	}
 
-	i.logger.Info(8142, "registration successful, server public key received", nil)
-	fmt.Printf("Registration successful. Agent ID: %s\n", agentID)
+	i.logger.Info(8142, "registration successful, server public key received",
+		fields.NewFields(fields.NewField("agent_id", agentID)))
 
 	// Encrypt credentials for transmission to server
 	i.logger.Info(8143, "encrypting service credentials for transmission", nil)
-	fmt.Println("Encrypting service credentials for transmission...")
 
 	// Get double-encrypted credentials directly
 	encryptedForServer, err := i.config.GetServiceCredentialsForServer()
@@ -145,7 +145,7 @@ func (i *Install) sendServiceCredentialsToServer() error {
 	i.logger.Info(8144, "service credentials queued for transmission", nil)
 
 	// Second sync: send the queued credentials to the server
-	fmt.Println("Sending encrypted credentials to server...")
+	i.logger.Info(8421, "sending encrypted credentials to server", nil)
 	err = i.syncWithRetry(comms, "credential transmission")
 	if err != nil {
 		return fmt.Errorf("failed to send credentials to server: %w", err)
@@ -158,7 +158,6 @@ func (i *Install) sendServiceCredentialsToServer() error {
 	}
 
 	i.logger.Info(8146, "service credentials successfully transmitted to server", nil)
-	fmt.Println("Service credentials successfully transmitted to server.")
 
 	return nil
 }
