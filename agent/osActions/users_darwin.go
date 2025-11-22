@@ -338,6 +338,10 @@ func (a *Actions) addFileVault(userInfo UserInfo) error {
 		},
 	}
 
+	// Log attempt to add user to FileVault
+	a.logger.Info(8422, "attempting to add user to FileVault with secure token",
+		fields.NewFields(fields.NewField("user", un)))
+
 	// Run fdesetup with interactive prompts
 	output, err := runCmd.TTY(interactive)
 	if err != nil {
@@ -353,8 +357,18 @@ func (a *Actions) addFileVault(userInfo UserInfo) error {
 			return nil
 		}
 
+		// Log the failure with output for debugging
+		a.logger.Errorf(8423, "fdesetup add failed for user %s: %v",
+			un, err,
+			fields.NewFields(fields.NewField("output", output)))
 		return fmt.Errorf("fdesetup failed: %w (output: %s)", err, output)
 	}
+
+	// Log successful fdesetup execution
+	a.logger.Info(8424, "fdesetup add completed successfully",
+		fields.NewFields(
+			fields.NewField("user", un),
+			fields.NewField("output", output)))
 
 	// Update the preboot
 	_, err = runCmd.Combined("diskutil", "apfs", "updatePreboot", "/")
