@@ -40,15 +40,29 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.RequestID = request.RequestID
 	response.Success = false
 
+	// Obtain admin password from config
+	adminUser, adminPassword, err := h.config.GetServiceCredentials()
+	if err != nil {
+		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
+		return response, errors.New(response.Response)
+	}
+
+	userInfo := osActions.UserInfo{
+		AdminUser:     adminUser,
+		AdminPassword: adminPassword,
+	}
+
 	username, ok := request.Parameters["user"]
 	if !ok || username == "" {
 		response.Response = "username is missing or invalid"
 		return response, errors.New(response.Response)
 	}
 
+	userInfo.Username = username
+
 	admin, ok := request.Parameters["admin"]
-	if !ok {
-		response.Response = "admin parameter is missing or invalid"
+	if !ok || admin == "" {
+		response.Response = "admin boolean is missing or invalid"
 		return response, errors.New(response.Response)
 	}
 
@@ -56,6 +70,8 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	if strings.ToLower(admin) == "true" || strings.ToLower(admin) == "yes" {
 		makeAdmin = true
 	}
+
+	userInfo.Admin = makeAdmin
 
 	// Assemble log fields
 	f := fields.NewFields(
@@ -67,7 +83,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.SetAdmin(username, makeAdmin)
+	err = a.SetAdmin(userInfo)
 	if err != nil {
 		h.logger.Error(8204, "failed to set admin status", f)
 		response.Response = fmt.Sprintf("failed to set admin status for user %s: %s", username, err.Error())

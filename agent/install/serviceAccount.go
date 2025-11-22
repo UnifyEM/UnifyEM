@@ -73,17 +73,19 @@ func (i *Install) createServiceAccount(actions *osActions.Actions) error {
 func (i *Install) refreshServiceAccount(actions *osActions.Actions) error {
 	newPassword := uemCrypto.RandomPassword()
 
-	err := actions.SetAdmin(common.ServiceAccount, true)
+	userInfo := osActions.UserInfo{
+		Username:      common.ServiceAccount,
+		Password:      newPassword,
+		Admin:         true,
+		AdminUser:     i.user,
+		AdminPassword: i.pass}
+
+	err := actions.SetAdmin(userInfo)
 	if err != nil {
 		return fmt.Errorf("error setting service account %s as admin: %w", common.ServiceAccount, err)
 	}
 
-	err = actions.SetPassword(
-		osActions.UserInfo{
-			Username:      common.ServiceAccount,
-			Password:      newPassword,
-			AdminUser:     i.user,
-			AdminPassword: i.pass})
+	err = actions.SetPassword(userInfo)
 
 	if err != nil {
 		return fmt.Errorf("error updating service account %s: %w", common.ServiceAccount, err)

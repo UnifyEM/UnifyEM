@@ -60,13 +60,11 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		}
 	}
 
-	adminUser, ok := request.Parameters["adminUser"]
-	if !ok {
-		adminUser = ""
-	}
-	adminPassword, ok := request.Parameters["adminPassword"]
-	if !ok {
-		adminPassword = ""
+	// Obtain admin password from config
+	adminUser, adminPassword, err := h.config.GetServiceCredentials()
+	if err != nil {
+		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
+		return response, errors.New(response.Response)
 	}
 
 	userInfo := osActions.UserInfo{
@@ -87,7 +85,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.AddUser(userInfo)
+	err = a.AddUser(userInfo)
 	if err != nil {
 		h.logger.Error(8201, "failed to add user", f)
 		response.Response = fmt.Sprintf("failed to add user %s: %s", username, err.Error())

@@ -37,26 +37,26 @@ func (a *Actions) GetUsers() (schema.DeviceUserList, error) {
 	return a.getUsers()
 }
 
-func (a *Actions) AddUser(newUser UserInfo) error {
-	return a.addUser(newUser)
+func (a *Actions) AddUser(userInfo UserInfo) error {
+	return a.addUser(userInfo)
 }
 
 func (a *Actions) UserExists(username string) (bool, error) {
 	return a.userExists(username)
 }
 
-func (a *Actions) DeleteUser(user string) error {
-	return a.deleteUser(user)
+func (a *Actions) DeleteUser(userInfo UserInfo) error {
+	return a.deleteUser(userInfo)
 }
 
 // LockUser locks out the specified user (or the current user if the
 // user string is empty and optionally executes a shutdown
-func (a *Actions) LockUser(user string, shutdown bool) error {
+func (a *Actions) LockUser(userInfo UserInfo, shutdown bool) error {
 
 	// If shutdown option is selected, only do so if
 	// locking the user account succeeds
 	if shutdown {
-		err := a.lockUser(user)
+		err := a.lockUser(userInfo)
 		if err != nil {
 			return err
 		}
@@ -65,19 +65,19 @@ func (a *Actions) LockUser(user string, shutdown bool) error {
 	}
 
 	// Otherwise just lock the user's account
-	return a.lockUser(user)
+	return a.lockUser(userInfo)
 }
 
-func (a *Actions) UnLockUser(user string) error {
-	return a.unlockUser(user)
+func (a *Actions) UnLockUser(userInfo UserInfo) error {
+	return a.unlockUser(userInfo)
 }
 
 func (a *Actions) SetPassword(userInfo UserInfo) error {
 	return a.setPassword(userInfo)
 }
 
-func (a *Actions) SetAdmin(user string, admin bool) error {
-	return a.setAdmin(user, admin)
+func (a *Actions) SetAdmin(userInfo UserInfo) error {
+	return a.setAdmin(userInfo)
 }
 
 func (a *Actions) TestCredentials(user string, pass string) error {
@@ -87,6 +87,6 @@ func (a *Actions) TestCredentials(user string, pass string) error {
 // RefreshServiceAccount generates a new password for the service account
 // It uses the old password to authenticate the change
 // Returns the new password on success
-func (a *Actions) RefreshServiceAccount(username, oldPassword string) (string, error) {
-	return a.refreshServiceAccount(username, oldPassword)
+func (a *Actions) RefreshServiceAccount(userInfo UserInfo) (string, error) {
+	return a.refreshServiceAccount(userInfo)
 }

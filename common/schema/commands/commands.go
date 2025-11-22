@@ -27,7 +27,6 @@ const (
 	RefreshServiceAccount = "refresh_service_account"
 	Shutdown              = "shutdown"
 	Status                = "status"
-	UpdateServiceAccount  = "update_service_account"
 	Upgrade               = "upgrade"
 	UserAdd               = "user_add"
 	UserDelete            = "user_delete"
@@ -137,7 +136,7 @@ func init() {
 			UserUnlock: {
 				Name:         UserUnlock,
 				AckRequired:  true,
-				RequiredArgs: []string{"user", "agent_id"},
+				RequiredArgs: []string{"user", "password", "agent_id"},
 				OptionalArgs: []string{},
 			},
 		},

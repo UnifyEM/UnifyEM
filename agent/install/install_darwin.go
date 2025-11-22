@@ -136,6 +136,12 @@ func (i *Install) installService() error {
 	// We only need to bootstrap for currently logged-in users
 	bootstrapUserAgents()
 
+	// Skip service account operations during upgrade
+	// The service account already exists with valid credentials stored on the server
+	if i.isUpgrade {
+		return nil
+	}
+
 	// There must be a password
 	if i.user == "" || i.pass == "" {
 		err = i.promptCredentials()

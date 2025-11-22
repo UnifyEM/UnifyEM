@@ -9,7 +9,6 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/agent/osActions"
-	"github.com/UnifyEM/UnifyEM/common"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
@@ -38,19 +37,16 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, nil
 	}
 
-	// Verify we have credentials
-	if username == "" || oldPassword == "" {
-		response.Response = "no service credentials stored"
-		response.Success = false
-		h.logger.Error(8121, "no service credentials stored", nil)
-		return response, nil
+	userInfo := osActions.UserInfo{
+		Username: username,
+		Password: oldPassword,
 	}
 
 	// Create osActions instance
 	actions := osActions.New(h.logger)
 
 	// Refresh the service account password
-	newPassword, err := actions.RefreshServiceAccount(common.ServiceAccount, oldPassword)
+	newPassword, err := actions.RefreshServiceAccount(userInfo)
 	if err != nil {
 		response.Response = "failed to refresh service account: " + err.Error()
 		response.Success = false
@@ -67,7 +63,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	}
 
 	// Store new credentials (automatically encrypts and flags for sending)
-	err = h.config.SetServiceCredentials(common.ServiceAccount, newPassword)
+	err = h.config.SetServiceCredentials(username, newPassword)
 	if err != nil {
 		response.Response = "failed to store new credentials: " + err.Error()
 		response.Success = false

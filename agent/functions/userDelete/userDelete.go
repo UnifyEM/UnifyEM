@@ -45,6 +45,19 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
+	// Obtain admin password from config
+	adminUser, adminPassword, err := h.config.GetServiceCredentials()
+	if err != nil {
+		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
+		return response, errors.New(response.Response)
+	}
+
+	userInfo := osActions.UserInfo{
+		Username:      username,
+		AdminUser:     adminUser,
+		AdminPassword: adminPassword,
+	}
+
 	// Assemble log fields
 	f := fields.NewFields(
 		fields.NewField("cmd", request.Request),
@@ -54,7 +67,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.DeleteUser(username)
+	err = a.DeleteUser(userInfo)
 	if err != nil {
 		h.logger.Error(8201, "failed to add user", f)
 		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())

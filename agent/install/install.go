@@ -19,11 +19,12 @@ import (
 )
 
 type Install struct {
-	config *global.AgentConfig
-	logger interfaces.Logger
-	token  string
-	user   string
-	pass   string
+	config    *global.AgentConfig
+	logger    interfaces.Logger
+	token     string
+	user      string
+	pass      string
+	isUpgrade bool
 }
 
 // Option is a functional option for configuring Install
@@ -55,6 +56,13 @@ func WithCredentials(user, pass string) Option {
 func WithToken(token string) Option {
 	return func(i *Install) {
 		i.token = token
+	}
+}
+
+// WithUpgrade sets the upgrade flag (optional)
+func WithUpgrade() Option {
+	return func(i *Install) {
+		i.isUpgrade = true
 	}
 }
 
@@ -134,6 +142,9 @@ func (i *Install) Uninstall() error {
 
 func (i *Install) Upgrade() error {
 	var err error
+
+	// Set upgrade flag to skip service account operations
+	i.isUpgrade = true
 
 	// Call the os specific upgrade
 	err = i.upgradeService()

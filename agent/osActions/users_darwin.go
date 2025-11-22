@@ -108,17 +108,21 @@ func canUserLogin(username string) bool {
 }
 
 // lockUser changes the user's shell to /usr/bin/false to deny access
-func (a *Actions) lockUser(username string) error {
-	if username == "" {
+func (a *Actions) lockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	// TODO remove user from FV
+	// Remove the user from FileVault
+	err = a.removeFileVault(uq)
+	if err != nil {
+		a.logger.Warningf(8417, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
+	}
 
 	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false")
 	if err != nil {
@@ -128,21 +132,31 @@ func (a *Actions) lockUser(username string) error {
 }
 
 // unlockUser changes the user's shell back to /bin/zsh to allow access
-func (a *Actions) unlockUser(username string) error {
-	if username == "" {
+func (a *Actions) unlockUser(userInfo UserInfo) error {
+
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
+	// Darwin also requires admin credentials to update FileVault
+	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
+	if err != nil {
+		return err
+	}
+
+	// Enable user
 	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/bin/zsh")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
 	}
-	return nil
+
+	// Set the password and add back to fileVault
+	return a.setPassword(userInfo)
 }
 
 // setPassword sets the password for the specified user
@@ -232,18 +246,18 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	return a.addFileVault(userInfo)
 }
 
-func (a *Actions) setAdmin(username string, admin bool) error {
+func (a *Actions) setAdmin(userInfo UserInfo) error {
 
-	if username == "" {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	if admin {
+	if userInfo.Admin {
 		_, err = runCmd.Combined("dseditgroup", "-o", "edit", "-a", uq, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to admin group: %w", uq, err)
@@ -258,12 +272,12 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 }
 
 // deleteUser removes a user from the system
-func (a *Actions) deleteUser(username string) error {
-	if username == "" {
+func (a *Actions) deleteUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -525,12 +539,12 @@ func (a *Actions) userExists(username string) (bool, error) {
 
 // refreshServiceAccount changes the service account password using the old password for authentication
 // Returns the new password on success
-func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
-	if username == "" || oldPassword == "" {
-		return "", fmt.Errorf("username and old password are required")
+func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return "", fmt.Errorf("username and existing password are required")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return "", err
 	}
@@ -540,7 +554,7 @@ func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, e
 
 	// Use dscl to change the password, authenticating with the old password
 	// Format: dscl . -passwd /Users/<username> <oldpassword> <newpassword>
-	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), oldPassword, newPassword)
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", uq), userInfo.Password, newPassword)
 	if err != nil {
 		return "", fmt.Errorf("failed to change password for user %s: %w", uq, err)
 	}
