@@ -25,6 +25,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
+	"github.com/UnifyEM/UnifyEM/common/schema/commands"
 	"github.com/UnifyEM/UnifyEM/common/uemservice"
 	"github.com/UnifyEM/UnifyEM/common/ulogger"
 )
@@ -607,22 +608,12 @@ func sendStatus() {
 	}
 }
 
-// sendServiceCredentials creates an internal request to send encrypted service credentials to the server
+// sendServiceCredentials creates an internal response to send encrypted service credentials to the server
 func sendServiceCredentials() {
 	// Only send if server public key is available
 	serverPublicEnc := conf.AP.Get(global.ConfigServerPublicEnc).String()
 	if serverPublicEnc == "" {
 		logger.Warning(8115, "server public key not available, deferring credential send", nil)
-		return
-	}
-
-	cmd, err := functions.New(
-		functions.WithLogger(logger),
-		functions.WithConfig(conf),
-		functions.WithComms(communication),
-		functions.WithUserDataSource(getUserDataSource()))
-	if err != nil {
-		logger.Errorf(8116, "error initializing command module: %s", err.Error())
 		return
 	}
 
@@ -633,19 +624,24 @@ func sendServiceCredentials() {
 		return
 	}
 
-	// Create the request
-	request := schema.NewAgentRequest()
-	request.AgentID = agentID
-	request.RequestID = "update_service_account"
-	request.Request = "update_service_account"
-	request.Parameters = make(map[string]string)
-	request.Parameters["agent_id"] = agentID
-
-	// Execute the request
-	err = executeRequest(cmd, request)
+	// Get double-encrypted credentials directly
+	encryptedForServer, err := conf.GetServiceCredentialsForServer()
 	if err != nil {
-		logger.Errorf(8118, "error executing update_service_account request: %s", err.Error())
+		logger.Errorf(8116, "failed to encrypt credentials for server: %s", err.Error())
+		return
 	}
+
+	// Create response directly (no need for request/handler pattern for self-initiated responses)
+	response := schema.NewAgentResponse()
+	response.Cmd = commands.RefreshServiceAccount
+	response.RequestID = "none" // Indicates unsolicited response (not in response to server request)
+	response.ServiceCredentials = encryptedForServer
+	response.Response = "service credentials encrypted and ready"
+	response.Success = true
+
+	// Queue the response for transmission
+	responseQueue.Add(response)
+	logger.Info(8118, "service credentials queued for transmission", nil)
 }
 
 // simulateService runs the service in the foreground for testing. This is particularly useful on Windows.

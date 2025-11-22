@@ -3,7 +3,7 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-package updateServiceAccount
+package refreshServiceAccount
 
 import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"

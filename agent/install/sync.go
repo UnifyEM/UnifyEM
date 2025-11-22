@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
-	"github.com/UnifyEM/UnifyEM/agent/functions"
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
 	"github.com/UnifyEM/UnifyEM/common/schema"
+	"github.com/UnifyEM/UnifyEM/common/schema/commands"
 )
 
 const (
@@ -122,35 +122,25 @@ func (i *Install) sendServiceCredentialsToServer() error {
 	i.logger.Info(8142, "registration successful, server public key received", nil)
 	fmt.Printf("Registration successful. Agent ID: %s\n", agentID)
 
-	// Create functions handler to process update_service_account request
-	cmd, err := functions.New(
-		functions.WithLogger(i.logger),
-		functions.WithConfig(i.config),
-		functions.WithComms(comms),
-		functions.WithUserDataSource(nil)) // user data source not needed for this command
-	if err != nil {
-		return fmt.Errorf("failed to initialize command module: %w", err)
-	}
-
-	// Create the update_service_account request
-	request := schema.NewAgentRequest()
-	request.AgentID = agentID
-	request.RequestID = "update_service_account"
-	request.Request = "update_service_account"
-	request.Parameters = make(map[string]string)
-	request.Parameters["agent_id"] = agentID
-
-	// Execute the request to queue the encrypted credentials response
+	// Encrypt credentials for transmission to server
 	i.logger.Info(8143, "encrypting service credentials for transmission", nil)
 	fmt.Println("Encrypting service credentials for transmission...")
 
-	response := cmd.ExecuteRequest(request)
-
-	if !response.Success {
-		return fmt.Errorf("update_service_account command failed: %s", response.Response)
+	// Get double-encrypted credentials directly
+	encryptedForServer, err := i.config.GetServiceCredentialsForServer()
+	if err != nil {
+		return fmt.Errorf("failed to encrypt credentials for server: %w", err)
 	}
 
-	// Add response to queue
+	// Create response directly (no need for request/handler pattern for self-initiated responses)
+	response := schema.NewAgentResponse()
+	response.Cmd = commands.RefreshServiceAccount
+	response.RequestID = "none" // Indicates unsolicited response (not in response to server request)
+	response.ServiceCredentials = encryptedForServer
+	response.Response = "service credentials encrypted and ready"
+	response.Success = true
+
+	// Queue the response for transmission
 	responseQueue.Add(response)
 	i.logger.Info(8144, "service credentials queued for transmission", nil)
 

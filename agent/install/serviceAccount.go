@@ -27,7 +27,7 @@ func (i *Install) ServiceAccount() error {
 	}
 
 	if exists {
-		return i.updateServiceAccount(actions)
+		return i.refreshServiceAccount(actions)
 	} else {
 		return i.createServiceAccount(actions)
 	}
@@ -68,7 +68,7 @@ func (i *Install) createServiceAccount(actions *osActions.Actions) error {
 	return nil
 }
 
-func (i *Install) updateServiceAccount(actions *osActions.Actions) error {
+func (i *Install) refreshServiceAccount(actions *osActions.Actions) error {
 	newPassword := uemCrypto.RandomPassword()
 
 	err := actions.SetAdmin(common.ServiceAccount, true)

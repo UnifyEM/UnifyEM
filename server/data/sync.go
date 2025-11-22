@@ -90,9 +90,9 @@ func (d *Data) processAgentResponse(agentID string, response schema.AgentRespons
 		return d.queueResponse(agentID, response)
 	}
 
-	// Agents can send service credentials on their own
-	// This is indicated by the request ID being "update_service_account"
-	if response.RequestID == "update_service_account" {
+	// Agents can send service credentials on their own (unsolicited response)
+	// This is indicated by the request ID being "none" and cmd being refresh_service_account
+	if response.RequestID == "none" && response.Cmd == commands.RefreshServiceAccount {
 		err := d.processServiceCredentials(agentID, response)
 		if err != nil {
 			return err

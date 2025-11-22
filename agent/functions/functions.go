@@ -17,7 +17,6 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/functions/refreshServiceAccount"
 	"github.com/UnifyEM/UnifyEM/agent/functions/shutdown"
 	"github.com/UnifyEM/UnifyEM/agent/functions/status"
-	"github.com/UnifyEM/UnifyEM/agent/functions/updateServiceAccount"
 	"github.com/UnifyEM/UnifyEM/agent/functions/upgrade"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdd"
 	"github.com/UnifyEM/UnifyEM/agent/functions/userAdmin"
@@ -74,7 +73,6 @@ func New(options ...func(*Command) error) (*Command, error) {
 	c.addHandler(commands.Reboot, reboot.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.Shutdown, shutdown.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.Upgrade, upgrade.New(c.config, c.logger, c.comms))
-	c.addHandler(commands.UpdateServiceAccount, updateServiceAccount.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.RefreshServiceAccount, refreshServiceAccount.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserList, userList.New(c.config, c.logger, c.comms))
 	c.addHandler(commands.UserAdd, userAdd.New(c.config, c.logger, c.comms))
