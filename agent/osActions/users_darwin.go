@@ -118,6 +118,8 @@ func (a *Actions) lockUser(username string) error {
 		return err
 	}
 
+	// TODO remove user from FV
+
 	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", uq), "UserShell", "/usr/bin/false")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", uq, err)
@@ -281,8 +283,102 @@ func (a *Actions) deleteUser(username string) error {
 
 	return nil
 }
-
 func (a *Actions) addFileVault(userInfo UserInfo) error {
+	var err error
+
+	// Validate required fields
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return fmt.Errorf("username and password are required")
+	}
+
+	un, err := safeUsername(userInfo.Username)
+	if err != nil {
+		return err
+	}
+
+	up, err := safePassword(userInfo.Password)
+	if err != nil {
+		return err
+	}
+
+	an, err := safeUsername(userInfo.AdminUser)
+	if err != nil {
+		return err
+	}
+
+	ap, err := safePassword(userInfo.AdminPassword)
+	if err != nil {
+		return err
+	}
+
+	// Darwin also requires admin credentials to update FileVault
+	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
+	if err != nil {
+		return err
+	}
+
+	// Define the interactive prompts and responses
+	interactive := runCmd.Interactive{
+
+		Command: []string{"sysadminctl", "-adminUser", an, "-adminPassword", "-",
+			"-secureTokenOn", un, "-password", "-"},
+		Actions: []runCmd.Action{
+			{
+				WaitFor:  "Enter password for ",
+				Send:     ap,
+				DebugMsg: "Sending admin password",
+			},
+			{
+				WaitFor:  "Enter password for ",
+				Send:     up,
+				DebugMsg: "Sending user password",
+			},
+		},
+	}
+
+	// Log attempt to add user to FileVault
+	a.logger.Info(8422, "attempting to add user to FileVault with secure token",
+		fields.NewFields(fields.NewField("user", un)))
+
+	// Run fdesetup with interactive prompts
+	output, err := runCmd.TTY(interactive)
+	if err != nil {
+		// Check if FileVault is not enabled
+		if strings.Contains(output, "FileVault is not enabled") {
+			a.logger.Warningf(8410, "FileVault is not enabled, skipping FileVault configuration for user %s", un)
+			return nil
+		}
+
+		// Check if user is already enabled for FileVault
+		if strings.Contains(output, "already enabled") {
+			a.logger.Infof(8411, "User %s is already enabled for FileVault", un)
+			return nil
+		}
+
+		// Log the failure with output for debugging
+		a.logger.Errorf(8423, "granting secure token failed for user %s: %v",
+			un, err,
+			fields.NewFields(fields.NewField("output", output)))
+		return fmt.Errorf("granting secure token failed: %w (output: %s)", err, output)
+	}
+
+	// Log successful fdesetup execution
+	a.logger.Info(8424, "secure token granted successfully",
+		fields.NewFields(fields.NewField("user", un)))
+
+	// Update the preboot
+	_, err = runCmd.Combined("diskutil", "apfs", "updatePreboot", "/")
+	if err != nil {
+		// Log warning but don't fail - this is not critical
+		a.logger.Warningf(8412, "Failed to update preboot after adding user %s to FileVault: %v", un, err)
+	}
+
+	a.logger.Info(8417, "user successfully added to FileVault with secure token",
+		fields.NewFields(fields.NewField("user", un)))
+	return nil
+}
+
+func (a *Actions) addFileVaultLegacy(userInfo UserInfo) error {
 
 	// Darwin also requires admin credentials to update FileVault
 	err := a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
