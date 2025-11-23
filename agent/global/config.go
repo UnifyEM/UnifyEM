@@ -102,6 +102,11 @@ func (c *AgentConfig) Checkpoint() error {
 	return c.C.Checkpoint()
 }
 
+// Delete the existing config file
+func (c *AgentConfig) Delete() error {
+	return c.C.Delete("")
+}
+
 // SetServiceCredentials encrypts and stores service account credentials in memory
 // Credentials are stored as "username:password" encrypted with agent's public encryption key
 // This marks credentials as pending send to server

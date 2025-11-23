@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common"
 	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
@@ -119,7 +120,7 @@ func (a *Actions) lockUser(userInfo UserInfo) error {
 	}
 
 	// Remove the user from FileVault
-	err = a.removeFileVault(uq)
+	err = a.removeFileVault(userInfo)
 	if err != nil {
 		a.logger.Warningf(8417, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
 	}
@@ -184,7 +185,7 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 
 	// Remove the user from FileVault, otherwise we cannot set their password without
 	// knowing the current one
-	err = a.removeFileVault(uq)
+	err = a.removeFileVault(userInfo)
 	if err != nil {
 		a.logger.Warningf(8415, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
 		// Don't return - if they're in FV and removal failed, password change will fail below
@@ -273,30 +274,101 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 // deleteUser removes a user from the system
 func (a *Actions) deleteUser(userInfo UserInfo) error {
+
+	var err error
+
 	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
+	// Darwin also requires admin credentials to update FileVault
+	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
 	if err != nil {
 		return err
 	}
 
-	// Attempt to remove from FileVault (best effort - may fail if FileVault not enabled or user not enrolled)
-	_, err = runCmd.Combined("fdesetup", "remove", "-user", uq)
+	var out string
+	out, err = a.deleteUserWithAdmin(userInfo)
+	a.logger.Debugf(8409, "deleteUserWithAdmin result: %s", out)
 	if err != nil {
-		// Log warning but continue - FileVault removal is not critical
-		a.logger.Warningf(8409, "Failed to remove user %s from FileVault (may not be enrolled): %v", uq, err)
+		a.logger.Infof(8409, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+		a.logger.Infof(8409, "attempting to delete with dscl", userInfo.Username)
+
+		// Try with dscl
+		out, err = a.deleteUserWithDscl(userInfo)
+		a.logger.Debugf(8409, "deleteUserWithDscl result: %s", out)
+
+		if err != nil {
+			return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
+		}
 	}
 
-	// Delete the user
-	_, err = runCmd.Combined("sysadminctl", "-deleteUser", uq)
+	// Remove from FileVault just in case
+	err = a.removeFileVault(userInfo)
 	if err != nil {
-		return fmt.Errorf("failed to deleteNo,  user %s: %w", uq, err)
+		return fmt.Errorf("failed to remove user %s from FileVault: %w", userInfo.Username, err)
 	}
-
 	return nil
 }
+
+func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
+
+	uq, err := safeUsername(userInfo.Username)
+	if err != nil {
+		return "", err
+	}
+
+	// macOS also requires admin credentials to update FileVault
+	if userInfo.AdminUser == "" || userInfo.AdminPassword == "" {
+		return "", fmt.Errorf("administrator username and password must be supplied")
+	}
+
+	// Escape the sandbox and run sysadminctl as the service account
+	out, err := runCmd.TTYAsUser(
+		&runCmd.UserLogin{
+			Username: userInfo.AdminUser,
+			Password: userInfo.AdminPassword,
+		},
+		"sysadminctl", "-deleteUser", uq, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
+
+	//out, err := runCmd.Combined("sysadminctl", "-deleteUser", uq, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
+	if err != nil {
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+
+	if strings.Contains(out, "-14120") || strings.Contains(out, "Error:") {
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", uq, common.SingleLine(out))
+	}
+
+	return common.SingleLine(out), nil
+}
+
+func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
+
+	if userInfo.Username == "" {
+		return "", fmt.Errorf("username cannot be empty")
+	}
+
+	uq, err := safeUsername(userInfo.Username)
+	if err != nil {
+		return "", err
+	}
+
+	// Escape the sandbox and run sysadminctl as the service account
+	out, err := runCmd.TTYAsUser(
+		&runCmd.UserLogin{
+			Username: userInfo.AdminUser,
+			Password: userInfo.AdminPassword,
+		},
+		"dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
+
+	//out, err := runCmd.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
+	if err != nil {
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", uq, err)
+	}
+	return common.SingleLine(out), nil
+}
+
 func (a *Actions) addFileVault(userInfo UserInfo) error {
 	var err error
 
@@ -492,13 +564,14 @@ func (a *Actions) addFileVaultLegacy(userInfo UserInfo) error {
 	return nil
 }
 
-// deleteUser removes a user from the system
-func (a *Actions) removeFileVault(username string) error {
-	if username == "" {
+// removeFileVault removes a user from FileVault
+func (a *Actions) removeFileVault(userInfo UserInfo) error {
+
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -597,14 +670,13 @@ func (a *Actions) testCredentials(username string, password string) error {
 	}
 
 	// Step 3: Verify the user has a FileVault secure token
-	output, err := runCmd.Combined("sysadminctl", "-secureTokenStatus", uq)
+	out, err := runCmd.Combined("sysadminctl", "-secureTokenStatus", uq)
 	if err != nil {
 		return fmt.Errorf("failed to check secure token status for user %s: %w", uq, err)
 	}
 
-	outputStr := string(output)
 	// The output format is typically: "Secure token is ENABLED for user <username>"
-	if !strings.Contains(outputStr, "ENABLED") {
+	if !strings.Contains(out, "ENABLED") {
 		return fmt.Errorf("user %s does not have a FileVault secure token", uq)
 	}
 

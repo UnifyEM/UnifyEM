@@ -116,7 +116,7 @@ func (c *Communications) Sync() {
 			c.logger.Info(8030, "ignoring service account credentials from server, new credentials pending sending", nil)
 		} else {
 			c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
-			c.logger.Info(8031, "service account credentials received rom server", nil)
+			c.logger.Info(8031, "received service account credentials from server", nil)
 		}
 	}
 

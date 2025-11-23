@@ -69,7 +69,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	a := osActions.New(h.logger)
 	err = a.DeleteUser(userInfo)
 	if err != nil {
-		h.logger.Error(8201, "failed to add user", f)
+		h.logger.Error(8201, "failed to delete user", f)
 		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())
 		return response, err
 	}

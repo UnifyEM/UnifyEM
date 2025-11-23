@@ -228,7 +228,7 @@ func (i *Install) uninstallService(removeData bool) error {
 	}
 
 	if removeData {
-		// TODO delete the data
+		i.config.Delete()
 	}
 
 	return nil

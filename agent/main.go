@@ -513,12 +513,6 @@ func ServiceStopping(interfaces.Logger) {
 	// Stop user data listener (platform-specific, macOS only)
 	cleanupUserDataListener(logger)
 
-	// Save the configuration
-	//err := conf.Checkpoint()
-	//if err != nil {
-	//	logger.Infof(8006, "error saving configuration: %s", err.Error())
-	//}
-
 	// Try to tell the server
 	_ = communication.SendMessage(fmt.Sprintf("%s version %s (build %d) stopping", global.Name, global.Version, global.Build))
 }

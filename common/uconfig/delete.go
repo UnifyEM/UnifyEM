@@ -3,9 +3,13 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-package common
+package uconfig
 
-const (
-	Version = "0.0.42"
-	Build   = 74
+import (
+	"os"
 )
+
+// / Delete the configuration file
+func (c *UConfig) deleteFile() error {
+	return os.Remove(c.file)
+}
