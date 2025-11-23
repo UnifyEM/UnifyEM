@@ -18,8 +18,9 @@ type Interactive struct {
 
 // UserLogin contains credentials for logging in as a different user
 type UserLogin struct {
-	Username string
-	Password string
+	Username  string
+	Password  string
+	RunAsRoot bool // If true, use sudo to run command as root after login
 }
 
 // Action represents a single prompt/response interaction in an interactive TTY session

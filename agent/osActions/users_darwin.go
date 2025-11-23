@@ -323,11 +323,12 @@ func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
 		return "", fmt.Errorf("administrator username and password must be supplied")
 	}
 
-	// Escape the sandbox and run sysadminctl as the service account
+	// Escape the sandbox and run sysadminctl as root via sudo
 	out, err := runCmd.TTYAsUser(
 		&runCmd.UserLogin{
-			Username: userInfo.AdminUser,
-			Password: userInfo.AdminPassword,
+			Username:  userInfo.AdminUser,
+			Password:  userInfo.AdminPassword,
+			RunAsRoot: true,
 		},
 		"sysadminctl", "-deleteUser", uq, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
 
@@ -337,7 +338,7 @@ func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
 	}
 
 	if strings.Contains(out, "-14120") || strings.Contains(out, "Error:") {
-		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", uq, common.SingleLine(out))
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %s", uq, common.SingleLine(out))
 	}
 
 	return common.SingleLine(out), nil
@@ -354,11 +355,12 @@ func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
 		return "", err
 	}
 
-	// Escape the sandbox and run sysadminctl as the service account
+	// Escape the sandbox and run dscl as root via sudo
 	out, err := runCmd.TTYAsUser(
 		&runCmd.UserLogin{
-			Username: userInfo.AdminUser,
-			Password: userInfo.AdminPassword,
+			Username:  userInfo.AdminUser,
+			Password:  userInfo.AdminPassword,
+			RunAsRoot: true,
 		},
 		"dscl", ".", "-delete", fmt.Sprintf("/Users/%s", uq))
 

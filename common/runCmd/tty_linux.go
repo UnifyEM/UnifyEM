@@ -33,27 +33,54 @@ func osTTY(def Interactive) (string, error) {
 		// Start with login command
 		cmd = exec.Command("login", def.AsUser.Username)
 
+		// Build the command string
+		cmdString := strings.Join(def.Command, " ")
+
 		// Prepend login actions to the action list
-		loginActions := []Action{
-			{
-				WaitFor:  "Password:",
-				Send:     def.AsUser.Password,
-				DebugMsg: "Sending password for user login",
-			},
-			{
-				WaitFor:  "$", // Wait for shell prompt
-				Send:     strings.Join(def.Command, " "),
-				DebugMsg: "Sending command after login",
-			},
+		var loginActions []Action
+
+		if def.AsUser.RunAsRoot {
+			// Run command as root using sudo
+			loginActions = []Action{
+				{
+					WaitFor:  "Password:",
+					Send:     def.AsUser.Password + "\necho __SHELL_READY__",
+					DebugMsg: "Sending password and marker command",
+				},
+				{
+					WaitFor:  "__SHELL_READY__",
+					Send:     "sudo -S " + cmdString,
+					DebugMsg: "Sending sudo command",
+				},
+				{
+					WaitFor:  "Password:",
+					Send:     def.AsUser.Password + "\necho __CMD_DONE__",
+					DebugMsg: "Sending sudo password and completion marker",
+				},
+			}
+		} else {
+			// Run command as the logged-in user
+			loginActions = []Action{
+				{
+					WaitFor:  "Password:",
+					Send:     def.AsUser.Password + "\necho __SHELL_READY__",
+					DebugMsg: "Sending password and marker command",
+				},
+				{
+					WaitFor:  "__SHELL_READY__",
+					Send:     cmdString + "\necho __CMD_DONE__",
+					DebugMsg: "Sending command after shell ready",
+				},
+			}
 		}
 
 		// Combine login actions with original actions
 		actualActions = append(loginActions, def.Actions...)
 
 		// ALWAYS add exit command at the end, even if no interactions
-		// Wait for prompt after command completes, then exit
+		// Wait for command completion marker, then exit
 		actualActions = append(actualActions, Action{
-			WaitFor:  "$", // Wait for shell prompt after command finishes
+			WaitFor:  "__CMD_DONE__",
 			Send:     "exit",
 			DebugMsg: "Logging out",
 		})
@@ -75,7 +102,7 @@ func osTTY(def Interactive) (string, error) {
 	var outputBuf bytes.Buffer
 
 	// Handle the interactive prompts in a goroutine
-	errChan := make(chan error, 1)
+	ioErrChan := make(chan error, 1)
 	go func() {
 		// Process each interaction in sequence
 		for i, interaction := range actualActions {
@@ -85,7 +112,7 @@ func osTTY(def Interactive) (string, error) {
 			}
 
 			if err := ttyWaitAndSend(ptmx, &outputBuf, interaction.WaitFor, interaction.Send); err != nil {
-				errChan <- fmt.Errorf("interaction %d failed: %w", i, err)
+				ioErrChan <- fmt.Errorf("interaction %d failed: %w", i, err)
 				return
 			}
 		}
@@ -96,24 +123,43 @@ func osTTY(def Interactive) (string, error) {
 			n, err := ptmx.Read(buf)
 			if err != nil {
 				if err == io.EOF {
-					errChan <- nil
+					ioErrChan <- nil
 					return
 				}
-				errChan <- fmt.Errorf("error reading final output: %w", err)
+				ioErrChan <- fmt.Errorf("error reading final output: %w", err)
 				return
 			}
 			outputBuf.Write(buf[:n])
 		}
 	}()
 
-	// Wait for the command to complete
-	cmdErr := cmd.Wait()
-	ioErr := <-errChan
+	// Wait for the command to complete in a separate goroutine to avoid deadlock
+	cmdErrChan := make(chan error, 1)
+	go func() {
+		cmdErrChan <- cmd.Wait()
+	}()
+
+	// Wait for either the command or I/O operations to complete/fail
+	var cmdErr, ioErr error
+	cmdDone, ioDone := false, false
+
+	for !cmdDone || !ioDone {
+		select {
+		case cmdErr = <-cmdErrChan:
+			cmdDone = true
+		case ioErr = <-ioErrChan:
+			ioDone = true
+			// If I/O fails (e.g., timeout), kill the command to prevent hanging
+			if ioErr != nil && !cmdDone {
+				cmd.Process.Kill()
+			}
+		}
+	}
 
 	// Get all accumulated output
 	output := outputBuf.String()
 
-	// Check for I/O errors first
+	// Check for I/O errors first (more specific than command errors)
 	if ioErr != nil {
 		return output, ioErr
 	}
