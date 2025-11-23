@@ -113,10 +113,10 @@ func (c *Communications) Sync() {
 	if serverResponse.ServiceCredentials != "" {
 		// Only store if we don't already have fresh credentials pending send
 		if c.conf.CredentialsPendingSend() {
-			c.logger.Info(8030, "ignoring service credentials from server (have fresh credentials pending send)", nil)
+			c.logger.Info(8030, "ignoring service account credentials from server, new credentials pending sending", nil)
 		} else {
 			c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
-			c.logger.Info(8031, "service credentials received and stored from server", nil)
+			c.logger.Info(8031, "service account credentials received rom server", nil)
 		}
 	}
 

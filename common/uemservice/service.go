@@ -19,6 +19,7 @@ type Service struct {
 	TaskTicker     time.Duration
 	BackgroundFunc func(interfaces.Logger)
 	TasksFunc      func(interfaces.Logger)
+	StartFunc      func(interfaces.Logger)
 	StopFunc       func(interfaces.Logger)
 	SEid           uint32
 	tickerStop     chan struct{}
@@ -108,6 +109,14 @@ func WithBackgroundFunc(f func(interfaces.Logger)) func(*Service) error {
 func WithTasksFunc(f func(interfaces.Logger)) func(*Service) error {
 	return func(s *Service) error {
 		s.TasksFunc = f
+		return nil
+	}
+}
+
+//goland:noinspection GoUnusedExportedFunction
+func WithStartFunc(f func(interfaces.Logger)) func(*Service) error {
+	return func(s *Service) error {
+		s.StartFunc = f
 		return nil
 	}
 }

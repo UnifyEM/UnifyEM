@@ -424,11 +424,12 @@ func startService(optionalArgs ...bool) {
 		uemservice.WithTaskTicker(global.TaskTicker),
 		uemservice.WithBackgroundFunc(nil),
 		uemservice.WithTasksFunc(ServiceTasks),
+		uemservice.WithStartFunc(ServiceStarting),
 		uemservice.WithStopFunc(ServiceStopping),
 		uemservice.WithSEid(8500))
 
 	if err != nil {
-		logger.Fatalf(8004, "unable to create service: %v\n", err)
+		logger.Fatalf(8004, "unable to create service: %v", err)
 		return
 	}
 
@@ -496,6 +497,14 @@ func syncTime(elapsed int64) bool {
 	}
 
 	return false
+}
+
+// ServiceStarting will be called when the service starts
+func ServiceStarting(interfaces.Logger) {
+
+	// Initiate a sync to pick up service credentials
+	lastSync = time.Now().Unix()
+	communication.Sync()
 }
 
 // ServiceStopping will be called when the service is stopping
