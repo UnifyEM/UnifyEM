@@ -9,11 +9,13 @@ package runCmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -24,6 +26,16 @@ import (
 // If AsUser is specified, it will first login as that user before running the command.
 // Returns all output from the command and any error that occurred.
 func osTTY(def Interactive) (string, error) {
+	// Set default timeout if not specified
+	timeout := def.Timeout
+	if timeout <= 0 {
+		timeout = 60 // Default: 60 seconds
+	}
+	fmt.Printf("DEBUG: tty timeout %d\n", timeout)
+	// Create context with timeout for hard kill
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
 	var cmd *exec.Cmd
 	var actualActions []Action
 
@@ -31,7 +43,7 @@ func osTTY(def Interactive) (string, error) {
 	if def.AsUser != nil {
 
 		// Start with login command
-		cmd = exec.Command("login", def.AsUser.Username)
+		cmd = exec.CommandContext(ctx, "login", def.AsUser.Username)
 
 		// Build the command string
 		cmdString := strings.Join(def.Command, " ")
@@ -40,22 +52,63 @@ func osTTY(def Interactive) (string, error) {
 		var loginActions []Action
 
 		if def.AsUser.RunAsRoot {
-			// Run command as root using sudo
+			// Run command as root using sudo -i (gets a root shell)
+			// Disable echo to avoid matching our own commands
 			loginActions = []Action{
 				{
 					WaitFor:  "Password:",
-					Send:     def.AsUser.Password + "\necho __SHELL_READY__",
-					DebugMsg: "Sending password and marker command",
+					Send:     def.AsUser.Password,
+					Delay:    1000,
+					DebugMsg: "Sending login password",
 				},
 				{
-					WaitFor:  "__SHELL_READY__",
-					Send:     "sudo -S " + cmdString,
-					DebugMsg: "Sending sudo command",
+					WaitFor:  "",
+					Send:     "echo __READY__",
+					DebugMsg: "Sending ready marker",
+				},
+				{
+					WaitFor:  "__READY__",
+					Send:     "stty -echo",
+					Delay:    100,
+					DebugMsg: "Disabling terminal echo (1)",
+				},
+				{
+					WaitFor:  "",
+					Send:     "echo __ECHO_OFF__",
+					DebugMsg: "Sending echo-off marker",
+				},
+				{
+					WaitFor:  "__ECHO_OFF__",
+					Send:     "sudo -K",
+					DebugMsg: "Starting root shell (will prompt for password)",
+					Delay:    500,
+				},
+				{
+					WaitFor:  "",
+					Send:     "sudo -i",
+					DebugMsg: "Starting root shell (will prompt for password)",
 				},
 				{
 					WaitFor:  "Password:",
-					Send:     def.AsUser.Password + "\necho __CMD_DONE__",
-					DebugMsg: "Sending sudo password and completion marker",
+					Send:     def.AsUser.Password,
+					Delay:    1000,
+					DebugMsg: "Sending sudo password",
+				},
+				{
+					WaitFor:  "#",
+					Send:     "stty -echo",
+					Delay:    100,
+					DebugMsg: "Disabling terminal echo in root shell",
+				},
+				{
+					WaitFor:  "",
+					Send:     "echo __ROOT__",
+					DebugMsg: "Sending root marker",
+				},
+				{
+					WaitFor:  "__ROOT__",
+					Send:     cmdString + "; echo __DONE__",
+					DebugMsg: "Sending command in root shell",
 				},
 			}
 		} else {
@@ -63,40 +116,92 @@ func osTTY(def Interactive) (string, error) {
 			loginActions = []Action{
 				{
 					WaitFor:  "Password:",
-					Send:     def.AsUser.Password + "\necho __SHELL_READY__",
-					DebugMsg: "Sending password and marker command",
+					Send:     def.AsUser.Password,
+					Delay:    100,
+					DebugMsg: "Sending login password",
 				},
 				{
-					WaitFor:  "__SHELL_READY__",
-					Send:     cmdString + "\necho __CMD_DONE__",
-					DebugMsg: "Sending command after shell ready",
+					WaitFor:  "",
+					Send:     "echo __READY__",
+					DebugMsg: "Sending ready marker",
+				},
+				{
+					WaitFor:  "__READY__",
+					Send:     "stty -echo",
+					Delay:    100,
+					DebugMsg: "Disabling terminal echo",
+				},
+				{
+					WaitFor:  "",
+					Send:     "echo __ECHO_OFF__",
+					DebugMsg: "Sending echo-off marker",
+				},
+				{
+					WaitFor:  "__ECHO_OFF__",
+					Send:     cmdString + "; echo __DONE__",
+					DebugMsg: "Sending command",
 				},
 			}
 		}
 
-		// Combine login actions with original actions
+		// Combine login actions with any additional interactive actions
 		actualActions = append(loginActions, def.Actions...)
 
-		// ALWAYS add exit command at the end, even if no interactions
-		// Wait for command completion marker, then exit
-		actualActions = append(actualActions, Action{
-			WaitFor:  "__CMD_DONE__",
-			Send:     "exit",
-			DebugMsg: "Logging out",
-		})
+		// Add appropriate exit commands based on whether we're in root shell or not
+		if def.AsUser.RunAsRoot {
+			// Exit root shell first, then user shell
+			actualActions = append(actualActions,
+				Action{
+					WaitFor:  "__DONE__",
+					Send:     "exit",
+					Delay:    100,
+					DebugMsg: "Exiting root shell",
+				},
+				Action{
+					WaitFor:  "",
+					Send:     "echo __ROOTEXITED__",
+					DebugMsg: "Sending root-exited marker",
+				},
+				Action{
+					WaitFor:  "__ROOTEXITED__",
+					Send:     "exit",
+					DebugMsg: "Exiting user shell",
+				},
+			)
+		} else {
+			// Just exit user shell
+			actualActions = append(actualActions, Action{
+				WaitFor:  "__DONE__",
+				Send:     "exit",
+				DebugMsg: "Exiting user shell",
+			})
+		}
 	} else {
 
 		// Normal execution without user switch
-		cmd = exec.Command(def.Command[0], def.Command[1:]...)
+		cmd = exec.CommandContext(ctx, def.Command[0], def.Command[1:]...)
 		actualActions = def.Actions
 	}
 
 	// Start the command with a pty so we can see interactive prompts
+	// Note: pty.Start() manages its own SysProcAttr, so we don't override it
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		return "", fmt.Errorf("failed to start command with pty: %w", err)
 	}
 	defer ptmx.Close()
+
+	// Monitor context deadline and force kill if exceeded
+	go func() {
+		<-ctx.Done()
+		if cmd.Process != nil {
+			// Kill the process with SIGKILL and close PTY
+			// The PTY will propagate the signal to child processes
+			fmt.Fprintf(os.Stderr, "*** TTY HARD TIMEOUT: Killing process %d with SIGKILL\n", cmd.Process.Pid)
+			cmd.Process.Signal(syscall.SIGKILL)
+			ptmx.Close() // Force close the PTY to cleanup children
+		}
+	}()
 
 	// Buffer to accumulate all output
 	var outputBuf bytes.Buffer
@@ -107,29 +212,50 @@ func osTTY(def Interactive) (string, error) {
 		// Process each interaction in sequence
 		for i, interaction := range actualActions {
 			if interaction.DebugMsg != "" {
-				// Uncomment for debugging
-				// fmt.Printf("*** TTY DEBUG: %s\n", interaction.DebugMsg)
+				fmt.Fprintf(os.Stderr, "*** TTY DEBUG: %s\n", interaction.DebugMsg)
 			}
 
-			if err := ttyWaitAndSend(ptmx, &outputBuf, interaction.WaitFor, interaction.Send); err != nil {
-				ioErrChan <- fmt.Errorf("interaction %d failed: %w", i, err)
-				return
+			// If WaitFor is empty, just send immediately without waiting
+			if interaction.WaitFor == "" {
+				fmt.Fprintf(os.Stderr, "*** TTY SEND (no wait): %s (length=%d)\n", interaction.Send, len(interaction.Send))
+				_, err = ptmx.Write([]byte(interaction.Send + "\n"))
+				if err != nil {
+					ioErrChan <- fmt.Errorf("interaction %d failed to send: %w", i, err)
+					return
+				}
+			} else {
+				// Wait for prompt and send
+				if err = ttyWaitAndSend(ptmx, &outputBuf, interaction.WaitFor, interaction.Send); err != nil {
+					ioErrChan <- fmt.Errorf("interaction %d failed: %w", i, err)
+					return
+				}
+			}
+
+			// Apply delay if specified
+			if interaction.Delay > 0 {
+				fmt.Fprintf(os.Stderr, "*** TTY DELAY: %dms\n", interaction.Delay)
+				time.Sleep(time.Duration(interaction.Delay) * time.Millisecond)
 			}
 		}
 
 		// Continue reading until EOF to capture any final output
 		buf := make([]byte, 1024)
+		var n int
 		for {
-			n, err := ptmx.Read(buf)
+			n, err = ptmx.Read(buf)
 			if err != nil {
 				if err == io.EOF {
+					fmt.Fprintf(os.Stderr, "*** TTY EOF: End of output stream\n")
 					ioErrChan <- nil
 					return
 				}
+				fmt.Fprintf(os.Stderr, "*** TTY READ ERROR: %v\n", err)
 				ioErrChan <- fmt.Errorf("error reading final output: %w", err)
 				return
 			}
-			outputBuf.Write(buf[:n])
+			chunk := buf[:n]
+			outputBuf.Write(chunk)
+			fmt.Fprintf(os.Stderr, "*** TTY DATA (%d bytes): %q\n", n, string(chunk))
 		}
 	}()
 
@@ -149,9 +275,11 @@ func osTTY(def Interactive) (string, error) {
 			cmdDone = true
 		case ioErr = <-ioErrChan:
 			ioDone = true
-			// If I/O fails (e.g., timeout), kill the command to prevent hanging
-			if ioErr != nil && !cmdDone {
-				cmd.Process.Kill()
+			// If I/O fails (e.g., timeout), kill the process to prevent hanging
+			if ioErr != nil && !cmdDone && cmd.Process != nil {
+				fmt.Fprintf(os.Stderr, "*** TTY I/O ERROR: Killing process %d with SIGKILL\n", cmd.Process.Pid)
+				cmd.Process.Signal(syscall.SIGKILL)
+				ptmx.Close() // Force close PTY to cleanup children
 			}
 		}
 	}
@@ -175,11 +303,15 @@ func osTTY(def Interactive) (string, error) {
 // ttyWaitAndSend waits for a specific prompt string in the PTY output and sends a response
 func ttyWaitAndSend(ptmx *os.File, outputBuf *bytes.Buffer, waitFor string, sendValue string) error {
 	buf := make([]byte, 1024)
+	var matchBuf bytes.Buffer // Separate buffer for pattern matching
 	timeout := time.After(30 * time.Second) // Add timeout to prevent hanging
+
+	fmt.Fprintf(os.Stderr, "*** TTY WAIT: Waiting for '%s'\n", waitFor)
 
 	for {
 		select {
 		case <-timeout:
+			fmt.Fprintf(os.Stderr, "*** TTY TIMEOUT: Never received '%s'. Buffer contents: %q\n", waitFor, matchBuf.String())
 			return fmt.Errorf("timeout waiting for '%s'", waitFor)
 		default:
 			// Set a read deadline to allow checking timeout
@@ -199,19 +331,27 @@ func ttyWaitAndSend(ptmx *os.File, outputBuf *bytes.Buffer, waitFor string, send
 			// Clear the read deadline
 			ptmx.SetReadDeadline(time.Time{})
 
-			// Append to output buffer
+			// Append to both buffers
 			chunk := buf[:n]
-			outputBuf.Write(chunk)
+			outputBuf.Write(chunk) // Accumulate all output for final return
+			matchBuf.Write(chunk)  // Use for pattern matching this call only
 
-			// Check if we've received the expected prompt
-			if strings.Contains(outputBuf.String(), waitFor) {
+			// Debug: show received data
+			fmt.Fprintf(os.Stderr, "*** TTY RECV (%d bytes): %q\n", n, string(chunk))
+
+			// Check if we've received the expected prompt in NEW data only
+			if strings.Contains(matchBuf.String(), waitFor) {
+				fmt.Printf("\n\n--- HIT\n%s\n---\n\n", matchBuf.String())
+				fmt.Fprintf(os.Stderr, "*** TTY FOUND: Found '%s' in output\n", waitFor)
 				time.Sleep(250 * time.Millisecond)
 				_, err = ptmx.Write([]byte(sendValue + "\n"))
 				if err != nil {
 					return fmt.Errorf("error writing response: %w", err)
 				}
-				// Don't clear the buffer here - keep accumulating
-				// outputBuf.Reset()
+
+				fmt.Fprintf(os.Stderr, "*** TTY SENT: %s (length=%d)\n", sendValue, len(sendValue))
+
+				// matchBuf is local and will be discarded, ensuring next wait only sees NEW data
 				return nil
 			}
 		}

@@ -14,6 +14,7 @@ type Interactive struct {
 	Command []string
 	Actions []Action
 	AsUser  *UserLogin // Optional: login as different user first
+	Timeout int        // Optional: hard timeout in seconds (default: 60)
 }
 
 // UserLogin contains credentials for logging in as a different user
@@ -25,8 +26,9 @@ type UserLogin struct {
 
 // Action represents a single prompt/response interaction in an interactive TTY session
 type Action struct {
-	WaitFor  string // The string to wait for in the output
-	Send     string // The value to send when the prompt is detected
+	WaitFor  string // The string to wait for in the output (empty string = don't wait)
+	Send     string // The value to send when the prompt is detected (or immediately if WaitFor is empty)
+	Delay    int    // Optional delay in milliseconds after sending (before next action)
 	DebugMsg string // Optional debug message to print when this interaction occurs
 }
 

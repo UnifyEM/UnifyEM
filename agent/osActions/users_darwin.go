@@ -292,7 +292,7 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 	a.logger.Debugf(8409, "deleteUserWithAdmin result: %s", out)
 	if err != nil {
 		a.logger.Infof(8409, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-		a.logger.Infof(8409, "attempting to delete with dscl", userInfo.Username)
+		a.logger.Infof(8409, "attempting to delete user %s with dscl", userInfo.Username)
 
 		// Try with dscl
 		out, err = a.deleteUserWithDscl(userInfo)
