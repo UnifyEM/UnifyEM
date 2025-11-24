@@ -274,8 +274,8 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 // deleteUser removes a user from the system
 func (a *Actions) deleteUser(userInfo UserInfo) error {
-
 	var err error
+	var out string
 
 	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
@@ -287,7 +287,17 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 		return err
 	}
 
-	var out string
+	out, err = a.removeSecureToken(userInfo)
+	if err != nil {
+		fmt.Printf("ST ERROR ST ERROR ST ERROR: %s", err.Error())
+	}
+	fmt.Printf("\n\n**********\nREMOVE SECURE TOKEN RESULT:\n\n%s\n************\n\n", out)
+
+	out, err = a.deleteUserWithLC(userInfo)
+	if err != nil {
+		fmt.Printf("ERROR ERROR ERROR: %s", err.Error())
+	}
+
 	out, err = a.deleteUserWithAdmin(userInfo)
 	a.logger.Debugf(8409, "deleteUserWithAdmin result: %s", out)
 	if err != nil {
@@ -369,6 +379,18 @@ func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
 		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", uq, err)
 	}
 	return common.SingleLine(out), nil
+}
+func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
+
+	// Set up the command
+	var cmd = []string{"launchctl", "asuser", "504", "sysadminctl", "-deleteUser", userInfo.Username, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword}
+
+	out, err := runCmd.Combined(cmd...)
+	fmt.Printf("\n\n*****\n%s\n*****\n\n", out)
+	if err != nil {
+		return out, fmt.Errorf("failed to DELETE DELETE user %s: %w", userInfo.Username, err)
+	}
+	return out, nil
 }
 
 func (a *Actions) addFileVault(userInfo UserInfo) error {
@@ -578,13 +600,50 @@ func (a *Actions) removeFileVault(userInfo UserInfo) error {
 		return err
 	}
 
-	// Attempt to remove from FileVault (best effort - may fail if FileVault not enabled or user not enrolled)
+	// Attempt to remove from FileVault
 	_, err = runCmd.Combined("fdesetup", "remove", "-user", uq)
 	if err != nil {
+		if strings.Contains(err.Error(), "User could not be found") {
+			return nil
+		}
 		return fmt.Errorf("failed to remove user %s from FileVault: %w", uq, err)
 	}
-
 	return nil
+}
+
+// removeSecureToken removes a user's secure token
+func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
+	var err error
+	var out string
+
+	fmt.Printf("removeSecureToken called\n")
+
+	if userInfo.Username == "" {
+		return "", fmt.Errorf("username cannot be empty")
+	}
+
+	// Darwin also requires admin credentials to update FileVault
+	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
+	if err != nil {
+		return "", err
+	}
+
+	var uq string
+	uq, err = safeUsername(userInfo.Username)
+	if err != nil {
+		return "", err
+	}
+
+	// Attempt to remove the secure token
+	out, err = runCmd.Combined("sysadminctl", "-secureTokenOff", uq, "-adminUser",
+		userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword, "-password", "xyzzy")
+	if err != nil {
+		if strings.Contains(err.Error(), "User could not be found") {
+			return out, nil
+		}
+		return out, fmt.Errorf("failed to remove secure token for user %s: %w", uq, err)
+	}
+	return out, nil
 }
 
 // userExists checks if a user exists on the system
