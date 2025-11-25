@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
@@ -335,10 +336,63 @@ func (a *Actions) userExists(username string) (bool, error) {
 }
 
 func (a *Actions) testCredentials(user string, pass string) error {
+	if user == "" || pass == "" {
+		return fmt.Errorf("username and password are required")
+	}
+
+	// Use su to validate credentials
+	// Create a command that attempts to switch to the user with their password
+	cmd := exec.Command("su", "-c", "exit 0", user)
+	cmd.Stdin = strings.NewReader(pass + "\n")
+
+	// Capture output to check for specific error messages
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check for authentication failure vs other errors
+		outputStr := string(output)
+		if strings.Contains(outputStr, "Authentication failure") ||
+			strings.Contains(outputStr, "incorrect password") {
+			return fmt.Errorf("authentication failed for user %s: invalid credentials", user)
+		}
+		return fmt.Errorf("failed to validate credentials for user %s: %w", user, err)
+	}
+
 	return nil
 }
 
-// refreshServiceAccount is a stub on Linux - returns empty string and nil error
+// refreshServiceAccount generates a new password for the service account and ensures it's an administrator
+// Returns the new password on success
 func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
-	return "", nil
+	if userInfo.Username == "" {
+		return "", fmt.Errorf("username is required")
+	}
+
+	// Ensure the user exists
+	exists, err := a.userExists(userInfo.Username)
+	if err != nil {
+		return "", fmt.Errorf("failed to check if user exists: %w", err)
+	}
+	if !exists {
+		return "", fmt.Errorf("user %s does not exist", userInfo.Username)
+	}
+
+	// Ensure the user is an administrator
+	userInfo.Admin = true
+	err = a.setAdmin(userInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to set admin status for user %s: %w", userInfo.Username, err)
+	}
+
+	// Generate a new random password
+	newPassword := crypto.RandomPassword()
+
+	// Set the new password using chpasswd (runs as root, no old password needed)
+	cmd := exec.Command("chpasswd")
+	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s:%s", userInfo.Username, newPassword))
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
+	}
+
+	return newPassword, nil
 }

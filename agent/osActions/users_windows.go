@@ -11,10 +11,19 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
+	"unsafe"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/yusufpapurcu/wmi"
+)
+
+// Windows constants for LogonUser
+const (
+	LOGON32_LOGON_NETWORK    = 3
+	LOGON32_PROVIDER_DEFAULT = 0
 )
 
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
@@ -277,10 +286,84 @@ func (a *Actions) userExists(username string) (bool, error) {
 }
 
 func (a *Actions) testCredentials(user string, pass string) error {
-	return nil
+	if user == "" || pass == "" {
+		return fmt.Errorf("username and password are required")
+	}
+
+	// Load advapi32.dll and get LogonUserW function
+	advapi32 := syscall.NewLazyDLL("advapi32.dll")
+	logonUser := advapi32.NewProc("LogonUserW")
+
+	// Convert strings to UTF16 pointers
+	userPtr, err := syscall.UTF16PtrFromString(user)
+	if err != nil {
+		return fmt.Errorf("failed to convert username: %w", err)
+	}
+
+	passPtr, err := syscall.UTF16PtrFromString(pass)
+	if err != nil {
+		return fmt.Errorf("failed to convert password: %w", err)
+	}
+
+	// Use "." for local domain
+	domainPtr, err := syscall.UTF16PtrFromString(".")
+	if err != nil {
+		return fmt.Errorf("failed to convert domain: %w", err)
+	}
+
+	var token uintptr
+
+	// Call LogonUserW
+	ret, _, _ := logonUser.Call(
+		uintptr(unsafe.Pointer(userPtr)),   // username
+		uintptr(unsafe.Pointer(domainPtr)), // domain
+		uintptr(unsafe.Pointer(passPtr)),   // password
+		uintptr(LOGON32_LOGON_NETWORK),     // logon type
+		uintptr(LOGON32_PROVIDER_DEFAULT),  // logon provider
+		uintptr(unsafe.Pointer(&token)),    // token handle
+	)
+
+	// Close the token handle if logon succeeded
+	if ret != 0 && token != 0 {
+		syscall.CloseHandle(syscall.Handle(token))
+		return nil
+	}
+
+	// Logon failed
+	return fmt.Errorf("authentication failed for user %s: invalid credentials", user)
 }
 
-// refreshServiceAccount is a stub on Windows - returns empty string and nil error
+// refreshServiceAccount generates a new password for the service account and ensures it's an administrator
+// Returns the new password on success
 func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
-	return "", nil
+	if userInfo.Username == "" {
+		return "", fmt.Errorf("username is required")
+	}
+
+	// Ensure the user exists
+	exists, err := a.userExists(userInfo.Username)
+	if err != nil {
+		return "", fmt.Errorf("failed to check if user exists: %w", err)
+	}
+	if !exists {
+		return "", fmt.Errorf("user %s does not exist", userInfo.Username)
+	}
+
+	// Ensure the user is an administrator
+	userInfo.Admin = true
+	err = a.setAdmin(userInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to set admin status for user %s: %w", userInfo.Username, err)
+	}
+
+	// Generate a new random password
+	newPassword := crypto.RandomPassword()
+
+	// Set the new password using net user (runs as SYSTEM, no old password needed)
+	_, err = runCmd.Combined("net", "user", userInfo.Username, newPassword)
+	if err != nil {
+		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
+	}
+
+	return newPassword, nil
 }

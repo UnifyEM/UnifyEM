@@ -520,10 +520,26 @@ func (a *Actions) userExists(username string) (bool, error) {
 }
 
 // refreshServiceAccount changes the service account password using the old password for authentication
-// Returns the new password on success
+// and ensures the account is an administrator. Returns the new password on success
 func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	if userInfo.Username == "" || userInfo.Password == "" {
 		return "", fmt.Errorf("username and existing password are required")
+	}
+
+	// Ensure the user exists
+	exists, err := a.userExists(userInfo.Username)
+	if err != nil {
+		return "", fmt.Errorf("failed to check if user exists: %w", err)
+	}
+	if !exists {
+		return "", fmt.Errorf("user %s does not exist", userInfo.Username)
+	}
+
+	// Ensure the user is an administrator
+	userInfo.Admin = true
+	err = a.setAdmin(userInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to set admin status for user %s: %w", userInfo.Username, err)
 	}
 
 	// Generate a new random password
@@ -533,7 +549,7 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 
 	// Use dscl to change the password, authenticating with the old password
 	// Format: dscl . -passwd /Users/<username> <oldpassword> <newpassword>
-	_, err := runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password, newPassword)
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password, newPassword)
 	if err != nil {
 		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
 	}

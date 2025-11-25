@@ -101,6 +101,9 @@ func safeUserInfo(info UserInfo) (UserInfo, error) {
 		return UserInfo{}, err
 	}
 
+	// Copy admin bool
+	cleanInfo.Admin = info.Admin
+
 	// All good
 	return cleanInfo, nil
 }
