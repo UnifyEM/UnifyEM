@@ -283,9 +283,11 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 }
 
 // deleteUser removes a user from the system
+//
+// TODO: This is a work in progress - it intentionally tries several methods prior to existing
 func (a *Actions) deleteUser(userInfo UserInfo) error {
-	var err error
-	var out string
+	var err, exitErr error
+	var success bool
 
 	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
@@ -297,38 +299,46 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 		return err
 	}
 
-	out, err = a.removeSecureToken(userInfo)
-	if err != nil {
-		fmt.Printf("ST ERROR ST ERROR ST ERROR: %s", err.Error())
-	}
-	fmt.Printf("\n\n**********\nREMOVE SECURE TOKEN RESULT:\n\n%s\n************\n\n", out)
+	// Assume error
+	exitErr = fmt.Errorf("error deleting user %s", userInfo.Username)
+	success = true
 
-	out, err = a.deleteUserWithLC(userInfo)
+	_, err = a.removeSecureToken(userInfo)
 	if err != nil {
-		fmt.Printf("ERROR ERROR ERROR: %s", err.Error())
+		a.logger.Warningf(8461, "error removing secure token: %s", common.SingleLine(err.Error()))
+		success = false
 	}
 
-	out, err = a.deleteUserWithAdmin(userInfo)
-	a.logger.Debugf(8409, "deleteUserWithAdmin result: %s", out)
+	_, err = a.deleteUserWithLC(userInfo)
 	if err != nil {
-		a.logger.Infof(8409, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-		a.logger.Infof(8409, "attempting to delete user %s with dscl", userInfo.Username)
+		a.logger.Warningf(8462, "error deleting user with launchctl: %s", common.SingleLine(err.Error()))
+		success = false
+	}
+
+	_, err = a.deleteUserWithAdmin(userInfo)
+	if err != nil {
+		a.logger.Infof(8463, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+		a.logger.Infof(8463, "attempting to delete user %s with dscl", userInfo.Username)
 
 		// Try with dscl
-		out, err = a.deleteUserWithDscl(userInfo)
-		a.logger.Debugf(8409, "deleteUserWithDscl result: %s", out)
-
+		_, err = a.deleteUserWithDscl(userInfo)
 		if err != nil {
-			return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
+			a.logger.Infof(8465, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+			success = false
 		}
 	}
 
 	// Remove from FileVault just in case
 	err = a.removeFileVault(userInfo)
 	if err != nil {
-		return fmt.Errorf("failed to remove user %s from FileVault: %w", userInfo.Username, err)
+		a.logger.Infof(8466, "failed to remove user %s from FileVault: %s", userInfo.Username, common.SingleLine(err.Error()))
+		success = false
 	}
-	return nil
+
+	if success {
+		return nil
+	}
+	return exitErr
 }
 
 func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
