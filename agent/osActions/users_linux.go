@@ -95,8 +95,8 @@ func getSudoGroupMembers() (map[string]struct{}, error) {
 	sudoers := make(map[string]struct{})
 
 	// Helper to parse group output
-	parseMembers := func(output []byte) {
-		parts := strings.Split(string(output), ":")
+	parseMembers := func(output string) {
+		parts := strings.Split(output, ":")
 		if len(parts) >= 4 {
 			for _, member := range strings.Split(parts[3], ",") {
 				member = strings.TrimSpace(member)
@@ -134,12 +134,12 @@ func isUserDisabled(shell string) bool {
 }
 
 // lockUser disables the user account by changing their shell to /usr/sbin/nologin
-func (a *Actions) lockUser(username string) error {
-	if username == "" {
+func (a *Actions) lockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -164,12 +164,12 @@ func (a *Actions) lockUser(username string) error {
 }
 
 // unlockUser enables the user account by changing their shell back to a valid bash shell
-func (a *Actions) unlockUser(username string) error {
-	if username == "" {
+func (a *Actions) unlockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -250,19 +250,19 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 
 	// Check if the user should be an admin
 	if userInfo.Admin {
-		return a.setAdmin(uq, true)
+		return a.setAdmin(userInfo)
 	}
 
 	return nil
 }
 
 // setAdmin adds or removes a user from the admin group
-func (a *Actions) setAdmin(username string, admin bool) error {
-	if username == "" {
+func (a *Actions) setAdmin(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 		adminGroup = "wheel"
 	}
 
-	if admin {
+	if userInfo.Admin {
 		// Add user to admin group
 		_, err := runCmd.Combined("usermod", "-aG", adminGroup, uq)
 		if err != nil {
@@ -321,12 +321,12 @@ func (a *Actions) setAdmin(username string, admin bool) error {
 }
 
 // deleteUser removes a user from the system
-func (a *Actions) deleteUser(username string) error {
-	if username == "" {
+func (a *Actions) deleteUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -379,6 +379,6 @@ func (a *Actions) testCredentials(user string, pass string) error {
 }
 
 // refreshServiceAccount is a stub on Linux - returns empty string and nil error
-func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
+func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	return "", nil
 }

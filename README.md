@@ -41,6 +41,7 @@ Supported operating systems:
 
 ## Known issues and work-in-progress
 
+- user_delete does not yet work on macOS due to complex issues with sandboxing. A service running as system can create users, change their passwords, etc., but not delete them. 
 - The `uem-cli user` commands are a work in progress and do not add users to endpoints. To add a user to an endpoint, see `uem-cli cmd user_add --help`.
 - Disk wipe has not yet been implemented.
 - The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault. Testing and feedback would be greatly appreciated.

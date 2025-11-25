@@ -116,12 +116,12 @@ func parseAdminList(adminList []struct{ PartComponent string }) (map[string]stru
 }
 
 // lockUser disables the user account to deny access
-func (a *Actions) lockUser(username string) error {
-	if username == "" {
+func (a *Actions) lockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -134,12 +134,12 @@ func (a *Actions) lockUser(username string) error {
 }
 
 // unlockUser enables the user account to allow access
-func (a *Actions) unlockUser(username string) error {
-	if username == "" {
+func (a *Actions) unlockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -219,22 +219,22 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 
 	// Check if the user should be an admin
 	if userInfo.Admin {
-		return a.setAdmin(uq, true)
+		return a.setAdmin(userInfo)
 	}
 	return nil
 }
 
-func (a *Actions) setAdmin(username string, admin bool) error {
-	if username == "" {
+func (a *Actions) setAdmin(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
 
-	if admin {
+	if userInfo.Admin {
 		err = a.addToGroup(uq, "Administrators")
 		if err != nil {
 			return fmt.Errorf("failed to add user %s from Administators group: %w", uq, err)
@@ -277,12 +277,12 @@ func (a *Actions) removeFromGroup(user, group string) error {
 }
 
 // deleteUser removes a user from the system
-func (a *Actions) deleteUser(username string) error {
-	if username == "" {
+func (a *Actions) deleteUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	uq, err := safeUsername(userInfo.Username)
 	if err != nil {
 		return err
 	}
@@ -326,6 +326,6 @@ func (a *Actions) testCredentials(user string, pass string) error {
 }
 
 // refreshServiceAccount is a stub on Windows - returns empty string and nil error
-func (a *Actions) refreshServiceAccount(username, oldPassword string) (string, error) {
+func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	return "", nil
 }

@@ -51,9 +51,6 @@ func runAsUserWindows(def Interactive) (string, error) {
 
 // runWithPowerShellCredentials uses PowerShell's Start-Process with credentials
 func runWithPowerShellCredentials(def Interactive) (string, error) {
-	// Build the command string
-	cmdStr := strings.Join(def.Command, " ")
-
 	// Create a PowerShell script that runs the command with credentials
 	psScript := fmt.Sprintf(`
 $secpasswd = ConvertTo-SecureString '%s' -AsPlainText -Force
@@ -183,10 +180,10 @@ func runAsUserWindowsAPI(username, password, domain string, command []string) (s
 		domain = "." // Local computer
 	}
 
-	cmdline := syscall.StringToUTF16Ptr(strings.Join(command, " "))
+	_ = syscall.StringToUTF16Ptr(strings.Join(command, " "))
 
 	var si syscall.StartupInfo
-	var pi syscall.ProcessInformation
+	var _ syscall.ProcessInformation
 	si.Cb = uint32(unsafe.Sizeof(si))
 
 	// Note: This is pseudo-code - you'd need to import the correct Windows API
