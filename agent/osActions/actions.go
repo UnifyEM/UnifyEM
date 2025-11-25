@@ -38,49 +38,111 @@ func (a *Actions) GetUsers() (schema.DeviceUserList, error) {
 }
 
 func (a *Actions) AddUser(userInfo UserInfo) error {
-	return a.addUser(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
+	return a.addUser(info)
 }
 
 func (a *Actions) UserExists(username string) (bool, error) {
-	return a.userExists(username)
+
+	// Check for invalid characters in username
+	user, err := safeUsername(username)
+	if err != nil {
+		return false, err
+	}
+
+	return a.userExists(user)
 }
 
 func (a *Actions) DeleteUser(userInfo UserInfo) error {
-	return a.deleteUser(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
+	return a.deleteUser(info)
 }
 
 // LockUser locks out the specified user (or the current user if the
 // user string is empty and optionally executes a shutdown
 func (a *Actions) LockUser(userInfo UserInfo, shutdown bool) error {
 
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
 	// If shutdown option is selected, only do so if
 	// locking the user account succeeds
 	if shutdown {
-		err := a.lockUser(userInfo)
+		err = a.lockUser(info)
 		if err != nil {
 			return err
 		}
+
 		// Shutdown the system
 		return a.shutdownOrReboot(false)
 	}
 
 	// Otherwise just lock the user's account
-	return a.lockUser(userInfo)
+	return a.lockUser(info)
 }
 
 func (a *Actions) UnLockUser(userInfo UserInfo) error {
-	return a.unlockUser(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
+	return a.unlockUser(info)
 }
 
 func (a *Actions) SetPassword(userInfo UserInfo) error {
-	return a.setPassword(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
+	return a.setPassword(info)
 }
 
 func (a *Actions) SetAdmin(userInfo UserInfo) error {
-	return a.setAdmin(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return err
+	}
+
+	return a.setAdmin(info)
 }
 
-func (a *Actions) TestCredentials(user string, pass string) error {
+func (a *Actions) TestCredentials(username string, password string) error {
+
+	// Check for invalid characters in username
+	user, err := safeUsername(username)
+	if err != nil {
+		return err
+	}
+
+	// Check for invalid characters in password
+	pass, err := safePassword(password)
+	if err != nil {
+		return err
+	}
+
 	return a.testCredentials(user, pass)
 }
 
@@ -88,5 +150,12 @@ func (a *Actions) TestCredentials(user string, pass string) error {
 // It uses the old password to authenticate the change
 // Returns the new password on success
 func (a *Actions) RefreshServiceAccount(userInfo UserInfo) (string, error) {
-	return a.refreshServiceAccount(userInfo)
+
+	// Check for invalid characters in usernames and passwords
+	info, err := safeUserInfo(userInfo)
+	if err != nil {
+		return "", err
+	}
+
+	return a.refreshServiceAccount(info)
 }

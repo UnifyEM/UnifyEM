@@ -194,7 +194,8 @@ func osTTY(def Interactive) (string, error) {
 	// Monitor context deadline and force kill if exceeded
 	go func() {
 		<-ctx.Done()
-		if cmd.Process != nil {
+		// Only kill if it was actually a timeout (DeadlineExceeded), not a normal cancellation
+		if ctx.Err() == context.DeadlineExceeded && cmd.Process != nil {
 			// Kill the process with SIGKILL and close PTY
 			// The PTY will propagate the signal to child processes
 			fmt.Fprintf(os.Stderr, "*** TTY HARD TIMEOUT: Killing process %d with SIGKILL\n", cmd.Process.Pid)
