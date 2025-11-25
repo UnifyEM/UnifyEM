@@ -121,14 +121,9 @@ func (a *Actions) lockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:no")
 	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:no")
-	if err != nil {
-		return fmt.Errorf("failed to lock user %s: %w", uq, err)
+		return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
@@ -139,14 +134,9 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:yes")
 	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:yes")
-	if err != nil {
-		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
+		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
@@ -158,19 +148,9 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password)
 	if err != nil {
-		return err
-	}
-
-	pq, err := safePassword(userInfo.Password)
-	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, pq)
-	if err != nil {
-		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
+		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
@@ -182,24 +162,14 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
-	pq, err := safePassword(userInfo.Password)
-	if err != nil {
-		return err
-	}
-
 	// Create the user and set the password
-	_, err = runCmd.Combined("net", "user", uq, pq, "/ADD")
+	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password, "/ADD")
 	if err != nil {
-		return fmt.Errorf("failed to create user %s: %w", uq, err)
+		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
 
 	// Add the user's password to allow boot drive bitlocker access
-	strippedPQ := strings.ReplaceAll(pq, "'", "''") // escape single quotes
+	strippedPQ := strings.ReplaceAll(userInfo.Password, "'", "''") // escape single quotes
 	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
@@ -211,7 +181,7 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "BitLocker is not enabled") {
 			// Handle the case where BitLocker is not enabled
-			a.logger.Warningf(8401, "BitLocker is not enabled, not adding user %s to BitLocker", uq)
+			a.logger.Warningf(8401, "BitLocker is not enabled, not adding user %s to BitLocker", userInfo.Username)
 		} else {
 			return fmt.Errorf("failed adding password to BitLocker: %w", err)
 		}
@@ -229,23 +199,18 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	if userInfo.Admin {
-		err = a.addToGroup(uq, "Administrators")
+		err := a.addToGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to add user %s from Administators group: %w", uq, err)
+			return fmt.Errorf("failed to add user %s from Administators group: %w", userInfo.Username, err)
 		}
 	} else {
-		err = a.removeFromGroup(uq, "Administrators")
+		err := a.removeFromGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to remove user %s from Administators group: %w", uq, err)
+			return fmt.Errorf("failed to remove user %s from Administators group: %w", userInfo.Username, err)
 		}
 		// Just a best practice, but not really needed
-		_ = a.addToGroup(uq, "User")
+		_ = a.addToGroup(userInfo.Username, "User")
 	}
 	return nil
 }
@@ -282,15 +247,10 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	// Delete the user
-	_, err = runCmd.Combined("net", "user", uq, "/DELETE")
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/DELETE")
 	if err != nil {
-		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+		return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
 
 	return nil
@@ -302,12 +262,7 @@ func (a *Actions) userExists(username string) (bool, error) {
 		return false, fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
-	if err != nil {
-		return false, err
-	}
-
-	out, err := runCmd.Combined("net", "user", uq)
+	out, err := runCmd.Combined("net", "user", username)
 	if err != nil {
 		// Check if the error is because the user doesn't exist
 		outStr := string(out)
@@ -315,7 +270,7 @@ func (a *Actions) userExists(username string) (bool, error) {
 			return false, nil
 		}
 		// Some other error occurred
-		return false, fmt.Errorf("failed to check if user %s exists: %w", uq, err)
+		return false, fmt.Errorf("failed to check if user %s exists: %w", username, err)
 	}
 
 	return true, nil

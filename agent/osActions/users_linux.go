@@ -139,24 +139,19 @@ func (a *Actions) lockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", uq)
+	_, err := runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", userInfo.Username)
 	if err != nil {
 		// Try alternative location if /usr/sbin/nologin doesn't exist
-		_, err = runCmd.Combined("usermod", "-s", "/bin/false", uq)
+		_, err = runCmd.Combined("usermod", "-s", "/bin/false", userInfo.Username)
 		if err != nil {
-			return fmt.Errorf("failed to lock user %s: %w", uq, err)
+			return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 		}
 	}
 
 	// Also lock the password
-	_, err = runCmd.Combined("passwd", "-l", uq)
+	_, err = runCmd.Combined("passwd", "-l", userInfo.Username)
 	if err != nil {
-		a.logger.Errorf(8311, "Failed to lock password for user %s: %s", uq, err.Error())
+		a.logger.Errorf(8311, "Failed to lock password for user %s: %s", userInfo.Username, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
 	}
 
@@ -169,11 +164,6 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	// Determine which bash shell exists
 	shell := "/bin/bash"
 	if _, statErr := os.Stat("/bin/bash"); statErr != nil {
@@ -182,15 +172,15 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		}
 	}
 
-	_, err = runCmd.Combined("usermod", "-s", shell, uq)
+	_, err := runCmd.Combined("usermod", "-s", shell, userInfo.Username)
 	if err != nil {
-		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
+		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
 
 	// Also unlock the password
-	_, err = runCmd.Combined("passwd", "-u", uq)
+	_, err = runCmd.Combined("passwd", "-u", userInfo.Username)
 	if err != nil {
-		a.logger.Errorf(8312, "Failed to unlock password for user %s: %s", uq, err.Error())
+		a.logger.Errorf(8312, "Failed to unlock password for user %s: %s", userInfo.Username, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
 	}
 
@@ -204,22 +194,12 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
-	pq, err := safePassword(userInfo.Password)
-	if err != nil {
-		return err
-	}
-
 	// Use chpasswd to set the password
 	cmd := exec.Command("chpasswd")
-	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s:%s", uq, pq))
-	err = cmd.Run()
+	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s:%s", userInfo.Username, userInfo.Password))
+	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
+		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
@@ -231,21 +211,16 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	// Create the user
-	_, err = runCmd.Combined("useradd", "-m", "-s", "/bin/bash", uq)
+	_, err := runCmd.Combined("useradd", "-m", "-s", "/bin/bash", userInfo.Username)
 	if err != nil {
-		return fmt.Errorf("failed to create user %s: %w", uq, err)
+		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
 
 	// Set the user's password
 	err = a.setPassword(userInfo)
 	if err != nil {
-		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
+		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
 
 	// Check if the user should be an admin
@@ -262,16 +237,11 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	// Determine which admin group to use (sudo or wheel)
 	adminGroup := "sudo" // Default for Debian/Ubuntu
 
 	// Check if sudo group exists
-	_, err = runCmd.Combined("getent", "group", "sudo")
+	_, err := runCmd.Combined("getent", "group", "sudo")
 	if err != nil {
 		// Try wheel group (RHEL/CentOS/Fedora)
 		_, err = runCmd.Combined("getent", "group", "wheel")
@@ -283,37 +253,37 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 	if userInfo.Admin {
 		// Add user to admin group
-		_, err := runCmd.Combined("usermod", "-aG", adminGroup, uq)
+		_, err := runCmd.Combined("usermod", "-aG", adminGroup, userInfo.Username)
 		if err != nil {
-			return fmt.Errorf("failed to add user %s to %s group: %w", uq, adminGroup, err)
+			return fmt.Errorf("failed to add user %s to %s group: %w", userInfo.Username, adminGroup, err)
 		}
 
 		// Check if /etc/sudoers.d exists
 		if stat, statErr := os.Stat("/etc/sudoers.d"); statErr == nil && stat.IsDir() {
-			sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
-			content := fmt.Sprintf("%s ALL=(ALL) ALL\n", uq)
+			sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", userInfo.Username)
+			content := fmt.Sprintf("%s ALL=(ALL) ALL\n", userInfo.Username)
 			writeErr := os.WriteFile(sudoersFile, []byte(content), 0440)
 			if writeErr != nil {
-				return fmt.Errorf("failed to create sudoers file for user %s: %w", uq, writeErr)
+				return fmt.Errorf("failed to create sudoers file for user %s: %w", userInfo.Username, writeErr)
 			}
 			chmodErr := os.Chmod(sudoersFile, 0440)
 			if chmodErr != nil {
-				return fmt.Errorf("failed to set permissions on sudoers file for user %s: %w", uq, chmodErr)
+				return fmt.Errorf("failed to set permissions on sudoers file for user %s: %w", userInfo.Username, chmodErr)
 			}
 		}
 	} else {
 		// Remove user from admin group
-		_, err = runCmd.Combined("usermod", "-rG", adminGroup, uq)
+		_, err = runCmd.Combined("usermod", "-rG", adminGroup, userInfo.Username)
 		if err != nil {
-			return fmt.Errorf("failed to remove user %s from %s group: %w", uq, adminGroup, err)
+			return fmt.Errorf("failed to remove user %s from %s group: %w", userInfo.Username, adminGroup, err)
 		}
 
 		// Remove sudoers file if it exists
-		sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
+		sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", userInfo.Username)
 		if _, statErr := os.Stat(sudoersFile); statErr == nil {
 			removeErr := os.Remove(sudoersFile)
 			if removeErr != nil {
-				return fmt.Errorf("failed to remove sudoers file for user %s: %w", uq, removeErr)
+				return fmt.Errorf("failed to remove sudoers file for user %s: %w", userInfo.Username, removeErr)
 			}
 		}
 	}
@@ -326,25 +296,20 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(userInfo.Username)
-	if err != nil {
-		return err
-	}
-
 	// Remove sudoers file if it exists
-	sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", uq)
+	sudoersFile := fmt.Sprintf("/etc/sudoers.d/%s-UEM", userInfo.Username)
 	if _, statErr := os.Stat(sudoersFile); statErr == nil {
 		removeErr := os.Remove(sudoersFile)
 		if removeErr != nil {
-			a.logger.Warningf(8313, "Failed to remove sudoers file for user %s: %v", uq, removeErr)
+			a.logger.Warningf(8313, "Failed to remove sudoers file for user %s: %v", userInfo.Username, removeErr)
 			// Continue even if this fails
 		}
 	}
 
 	// Delete the user
-	_, err = runCmd.Combined("userdel", uq)
+	_, err := runCmd.Combined("userdel", userInfo.Username)
 	if err != nil {
-		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+		return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
 
 	return nil
@@ -356,19 +321,14 @@ func (a *Actions) userExists(username string) (bool, error) {
 		return false, fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = runCmd.Stdout("getent", "passwd", uq)
+	_, err := runCmd.Stdout("getent", "passwd", username)
 	if err != nil {
 		// Check if the error is because the user doesn't exist
 		if strings.Contains(err.Error(), "exit status 2") {
 			return false, nil
 		}
 		// Some other error occurred
-		return false, fmt.Errorf("failed to check if user %s exists: %w", uq, err)
+		return false, fmt.Errorf("failed to check if user %s exists: %w", username, err)
 	}
 
 	return true, nil
