@@ -8,6 +8,7 @@
 package install
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -256,7 +257,8 @@ func CheckRootPrivileges() error {
 		// Exit with the same code as the sudo command
 		// Don't wrap this as a "failed to gain privileges" error
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
 				os.Exit(exitErr.ExitCode())
 			}
 			os.Exit(1)

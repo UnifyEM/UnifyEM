@@ -16,6 +16,8 @@ import (
 
 // Sign signs data using ECDSA with SHA-256
 // Returns base64-encoded signature
+//
+//goland:noinspection GoUnusedExportedFunction
 func Sign(data []byte, privateSignKey string) (string, error) {
 	// Decode private key
 	privKeyBytes, err := base64.StdEncoding.DecodeString(privateSignKey)

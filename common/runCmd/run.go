@@ -25,6 +25,8 @@ func Combined(cmdAndArgs ...string) (string, error) {
 }
 
 // Separate runs a command given as a slice of strings and returns stdout and stderr separately in the same tring
+//
+//goland:noinspection GoUnusedExportedFunction
 func Separate(cmdAndArgs ...string) (string, error) {
 	return run(RunSeparate, cmdAndArgs...)
 }
@@ -35,6 +37,8 @@ func Stdout(cmdAndArgs ...string) (string, error) {
 }
 
 // Stderr runs a command given as a slice of strings and return stdout only
+//
+//goland:noinspection GoUnusedExportedFunction
 func Stderr(cmdAndArgs ...string) (string, error) {
 	return run(RunStderr, cmdAndArgs...)
 }

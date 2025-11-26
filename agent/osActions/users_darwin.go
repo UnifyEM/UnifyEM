@@ -35,7 +35,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 	}
 
 	// Parse the output
-	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	scanner := bufio.NewScanner(strings.NewReader(output))
 	var users schema.DeviceUserList
 	for scanner.Scan() {
 		user := scanner.Text()
@@ -79,7 +79,7 @@ func (a *Actions) getAdminGroupMembers() (map[string]struct{}, error) {
 		return nil, err
 	}
 
-	members := strings.Fields(string(output))
+	members := strings.Fields(output)
 	admins := make(map[string]struct{}, len(members))
 	for _, member := range members {
 		admins[member] = struct{}{}
@@ -99,7 +99,7 @@ func (a *Actions) canUserLogin(username string) bool {
 		return false
 	}
 
-	split := strings.Split(string(output), ":")
+	split := strings.Split(output, ":")
 	if len(split) < 2 {
 		return true
 	}

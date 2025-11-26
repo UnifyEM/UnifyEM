@@ -10,6 +10,7 @@ package runCmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -189,18 +190,20 @@ func osTTY(def Interactive) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to start command with pty: %w", err)
 	}
-	defer ptmx.Close()
+	defer func(ptmx *os.File) {
+		_ = ptmx.Close()
+	}(ptmx)
 
 	// Monitor context deadline and force kill if exceeded
 	go func() {
 		<-ctx.Done()
 		// Only kill if it was actually a timeout (DeadlineExceeded), not a normal cancellation
-		if ctx.Err() == context.DeadlineExceeded && cmd.Process != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) && cmd.Process != nil {
 			// Kill the process with SIGKILL and close PTY
 			// The PTY will propagate the signal to child processes
-			fmt.Fprintf(os.Stderr, "*** TTY HARD TIMEOUT: Killing process %d with SIGKILL\n", cmd.Process.Pid)
-			cmd.Process.Signal(syscall.SIGKILL)
-			ptmx.Close() // Force close the PTY to cleanup children
+			//fmt.Fprintf(os.Stderr, "*** TTY HARD TIMEOUT: Killing process %d with SIGKILL\n", cmd.Process.Pid) // TODO
+			_ = cmd.Process.Signal(syscall.SIGKILL)
+			_ = ptmx.Close() // Force close the PTY to cleanup children
 		}
 	}()
 
@@ -213,12 +216,12 @@ func osTTY(def Interactive) (string, error) {
 		// Process each interaction in sequence
 		for i, interaction := range actualActions {
 			if interaction.DebugMsg != "" {
-				fmt.Fprintf(os.Stderr, "*** TTY DEBUG: %s\n", interaction.DebugMsg)
+				//fmt.Fprintf(os.Stderr, "*** TTY DEBUG: %s\n", interaction.DebugMsg)
 			}
 
 			// If WaitFor is empty, just send immediately without waiting
 			if interaction.WaitFor == "" {
-				fmt.Fprintf(os.Stderr, "*** TTY SEND (no wait): %s (length=%d)\n", interaction.Send, len(interaction.Send))
+				//fmt.Fprintf(os.Stderr, "*** TTY SEND (no wait): %s (length=%d)\n", interaction.Send, len(interaction.Send))
 				_, err = ptmx.Write([]byte(interaction.Send + "\n"))
 				if err != nil {
 					ioErrChan <- fmt.Errorf("interaction %d failed to send: %w", i, err)
@@ -234,7 +237,7 @@ func osTTY(def Interactive) (string, error) {
 
 			// Apply delay if specified
 			if interaction.Delay > 0 {
-				fmt.Fprintf(os.Stderr, "*** TTY DELAY: %dms\n", interaction.Delay)
+				//fmt.Fprintf(os.Stderr, "*** TTY DELAY: %dms\n", interaction.Delay)
 				time.Sleep(time.Duration(interaction.Delay) * time.Millisecond)
 			}
 		}
@@ -246,17 +249,17 @@ func osTTY(def Interactive) (string, error) {
 			n, err = ptmx.Read(buf)
 			if err != nil {
 				if err == io.EOF {
-					fmt.Fprintf(os.Stderr, "*** TTY EOF: End of output stream\n")
+					//fmt.Fprintf(os.Stderr, "*** TTY EOF: End of output stream\n")
 					ioErrChan <- nil
 					return
 				}
-				fmt.Fprintf(os.Stderr, "*** TTY READ ERROR: %v\n", err)
+				//fmt.Fprintf(os.Stderr, "*** TTY READ ERROR: %v\n", err)
 				ioErrChan <- fmt.Errorf("error reading final output: %w", err)
 				return
 			}
 			chunk := buf[:n]
 			outputBuf.Write(chunk)
-			fmt.Fprintf(os.Stderr, "*** TTY DATA (%d bytes): %q\n", n, string(chunk))
+			//fmt.Fprintf(os.Stderr, "*** TTY DATA (%d bytes): %q\n", n, string(chunk))
 		}
 	}()
 
@@ -278,9 +281,9 @@ func osTTY(def Interactive) (string, error) {
 			ioDone = true
 			// If I/O fails (e.g., timeout), kill the process to prevent hanging
 			if ioErr != nil && !cmdDone && cmd.Process != nil {
-				fmt.Fprintf(os.Stderr, "*** TTY I/O ERROR: Killing process %d with SIGKILL\n", cmd.Process.Pid)
-				cmd.Process.Signal(syscall.SIGKILL)
-				ptmx.Close() // Force close PTY to cleanup children
+				//fmt.Fprintf(os.Stderr, "*** TTY I/O ERROR: Killing process %d with SIGKILL\n", cmd.Process.Pid)
+				_ = cmd.Process.Signal(syscall.SIGKILL)
+				_ = ptmx.Close() // Force close PTY to cleanup children
 			}
 		}
 	}
@@ -307,16 +310,16 @@ func ttyWaitAndSend(ptmx *os.File, outputBuf *bytes.Buffer, waitFor string, send
 	var matchBuf bytes.Buffer               // Separate buffer for pattern matching
 	timeout := time.After(30 * time.Second) // Add timeout to prevent hanging
 
-	fmt.Fprintf(os.Stderr, "*** TTY WAIT: Waiting for '%s'\n", waitFor)
+	//fmt.Fprintf(os.Stderr, "*** TTY WAIT: Waiting for '%s'\n", waitFor)
 
 	for {
 		select {
 		case <-timeout:
-			fmt.Fprintf(os.Stderr, "*** TTY TIMEOUT: Never received '%s'. Buffer contents: %q\n", waitFor, matchBuf.String())
+			//fmt.Fprintf(os.Stderr, "*** TTY TIMEOUT: Never received '%s'. Buffer contents: %q\n", waitFor, matchBuf.String())
 			return fmt.Errorf("timeout waiting for '%s'", waitFor)
 		default:
 			// Set a read deadline to allow checking timeout
-			ptmx.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+			_ = ptmx.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 
 			n, err := ptmx.Read(buf)
 			if err != nil {
@@ -330,7 +333,7 @@ func ttyWaitAndSend(ptmx *os.File, outputBuf *bytes.Buffer, waitFor string, send
 			}
 
 			// Clear the read deadline
-			ptmx.SetReadDeadline(time.Time{})
+			_ = ptmx.SetReadDeadline(time.Time{})
 
 			// Append to both buffers
 			chunk := buf[:n]
@@ -338,19 +341,19 @@ func ttyWaitAndSend(ptmx *os.File, outputBuf *bytes.Buffer, waitFor string, send
 			matchBuf.Write(chunk)  // Use for pattern matching this call only
 
 			// Debug: show received data
-			fmt.Fprintf(os.Stderr, "*** TTY RECV (%d bytes): %q\n", n, string(chunk))
+			//fmt.Fprintf(os.Stderr, "*** TTY RECV (%d bytes): %q\n", n, string(chunk))
 
 			// Check if we've received the expected prompt in NEW data only
 			if strings.Contains(matchBuf.String(), waitFor) {
-				fmt.Printf("\n\n--- HIT\n%s\n---\n\n", matchBuf.String())
-				fmt.Fprintf(os.Stderr, "*** TTY FOUND: Found '%s' in output\n", waitFor)
+				//fmt.Printf("\n\n--- HIT\n%s\n---\n\n", matchBuf.String())
+				//fmt.Fprintf(os.Stderr, "*** TTY FOUND: Found '%s' in output\n", waitFor)
 				time.Sleep(250 * time.Millisecond)
 				_, err = ptmx.Write([]byte(sendValue + "\n"))
 				if err != nil {
 					return fmt.Errorf("error writing response: %w", err)
 				}
 
-				fmt.Fprintf(os.Stderr, "*** TTY SENT: %s (length=%d)\n", sendValue, len(sendValue))
+				//fmt.Fprintf(os.Stderr, "*** TTY SENT: %s (length=%d)\n", sendValue, len(sendValue))
 
 				// matchBuf is local and will be discarded, ensuring next wait only sees NEW data
 				return nil

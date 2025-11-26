@@ -60,6 +60,8 @@ func WithToken(token string) Option {
 }
 
 // WithUpgrade sets the upgrade flag (optional)
+//
+//goland:noinspection GoUnusedExportedFunction
 func WithUpgrade() Option {
 	return func(i *Install) {
 		i.isUpgrade = true

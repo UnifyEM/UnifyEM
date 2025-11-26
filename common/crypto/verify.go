@@ -16,6 +16,8 @@ import (
 
 // Verify verifies an ECDSA signature using SHA-256
 // Returns true if signature is valid, false otherwise
+//
+//goland:noinspection GoUnusedExportedFunction
 func Verify(data []byte, signature string, publicSignKey string) (bool, error) {
 	// Decode public key
 	pubKeyBytes, err := base64.StdEncoding.DecodeString(publicSignKey)
