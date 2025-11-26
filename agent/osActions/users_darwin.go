@@ -283,7 +283,7 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 	_, err = a.deleteUserWithAdmin(userInfo)
 	if err != nil {
 		a.logger.Infof(8463, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-		a.logger.Infof(8463, "attempting to delete user %s with dscl", userInfo.Username)
+		a.logger.Infof(8464, "attempting to delete user %s with dscl", userInfo.Username)
 
 		// Try with dscl
 		_, err = a.deleteUserWithDscl(userInfo)
@@ -483,11 +483,25 @@ func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
 		return "", err
 	}
 
+	// Generate a temporary random password for the user
+	// This is needed because sysadminctl requires the user's password to remove the secure token
+	tempPassword := crypto.RandomPassword()
+
+	a.logger.Debugf(8446, "Setting temporary password for user %s before removing secure token", userInfo.Username)
+
+	// Change the user's password to our known temporary value
+	// Use passwd command which can be run by root/admin without knowing current password
+	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), tempPassword)
+	if err != nil {
+		a.logger.Warningf(8462, "Failed to set temporary password for user %s: %v", userInfo.Username, err)
+		// Continue anyway - secure token removal might still work
+	}
+
 	a.logger.Debugf(8446, "Calling sysadminctl to remove secure token for user %s", userInfo.Username)
 
-	// Attempt to remove the secure token
+	// Attempt to remove the secure token using the temporary password
 	out, err := runCmd.Combined("sysadminctl", "-secureTokenOff", userInfo.Username, "-adminUser",
-		userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword, "-password", "xyzzy")
+		userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword, "-password", tempPassword)
 	if err != nil {
 		if strings.Contains(err.Error(), "User could not be found") {
 			return out, nil

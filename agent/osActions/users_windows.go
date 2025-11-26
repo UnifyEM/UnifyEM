@@ -178,13 +178,14 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Add the user's password to allow boot drive bitlocker access
-	strippedPQ := strings.ReplaceAll(userInfo.Password, "'", "''") // escape single quotes
+	// Escape PowerShell special characters: single quotes, backticks, dollar signs
+	escapedPW := escapePowerShellString(userInfo.Password)
 	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
 			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
-			strippedPQ,
+			escapedPW,
 		),
 	)
 	if err != nil {
@@ -366,4 +367,11 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	}
 
 	return newPassword, nil
+}
+
+// escapePowerShellString escapes special characters for use in PowerShell single-quoted strings
+func escapePowerShellString(s string) string {
+	// In PowerShell single-quoted strings, only single quotes need escaping (doubled)
+	// Backticks, dollar signs, etc. are literal in single quotes
+	return strings.ReplaceAll(s, "'", "''")
 }

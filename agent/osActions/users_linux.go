@@ -165,11 +165,15 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	// Determine which bash shell exists
+	// Determine which shell exists (prefer bash, fall back to sh)
 	shell := "/bin/bash"
 	if _, statErr := os.Stat("/bin/bash"); statErr != nil {
 		if _, statErr2 := os.Stat("/usr/bin/bash"); statErr2 == nil {
 			shell = "/usr/bin/bash"
+		} else if _, statErr3 := os.Stat("/bin/sh"); statErr3 == nil {
+			shell = "/bin/sh"
+		} else {
+			return fmt.Errorf("no valid shell found for user %s (tried /bin/bash, /usr/bin/bash, /bin/sh)", userInfo.Username)
 		}
 	}
 
@@ -273,8 +277,8 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 			}
 		}
 	} else {
-		// Remove user from admin group
-		_, err = runCmd.Combined("usermod", "-rG", adminGroup, userInfo.Username)
+		// Remove user from admin group using gpasswd
+		_, err = runCmd.Combined("gpasswd", "-d", userInfo.Username, adminGroup)
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from %s group: %w", userInfo.Username, adminGroup, err)
 		}
