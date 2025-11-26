@@ -27,13 +27,14 @@ var authFailResponse = schema.API401{
 	Details: "authentication failed"}
 
 // @Summary User authentication
-// @Description Authenticate a user and return access and refresh tokens
+// @Description Login with username and password to obtain access and refresh tokens
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param credentials body schema.LoginRequest true "User credentials"
+// @Param credentials body schema.LoginRequest true "Username and password"
 // @Success 200 {object} schema.APILoginResponse "Authentication successful"
 // @Failure 401 {object} schema.API401 "Authentication failed"
+// @Security BasicAuth
 // @Router /login [post]
 func (a *API) postLogin(req *http.Request) userver.JResponse {
 

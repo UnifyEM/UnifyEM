@@ -15,14 +15,15 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/userver"
 )
 
-// @Summary Refresh token
-// @Description Refreshes a user authentication token
+// @Summary Refresh access token
+// @Description Exchanges a refresh token for a new access token
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param refreshRequest body schema.RefreshRequest true "Refresh request"
-// @Success 200 {object} schema.APITokenRefreshResponse
-// @Failure 401 {object} schema.API401
+// @Param refreshRequest body schema.RefreshRequest true "Refresh token"
+// @Success 200 {object} schema.APITokenRefreshResponse "New access token"
+// @Failure 401 {object} schema.API401 "Invalid or expired refresh token"
+// @Security RefreshToken
 // @Router /refresh [post]
 // postLogin handles registration requests from agents
 func (a *API) postRefresh(req *http.Request) userver.JResponse {

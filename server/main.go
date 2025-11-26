@@ -38,6 +38,12 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
+// @securityDefinitions.basic BasicAuth
+// @description Username and password for initial authentication.
+// @securityDefinitions.apikey RefreshToken
+// @in body
+// @name refresh_token
+// @description Refresh token provided in request body.
 
 var conf *global.ServerConfig
 var logger interfaces.Logger
