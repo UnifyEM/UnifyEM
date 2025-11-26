@@ -1098,7 +1098,12 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Authenticate a user and return access and refresh tokens",
+                "security": [
+                    {
+                        "CredentialsAuth": []
+                    }
+                ],
+                "description": "Login with username and password to obtain access and refresh tokens",
                 "consumes": [
                     "application/json"
                 ],
@@ -1111,7 +1116,7 @@ const docTemplate = `{
                 "summary": "User authentication",
                 "parameters": [
                     {
-                        "description": "User credentials",
+                        "description": "Username and password",
                         "name": "credentials",
                         "in": "body",
                         "required": true,
@@ -1163,7 +1168,12 @@ const docTemplate = `{
         },
         "/refresh": {
             "post": {
-                "description": "Refreshes a user authentication token",
+                "security": [
+                    {
+                        "RefreshToken": []
+                    }
+                ],
+                "description": "Exchanges a refresh token for a new access token",
                 "consumes": [
                     "application/json"
                 ],
@@ -1173,10 +1183,10 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Refresh token",
+                "summary": "Refresh access token",
                 "parameters": [
                     {
-                        "description": "Refresh request",
+                        "description": "Refresh token",
                         "name": "refreshRequest",
                         "in": "body",
                         "required": true,
@@ -1187,13 +1197,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "New access token",
                         "schema": {
                             "$ref": "#/definitions/schema.APITokenRefreshResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid or expired refresh token",
                         "schema": {
                             "$ref": "#/definitions/schema.API401"
                         }
@@ -1915,6 +1925,14 @@ const docTemplate = `{
         "schema.APICmdResponse": {
             "type": "object",
             "properties": {
+                "agent_friendly_name": {
+                    "type": "string",
+                    "example": "Tuxedo001 Linux Laptop"
+                },
+                "agent_id": {
+                    "type": "string",
+                    "example": "A-12345678-abcd-1234-5648-1234567890ab"
+                },
                 "code": {
                     "type": "integer",
                     "example": 200
@@ -2042,6 +2060,12 @@ const docTemplate = `{
                 "refresh_token": {
                     "type": "string"
                 },
+                "server_public_enc": {
+                    "type": "string"
+                },
+                "server_public_sig": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 }
@@ -2103,6 +2127,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/schema.AgentRequest"
                     }
                 },
+                "service_credentials": {
+                    "description": "Encrypted \"username:password\" with agent's public key",
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
@@ -2123,6 +2151,14 @@ const docTemplate = `{
                     "description": "HTTP status code",
                     "type": "integer",
                     "example": 200
+                },
+                "server_public_enc": {
+                    "description": "Server's EC public encryption key",
+                    "type": "string"
+                },
+                "server_public_sig": {
+                    "description": "Server's EC public signature key",
+                    "type": "string"
                 },
                 "status": {
                     "description": "Text Status",
@@ -2190,6 +2226,12 @@ const docTemplate = `{
                 "build": {
                     "type": "integer"
                 },
+                "client_public_enc": {
+                    "type": "string"
+                },
+                "client_public_sig": {
+                    "type": "string"
+                },
                 "first_seen": {
                     "type": "string"
                 },
@@ -2200,6 +2242,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "last_seen": {
+                    "type": "string"
+                },
+                "service_credentials": {
+                    "description": "Encrypted \"username:password\" with agent's public key",
                     "type": "string"
                 },
                 "status": {
@@ -2230,6 +2276,12 @@ const docTemplate = `{
             "properties": {
                 "build": {
                     "type": "integer"
+                },
+                "client_public_enc": {
+                    "type": "string"
+                },
+                "client_public_sig": {
+                    "type": "string"
                 },
                 "token": {
                     "type": "string"
@@ -2335,6 +2387,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "response": {
+                    "type": "string"
+                },
+                "service_credentials": {
+                    "description": "Double-encrypted \"username:password\" for server",
                     "type": "string"
                 },
                 "success": {
@@ -2509,6 +2565,12 @@ const docTemplate = `{
         "schema.RefreshRequest": {
             "type": "object",
             "properties": {
+                "client_public_enc": {
+                    "type": "string"
+                },
+                "client_public_sig": {
+                    "type": "string"
+                },
                 "refresh_token": {
                     "type": "string"
                 }
@@ -2635,6 +2697,18 @@ const docTemplate = `{
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
+        },
+        "CredentialsAuth": {
+            "description": "Username and password provided in request body.",
+            "type": "apiKey",
+            "name": "credentials",
+            "in": "body"
+        },
+        "RefreshToken": {
+            "description": "Refresh token provided in request body.",
+            "type": "apiKey",
+            "name": "refresh_token",
+            "in": "body"
         }
     }
 }`

@@ -21,9 +21,10 @@ import (
 // @Tags Agent communication
 // @Accept json
 // @Produce json
-// @Param registerRequest body schema.AgentRegisterRequest true "Agent sync request"
-// @Success 200 {object} schema.APIRegisterResponse
-// @Failure 401 {object} schema.API401
+// @Param registerRequest body schema.AgentRegisterRequest true "Agent registration request"
+// @Success 200 {object} schema.APIRegisterResponse "Registration successful"
+// @Failure 401 {object} schema.API401 "Invalid registration token"
+// @Security RegToken
 // @Router /register [post]
 // postRegister handles registration requests from agents
 // This function does not require a bearer token because it is used by agents to register
