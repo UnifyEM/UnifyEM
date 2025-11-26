@@ -29,7 +29,5 @@ func RandomPassword() string {
 		password[i] = charset[randomIndex.Int64()]
 	}
 
-	//return string(password)
-	// EJTODO
-	return "xyzzy8675309" // TODO TO DO EJTODO
+	return string(password)
 }
