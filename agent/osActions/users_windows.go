@@ -17,7 +17,6 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
-	"github.com/yusufpapurcu/wmi"
 )
 
 // Windows constants for LogonUser
@@ -212,12 +211,12 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 	if userInfo.Admin {
 		err := a.addToGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to add user %s from Administators group: %w", userInfo.Username, err)
+			return fmt.Errorf("failed to add user %s from Administrators group: %w", userInfo.Username, err)
 		}
 	} else {
 		err := a.removeFromGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to remove user %s from Administators group: %w", userInfo.Username, err)
+			return fmt.Errorf("failed to remove user %s from Administrators group: %w", userInfo.Username, err)
 		}
 		// Just a best practice, but not really needed
 		_ = a.addToGroup(userInfo.Username, "User")
@@ -233,7 +232,7 @@ func (a *Actions) addToGroup(user, group string) error {
 			return nil
 		}
 
-		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+		return fmt.Errorf("failed to add user %s to %s: %w", user, group, err)
 	}
 	return nil
 }
@@ -246,7 +245,7 @@ func (a *Actions) removeFromGroup(user, group string) error {
 			return nil
 		}
 
-		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+		return fmt.Errorf("failed to remove user %s from %s: %w", user, group, err)
 	}
 	return nil
 }

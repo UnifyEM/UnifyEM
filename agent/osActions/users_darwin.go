@@ -238,7 +238,7 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 			return fmt.Errorf("failed to add user %s to admin group: %w", userInfo.Username, err)
 		}
 	} else {
-		a.logger.Debugf(8439, "Calling dseditgroup to remove user %s to admin group", userInfo.Username)
+		a.logger.Debugf(8439, "Calling dseditgroup to remove user %s from admin group", userInfo.Username)
 		_, err := runCmd.Combined("dseditgroup", "-o", "edit", "-d", userInfo.Username, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from admin group: %w", userInfo.Username, err)
