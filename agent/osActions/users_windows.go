@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/StackExchange/wmi"
+
 	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
