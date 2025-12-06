@@ -50,6 +50,12 @@ definitions:
     type: object
   schema.APICmdResponse:
     properties:
+      agent_friendly_name:
+        example: Tuxedo001 Linux Laptop
+        type: string
+      agent_id:
+        example: A-12345678-abcd-1234-5648-1234567890ab
+        type: string
       code:
         example: 200
         type: integer
@@ -141,6 +147,10 @@ definitions:
         type: string
       refresh_token:
         type: string
+      server_public_enc:
+        type: string
+      server_public_sig:
+        type: string
       status:
         type: string
     type: object
@@ -181,6 +191,9 @@ definitions:
         items:
           $ref: '#/definitions/schema.AgentRequest'
         type: array
+      service_credentials:
+        description: Encrypted "username:password" with agent's public key
+        type: string
       status:
         type: string
       triggers:
@@ -196,6 +209,12 @@ definitions:
         description: HTTP status code
         example: 200
         type: integer
+      server_public_enc:
+        description: Server's EC public encryption key
+        type: string
+      server_public_sig:
+        description: Server's EC public signature key
+        type: string
       status:
         description: Text Status
         example: ok
@@ -241,6 +260,10 @@ definitions:
         type: string
       build:
         type: integer
+      client_public_enc:
+        type: string
+      client_public_sig:
+        type: string
       first_seen:
         type: string
       friendly_name:
@@ -248,6 +271,9 @@ definitions:
       last_ip:
         type: string
       last_seen:
+        type: string
+      service_credentials:
+        description: Encrypted "username:password" with agent's public key
         type: string
       status:
         $ref: '#/definitions/schema.AgentStatus'
@@ -268,6 +294,10 @@ definitions:
     properties:
       build:
         type: integer
+      client_public_enc:
+        type: string
+      client_public_sig:
+        type: string
       token:
         type: string
       version:
@@ -337,6 +367,9 @@ definitions:
       request_id:
         type: string
       response:
+        type: string
+      service_credentials:
+        description: Double-encrypted "username:password" for server
         type: string
       success:
         type: boolean
@@ -450,6 +483,10 @@ definitions:
     type: object
   schema.RefreshRequest:
     properties:
+      client_public_enc:
+        type: string
+      client_public_sig:
+        type: string
       refresh_token:
         type: string
     type: object
@@ -892,9 +929,9 @@ paths:
       - Agent management
   /agent/by-tag/{tag}:
     get:
-      description: Retrieves all agents that have the specified tag (case-insensitive). Use tag='all' to retrieve all agents.
+      description: Retrieves all agents that have the specified tag (case-insensitive)
       parameters:
-      - description: Tag (use 'all' for all agents)
+      - description: Tag
         in: path
         name: tag
         required: true
@@ -1228,9 +1265,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate a user and return access and refresh tokens
+      description: Login with username and password to obtain access and refresh tokens
       parameters:
-      - description: User credentials
+      - description: Username and password
         in: body
         name: credentials
         required: true
@@ -1247,6 +1284,8 @@ paths:
           description: Authentication failed
           schema:
             $ref: '#/definitions/schema.API401'
+      security:
+      - CredentialsAuth: []
       summary: User authentication
       tags:
       - Authentication
@@ -1269,9 +1308,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Refreshes a user authentication token
+      description: Exchanges a refresh token for a new access token
       parameters:
-      - description: Refresh request
+      - description: Refresh token
         in: body
         name: refreshRequest
         required: true
@@ -1281,14 +1320,16 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: New access token
           schema:
             $ref: '#/definitions/schema.APITokenRefreshResponse'
         "401":
-          description: Unauthorized
+          description: Invalid or expired refresh token
           schema:
             $ref: '#/definitions/schema.API401'
-      summary: Refresh token
+      security:
+      - RefreshToken: []
+      summary: Refresh access token
       tags:
       - Authentication
   /regToken:
@@ -1708,5 +1749,15 @@ securityDefinitions:
     description: Type "Bearer" followed by a space and JWT token.
     in: header
     name: Authorization
+    type: apiKey
+  CredentialsAuth:
+    description: Username and password provided in request body.
+    in: body
+    name: credentials
+    type: apiKey
+  RefreshToken:
+    description: Refresh token provided in request body.
+    in: body
+    name: refresh_token
     type: apiKey
 swagger: "2.0"

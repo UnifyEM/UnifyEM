@@ -94,6 +94,7 @@ func (h *Handler) CollectStatusData() map[string]string {
 	responseData["last_user"] = h.lastUser()
 	responseData["boot_time"] = h.bootTime()
 	responseData["ip"] = h.ip()
+	responseData["service_account"] = h.checkServiceAccount()
 	return responseData
 }
 

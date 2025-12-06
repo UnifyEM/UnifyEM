@@ -40,6 +40,10 @@ const (
 	ConfigRegToken               = "reg_token"
 	ConfigJWTKey                 = "jwt_key"
 	ConfigRefreshTokenLifeAgents = "refresh_token_life_agents"
+	ConfigServerECPrivateSig     = "ec_private_sig"
+	ConfigServerECPublicSig      = "ec_public_sig"
+	ConfigServerECPrivateEnc     = "ec_private_enc"
+	ConfigServerECPublicEnc      = "ec_public_enc"
 )
 
 // setDefaults makes sure the sets exist, sets default values, and constraints
@@ -75,6 +79,10 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	sp.SetConstraint(ConfigJWTKey, 0, 0, "")
 	sp.SetConstraint(ConfigRegToken, 0, 0, "")
 	sp.SetConstraint(ConfigRefreshTokenLifeAgents, 0, 0, 0)
+	sp.SetConstraint(ConfigServerECPrivateSig, 0, 0, "")
+	sp.SetConstraint(ConfigServerECPublicSig, 0, 0, "")
+	sp.SetConstraint(ConfigServerECPrivateEnc, 0, 0, "")
+	sp.SetConstraint(ConfigServerECPublicEnc, 0, 0, "")
 
 	// Return the sets
 	return sc, sp

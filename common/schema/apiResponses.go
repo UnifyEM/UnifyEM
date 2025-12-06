@@ -71,9 +71,11 @@ type APILoginResponse struct {
 }
 
 type APITokenRefreshResponse struct {
-	Status      string `json:"status" example:"ok"`                  // Text Status
-	Code        int    `json:"code" example:"200"`                   // HTTP status code
-	AccessToken string `json:"access_token,omitempty" example:"jwt"` // JWT access token
+	Status          string `json:"status" example:"ok"`                  // Text Status
+	Code            int    `json:"code" example:"200"`                   // HTTP status code
+	AccessToken     string `json:"access_token,omitempty" example:"jwt"` // JWT access token
+	ServerPublicSig string `json:"server_public_sig,omitempty"`          // Server's EC public signature key
+	ServerPublicEnc string `json:"server_public_enc,omitempty"`          // Server's EC public encryption key
 }
 
 type APIAgentInfoResponse struct {
@@ -108,12 +110,13 @@ type APIConfigResponse struct {
 
 // APISyncResponse is sent to the agent by the server in response to an agent sync request
 type APISyncResponse struct {
-	Status   string            `json:"status"`
-	Code     int               `json:"code"`
-	Conf     map[string]string `json:"conf"`
-	Triggers AgentTriggers     `json:"triggers"`
-	Details  string            `json:"details,omitempty"`
-	Requests []AgentRequest    `json:"requests"` // Requests for the agent to process and respond to
+	Status             string            `json:"status"`
+	Code               int               `json:"code"`
+	Conf               map[string]string `json:"conf"`
+	Triggers           AgentTriggers     `json:"triggers"`
+	Details            string            `json:"details,omitempty"`
+	Requests           []AgentRequest    `json:"requests"`                      // Requests for the agent to process and respond to
+	ServiceCredentials string            `json:"service_credentials,omitempty"` // Encrypted "username:password" with agent's public key
 }
 
 // AgentRequest contains a single command (request) from the server to the agent
@@ -152,12 +155,14 @@ type APIRequestStatusResponse struct {
 
 // APIRegisterResponse is sent to the agent by the server in response to a registration agent
 type APIRegisterResponse struct {
-	Status       string `json:"status"`
-	Code         int    `json:"code"`
-	Details      string `json:"details,omitempty"`
-	AgentID      string `json:"agent_id"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	Status          string `json:"status"`
+	Code            int    `json:"code"`
+	Details         string `json:"details,omitempty"`
+	AgentID         string `json:"agent_id"`
+	AccessToken     string `json:"access_token"`
+	RefreshToken    string `json:"refresh_token"`
+	ServerPublicSig string `json:"server_public_sig,omitempty"`
+	ServerPublicEnc string `json:"server_public_enc,omitempty"`
 }
 
 // APICmdResponse is used by the API to respond to a command request

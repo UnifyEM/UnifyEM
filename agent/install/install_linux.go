@@ -1,10 +1,9 @@
+//go:build linux
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
-
-// MacOS (Darin) specific functions
-//go:build linux
 
 package install
 
@@ -111,7 +110,7 @@ func (i *Install) uninstallService(removeData bool) error {
 	}
 
 	if removeData {
-		// TODO delete the data
+		i.config.Delete()
 	}
 
 	return nil
@@ -143,6 +142,7 @@ func CheckRootPrivileges() error {
 	if os.Geteuid() != 0 {
 		fmt.Println("\nThis program must be run as root, restarting with sudo...")
 		cmd := exec.Command("sudo", os.Args...)
+		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()

@@ -79,6 +79,22 @@ func (c *UConfig) Save(filename string) error {
 	return c.saveFile()
 }
 
+// Delete the configuration file
+func (c *UConfig) Delete(filename string) error {
+	if c.windowsRegistry {
+		return nil
+	}
+
+	if filename != "" {
+		c.file = filename
+	}
+
+	if c.file == "" {
+		return fmt.Errorf("a filename is required")
+	}
+	return c.deleteFile()
+}
+
 // Load the configuration from the specified file or registry
 func (c *UConfig) Load(filename string) error {
 	if c.windowsRegistry {

@@ -5,8 +5,6 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for Windows
-
 package osActions
 
 import (

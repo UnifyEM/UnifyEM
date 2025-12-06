@@ -19,12 +19,71 @@ import (
 )
 
 type Install struct {
-	config *global.AgentConfig
-	logger interfaces.Logger
+	config    *global.AgentConfig
+	logger    interfaces.Logger
+	token     string
+	user      string
+	pass      string
+	isUpgrade bool
 }
 
-func New(config *global.AgentConfig, logger interfaces.Logger) *Install {
-	return &Install{config: config, logger: logger}
+// Option is a functional option for configuring Install
+type Option func(*Install)
+
+// WithConfig sets the agent configuration
+func WithConfig(config *global.AgentConfig) Option {
+	return func(i *Install) {
+		i.config = config
+	}
+}
+
+// WithLogger sets the logger
+func WithLogger(logger interfaces.Logger) Option {
+	return func(i *Install) {
+		i.logger = logger
+	}
+}
+
+// WithCredentials sets the user credentials (optional)
+func WithCredentials(user, pass string) Option {
+	return func(i *Install) {
+		i.user = user
+		i.pass = pass
+	}
+}
+
+// WithToken sets the installation token (optional)
+func WithToken(token string) Option {
+	return func(i *Install) {
+		i.token = token
+	}
+}
+
+// WithUpgrade sets the upgrade flag (optional)
+//
+//goland:noinspection GoUnusedExportedFunction
+func WithUpgrade() Option {
+	return func(i *Install) {
+		i.isUpgrade = true
+	}
+}
+
+// New creates a new Install instance with the provided options
+func New(opts ...Option) (*Install, error) {
+	i := &Install{}
+	for _, opt := range opts {
+		opt(i)
+	}
+
+	// Validate required fields
+	if i.config == nil {
+		return &Install{}, errors.New("config is required")
+	}
+	if i.logger == nil {
+		return &Install{}, errors.New("logger is required")
+	}
+
+	return i, nil
 }
 
 // Check displays the current configuration
@@ -51,16 +110,16 @@ func (i *Install) Check() {
 	fmt.Printf("AP: %v\n\n", apDump)
 }
 
-func (i *Install) Install(key string) error {
+func (i *Install) Install() error {
 	var err error
 
 	// Check that a key is provided
-	if key == "" {
-		return errors.New("key is required for installation")
+	if i.token == "" {
+		return errors.New("installation token is required")
 	}
 
 	// Save the key
-	i.config.AP.Set(global.ConfigRegToken, key)
+	i.config.AP.Set(global.ConfigRegToken, i.token)
 	i.config.AP.Set(global.ConfigRefreshToken, "")
 	i.config.AP.Set(global.ConfigServerURL, "")
 	err = i.config.Checkpoint()
@@ -85,6 +144,9 @@ func (i *Install) Uninstall() error {
 
 func (i *Install) Upgrade() error {
 	var err error
+
+	// Set upgrade flag to skip service account operations
+	i.isUpgrade = true
 
 	// Call the os specific upgrade
 	err = i.upgradeService()
@@ -155,15 +217,15 @@ func (i *Install) recoverInstall() error {
 	return nil
 }
 
-func (i *Install) ReKey(key string) error {
+func (i *Install) ReKey() error {
 
 	// Check that a key is provided
-	if key == "" {
-		return errors.New("key is required")
+	if i.token == "" {
+		return errors.New("registration token is required")
 	}
 
 	// Save the new registration token, clear the refresh token and URL
-	i.config.AP.Set(global.ConfigRegToken, key)
+	i.config.AP.Set(global.ConfigRegToken, i.token)
 	i.config.AP.Set(global.ConfigRefreshToken, "")
 	i.config.AP.Set(global.ConfigServerURL, "")
 

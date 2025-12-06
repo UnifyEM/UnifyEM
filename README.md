@@ -1,5 +1,7 @@
 # UnifyEM
 
+*** Note: Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
 
@@ -36,14 +38,13 @@ Supported operating systems:
 - **Linux:** Developed and tested on Ubuntu 24.04 x64.
 - **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
-- **Future development:** Android, iOS, iPadOS?
 
 ## Known issues and work-in-progress
 
-- When adding a user on macOS, the new user may not be able to access the system if it is protected by FileVault. Further investiation is required.
+- user_delete does not yet work on macOS due to complex issues with sandboxing. A service running as system can create users, change their passwords, etc., but not delete them. 
 - The `uem-cli user` commands are a work in progress and do not add users to endpoints. To add a user to an endpoint, see `uem-cli cmd user_add --help`.
 - Disk wipe has not yet been implemented.
-- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker. Testing and feedback would be greatly appreciated.
+- The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault. Testing and feedback would be greatly appreciated.
 
 ## Whois is UnifyEM for?
 
@@ -82,7 +83,7 @@ The `lock` trigger changes the password of the currently logged-in user to a ran
 
 Combining `uninstall` with the `lock` or `wipe` triggers may have unpredictable results.
 
-While the agent attempts to add new users in such a way as to allow them to unlock BitLocker and FileVault, this functionaly has not been thorougly tested. Please consider the requirement for encryption unlocking when adding and deleting users.
+While the agent attempts to add new users in such a way as to allow them to unlock BitLocker and FileVault, this functionality has not been thoroughly tested. Please consider the requirement for encryption recovery when adding and deleting users.
 
 The agent sync interval is controlled by uem-server. We recommend setting a short syncing interval during testing so that the agent promptly actions pending requests.
 
@@ -100,13 +101,13 @@ The agent sync interval is controlled by uem-server. We recommend setting a shor
 
 By submitting any code or documentation to this project, you confirm that you own the necessary rights to do so, agree to license your contribution under the project’s open source terms, and warrant that it is free of any third-party claims or conflicts. If you are not authorized to contribute under these conditions, please refrain from submitting.
 
-## Overview
+## Architectural Overview
 
 All communication is originated by uem-agent, uem-cli, and uem-webui to the uem-server over HTTPS.
 
 While the Go libraries fully support HTTPS, at this point of development the preferred approach is for uem-server to listen for HTTP on localhost and use NGINX for HTTPS termination. This allows Certbot to easily obtain and renew certificates for HTTPS.
 
-Agent installation requires a server-specific installation key that contains the server's FQDN and a registration token (enrollment code), similar to how most endpoint security products operate. The agent uses this information to register with the server and obtain unique credentials.
+Agent installation requires a server-specific installation key that contains the server's FQDN and a registration token (enrollment code), similar to how most endpoint security products operate. The agent uses this information to register with the server and obtain unique credentials. On macOS the username and password of an administrator with FileVault access is also required for installation (additional details below).
 
 Agents register automatically using the registration token and receive a unique agent ID, an access token, and a refresh token. The agent ID and refresh token are stored in the agent configuration. The access token is kept in memory. If the access token is denied, the agent will request a new one using the refresh token. If the refresh token is denied, the agent will attempt re-registration. If successful, the agent will receive a new unique agent ID.
 
@@ -133,6 +134,31 @@ When updated clients are placed in the download directory, the administrator mus
 I'm in the process of implementing digital signatures for all requests sent to agents. Once the agent receives a configuration containing the server's public signing key, it will refuse to accept any request that is not digitally signed. (For development purposes this can be disabled in agent/global/global.go)
 
 Administrators authenticate to the server using their username and password, and receive a refresh and access token. The refresh token lifetime for users ("refresh_token_life_users") defaults to 1440 minutes, after which the user will need to re-authenticate. This is configurable. At this point only one administrator is allowed. Expanding this and adding MFA is on the roadmap.
+
+### Cryptographic Keys
+
+Agents and uem-server each generate a pair of EC keys, one for encryption, and one for verification purposes. Each agent exchanges public keys with the server and stores it locally. The server stores each agent's public keys in the database as part of the agent record. These keys are used for:
+
+- Protecting each agent's service account password.
+- Authenticating public key updates (future)
+- Authenticating commands (future)
+- Authenticating files hashes (future)
+
+### Service Account Security
+
+On macOS, certain operations require administrator-level credentials with a FileVault secure token (an encryption key protected by the user's password). Access to the username and password of an admin-level user with a secure token is required to grant a new user access or reset a user's password. To support these operations, the agent creates a dedicated service account (`uemadmin`) during installation. The service account password is randomly generated and protected as follows:
+
+1. **Local Storage**: The credentials are encrypted using the agent's EC public key and stored in memory only. They are never written to disk in plaintext.
+
+2. **Transmission to Server**: Before sending to the server, the already-encrypted credentials are encrypted again using the server's EC public key.
+
+3. **Server Storage**: The server decrypts only the outer layer (removing the server encryption) and stores the credentials in the database. The stored credentials remain encrypted with the agent's public key, meaning the server cannot decrypt them.
+
+4. **Credential Recovery**: When the agent restarts, it receives its encrypted credentials from the server during sync. The agent can then decrypt them using its private key when needed for privileged operations.
+
+5. **Credential Rotation**: Administrators can trigger a credential refresh using `uem-cli cmd refresh_service_account`. The agent will generate a new random password, update the service account, and transmit the new encrypted credentials to the server.
+
+This architecture ensures that service account credentials are protected at rest and in transit, and that even a compromised server database does not expose the actual passwords.
 
 ## Build and deploy
 

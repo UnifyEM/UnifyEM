@@ -8,18 +8,21 @@ package schema
 import "time"
 
 type AgentMeta struct {
-	AgentID      string        `json:"agent_id"`
-	Active       bool          `json:"active"`
-	FriendlyName string        `json:"friendly_name"`
-	FirstSeen    time.Time     `json:"first_seen"`
-	LastSeen     time.Time     `json:"last_seen"`
-	LastIP       string        `json:"last_ip"`
-	Version      string        `json:"version"`
-	Build        int           `json:"build"`
-	Triggers     AgentTriggers `json:"triggers"`
-	Status       *AgentStatus  `json:"status,omitempty"`
-	Tags         []string      `json:"tags"`
-	Users        []string      `json:"users"`
+	AgentID            string        `json:"agent_id"`
+	Active             bool          `json:"active"`
+	FriendlyName       string        `json:"friendly_name"`
+	FirstSeen          time.Time     `json:"first_seen"`
+	LastSeen           time.Time     `json:"last_seen"`
+	LastIP             string        `json:"last_ip"`
+	Version            string        `json:"version"`
+	Build              int           `json:"build"`
+	Triggers           AgentTriggers `json:"triggers"`
+	Status             *AgentStatus  `json:"status,omitempty"`
+	Tags               []string      `json:"tags"`
+	Users              []string      `json:"users"`
+	ClientPublicSig    string        `json:"client_public_sig,omitempty"`
+	ClientPublicEnc    string        `json:"client_public_enc,omitempty"`
+	ServiceCredentials string        `json:"service_credentials,omitempty"` // Encrypted "username:password" with agent's public key
 }
 
 func NewAgentMeta(agentID string) AgentMeta {

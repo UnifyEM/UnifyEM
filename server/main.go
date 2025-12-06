@@ -15,6 +15,7 @@ import (
 	_ "golang.org/x/text" // Make swaggo happy
 
 	"github.com/UnifyEM/UnifyEM/common"
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/null"
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -37,6 +38,18 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
+// @securityDefinitions.apikey CredentialsAuth
+// @in body
+// @name credentials
+// @description Username and password provided in request body.
+// @securityDefinitions.apikey RefreshToken
+// @in body
+// @name refresh_token
+// @description Refresh token provided in request body.
+// @securityDefinitions.apikey RegToken
+// @in body
+// @name token
+// @description Registration token allowing agent registration.
 
 var conf *global.ServerConfig
 var logger interfaces.Logger
@@ -172,6 +185,44 @@ func console() {
 	}
 }
 
+// ensureECKeys checks if EC keypairs exist and generates them if missing
+func ensureECKeys(conf *global.ServerConfig, logger interfaces.Logger) error {
+	// Check if all 4 keys exist
+	privateSig := conf.SP.Get(global.ConfigServerECPrivateSig).String()
+	publicSig := conf.SP.Get(global.ConfigServerECPublicSig).String()
+	privateEnc := conf.SP.Get(global.ConfigServerECPrivateEnc).String()
+	publicEnc := conf.SP.Get(global.ConfigServerECPublicEnc).String()
+
+	// If any key is missing, generate new keypairs
+	if privateSig == "" || publicSig == "" || privateEnc == "" || publicEnc == "" {
+		logger.Info(1003, "EC keypairs not found, generating new keypairs", nil)
+
+		// Generate keypairs
+		newPrivateSig, newPublicSig, newPrivateEnc, newPublicEnc, err := crypto.GenerateKeyPairs()
+		if err != nil {
+			return fmt.Errorf("failed to generate EC keypairs: %w", err)
+		}
+
+		// Store in configuration
+		conf.SP.Set(global.ConfigServerECPrivateSig, newPrivateSig)
+		conf.SP.Set(global.ConfigServerECPublicSig, newPublicSig)
+		conf.SP.Set(global.ConfigServerECPrivateEnc, newPrivateEnc)
+		conf.SP.Set(global.ConfigServerECPublicEnc, newPublicEnc)
+
+		// Save configuration
+		err = conf.Checkpoint()
+		if err != nil {
+			return fmt.Errorf("failed to save EC keypairs to configuration: %w", err)
+		}
+
+		logger.Info(1004, "EC keypairs generated and saved successfully", nil)
+	} else {
+		logger.Info(1005, "EC keypairs already exist", nil)
+	}
+
+	return nil
+}
+
 func usage() {
 	fmt.Printf("Usage: %s <install | uninstall | upgrade | check | foreground | listen <address> | admin | version>\n", os.Args[0])
 }
@@ -220,6 +271,13 @@ func startService(daemon bool) {
 	if err != nil {
 		fmt.Printf("error creating logger: %v\n", err)
 		// Continue so that a logging issue doesn't prevent updates, etc.
+	}
+
+	// Ensure EC keypairs exist, generate if missing
+	err = ensureECKeys(conf, logger)
+	if err != nil {
+		logger.Errorf(1002, "failed to ensure EC keypairs: %s", err.Error())
+		// Continue - EC keys are not critical for startup
 	}
 
 	// Initialize the message queue

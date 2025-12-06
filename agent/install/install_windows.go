@@ -1,10 +1,9 @@
+//go:build windows
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
-
-// Windows specific functions
-//go:build windows
 
 package install
 
@@ -229,7 +228,7 @@ func (i *Install) uninstallService(removeData bool) error {
 	}
 
 	if removeData {
-		// TODO delete the data
+		i.config.Delete()
 	}
 
 	return nil

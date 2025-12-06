@@ -62,6 +62,12 @@ func (s *Service) start() error {
 		}
 	}()
 
+	// Call the start function if defined
+	if s.StartFunc != nil {
+		s.StartFunc(s.logger)
+	}
+
+	// Loop, call the TasksFunc, and wait for an exit request
 	for {
 		select {
 		case <-ticker.C:

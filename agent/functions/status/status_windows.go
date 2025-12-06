@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"golang.org/x/sys/windows/registry"
-
-	"github.com/UnifyEM/UnifyEM/agent/power"
 )
 
 var screenLockDelayValue string
@@ -189,7 +187,7 @@ func (h *Handler) screenLock() (string, error) {
 		return "unknown", fmt.Errorf("error checking screen saver setting: %w", err)
 	}
 
-	info, err := power.GetScreenLockInfo()
+	info, err := GetScreenLockInfo()
 	if err != nil {
 		return "unknown", fmt.Errorf("error checking screen lock setting: %w", err)
 	}
@@ -416,4 +414,9 @@ func (h *Handler) getUserRegistryKey() (registry.Key, error) {
 		return 0, fmt.Errorf("error opening user registry key: %w", err)
 	}
 	return userKey, nil
+}
+
+// checkServiceAccount is not implemented for Windows
+func (h *Handler) checkServiceAccount() string {
+	return "n/a"
 }

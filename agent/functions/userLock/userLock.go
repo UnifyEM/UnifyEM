@@ -60,8 +60,21 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		fields.NewField("user", username),
 	)
 
+	// Obtain admin password from config
+	adminUser, adminPassword, err := h.config.GetServiceCredentials()
+	if err != nil {
+		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
+		return response, errors.New(response.Response)
+	}
+
+	userInfo := osActions.UserInfo{
+		Username:      username,
+		AdminUser:     adminUser,
+		AdminPassword: adminPassword,
+	}
+
 	a := osActions.New(h.logger)
-	err := a.LockUser(username, shutdown)
+	err = a.LockUser(userInfo, shutdown)
 	if err != nil {
 		h.logger.Error(8208, "failed to lock user", f)
 		response.Response = err.Error()

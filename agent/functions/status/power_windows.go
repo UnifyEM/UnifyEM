@@ -4,7 +4,7 @@
  ******************************************************************************/
 
 // Package power provides functions to interact with the Windows power management API.
-package power
+package status
 
 import (
 	"fmt"

@@ -5,7 +5,6 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for Linux
 package osActions
 
 import (

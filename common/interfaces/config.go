@@ -10,6 +10,7 @@ type Config interface {
 	Init()
 	Load(string) error
 	Save(string) error
+	Delete(string) error
 	Checkpoint() error
 	NewSet(string) Parameters
 	GetSets() map[string]Parameters

@@ -21,9 +21,11 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/install"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
 	"github.com/UnifyEM/UnifyEM/common"
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
+	"github.com/UnifyEM/UnifyEM/common/schema/commands"
 	"github.com/UnifyEM/UnifyEM/common/uemservice"
 	"github.com/UnifyEM/UnifyEM/common/ulogger"
 )
@@ -73,6 +75,7 @@ func main() {
 // OS-agnostic console mode
 func console() int {
 	var err error
+	var installer *install.Install
 
 	fmt.Println("")
 
@@ -98,19 +101,62 @@ func console() int {
 	switch strings.ToLower(os.Args[1]) {
 
 	case "install":
-		if len(os.Args) != 3 {
+		if len(os.Args) < 3 {
 			fmt.Println("Installation key required")
 			usage()
 			return 1
 		}
 
-		installer := install.New(conf, logger)
-		err = installer.Install(os.Args[2])
+		ops := []install.Option{
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+			install.WithToken(os.Args[2]),
+		}
+
+		if len(os.Args) >= 5 {
+			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+		}
+
+		// Instantiate installer
+		installer, err = install.New(ops...)
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.Install()
 		if err != nil {
 			fmt.Printf("Installation failed: %v\n", err)
 			return 1
 		}
 		fmt.Println("\nService installed successfully")
+		_ = conf.Checkpoint()
+		return 0
+
+	case "service-account":
+
+		ops := []install.Option{
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+		}
+
+		if len(os.Args) >= 4 {
+			ops = append(ops, install.WithCredentials(os.Args[2], os.Args[3]))
+		}
+
+		// Instantiate installer
+		installer, err = install.New(ops...)
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.ServiceAccount()
+		if err != nil {
+			fmt.Printf("Failed: %v\n", err)
+			return 1
+		}
+		fmt.Println("\nService account installed or updated successfully.")
 		_ = conf.Checkpoint()
 		return 0
 
@@ -121,8 +167,17 @@ func console() int {
 			return 1
 		}
 
-		installer := install.New(conf, logger)
-		err = installer.ReKey(os.Args[2])
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger),
+			install.WithToken(os.Args[2]))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
+		err = installer.ReKey()
 		if err != nil {
 			fmt.Printf("Rekey failed: %v\n", err)
 			return 1
@@ -132,8 +187,16 @@ func console() int {
 		return 0
 
 	case "reset":
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		// Attempt to stop agent
-		installer := install.New(conf, logger)
 		err = installer.Stop()
 		if err != nil {
 			fmt.Printf("\nError stopping agent: %s\n", err.Error())
@@ -155,7 +218,15 @@ func console() int {
 		return 0
 
 	case "uninstall":
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		err = installer.Uninstall()
 		if err != nil {
 			fmt.Printf("Uninstallation failed: %v\n", err)
@@ -170,7 +241,15 @@ func console() int {
 		time.Sleep(30 * time.Second)
 
 		// Upgrade the service
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		err = installer.Upgrade()
 		if err != nil {
 			fmt.Printf("Upgrade failed: %v\n", err)
@@ -180,7 +259,15 @@ func console() int {
 		return 0
 
 	case "check":
-		installer := install.New(conf, logger)
+		installer, err = install.New(
+			install.WithConfig(conf),
+			install.WithLogger(logger))
+
+		if err != nil {
+			fmt.Printf("Fatal error instantiating installer: %v\n", err)
+			return 1
+		}
+
 		installer.Check()
 		return 0
 
@@ -192,8 +279,68 @@ func console() int {
 	return 1
 }
 
+// ensureECKeys checks if EC keypairs exist and generates them if missing
+func ensureECKeys(conf *global.AgentConfig, logger interfaces.Logger) error {
+	// Check if all 4 keys exist
+	privateSig := conf.AP.Get(global.ConfigAgentECPrivateSig).String()
+	publicSig := conf.AP.Get(global.ConfigAgentECPublicSig).String()
+	privateEnc := conf.AP.Get(global.ConfigAgentECPrivateEnc).String()
+	publicEnc := conf.AP.Get(global.ConfigAgentECPublicEnc).String()
+
+	// If any key is missing, generate new keypairs
+	if privateSig == "" || publicSig == "" || privateEnc == "" || publicEnc == "" {
+		logger.Info(8103, "EC keypairs not found, generating new keypairs", nil)
+
+		// Generate keypairs
+		newPrivateSig, newPublicSig, newPrivateEnc, newPublicEnc, err := crypto.GenerateKeyPairs()
+		if err != nil {
+			return fmt.Errorf("failed to generate EC keypairs: %w", err)
+		}
+
+		// Store in configuration
+		conf.AP.Set(global.ConfigAgentECPrivateSig, newPrivateSig)
+		conf.AP.Set(global.ConfigAgentECPublicSig, newPublicSig)
+		conf.AP.Set(global.ConfigAgentECPrivateEnc, newPrivateEnc)
+		conf.AP.Set(global.ConfigAgentECPublicEnc, newPublicEnc)
+
+		// Save configuration
+		err = conf.Checkpoint()
+		if err != nil {
+			return fmt.Errorf("failed to save EC keypairs to configuration: %w", err)
+		}
+
+		logger.Info(8104, "EC keypairs generated and saved successfully", nil)
+	} else {
+		logger.Info(8105, "EC keypairs already exist", nil)
+	}
+
+	return nil
+}
+
 func usage() {
-	fmt.Printf("Usage: %s <install <key> | rekey <key> | uninstall | upgrade | check | version>\n", os.Args[0])
+	fmt.Printf("Usage: %s <command> <arguments>\n\n", os.Args[0])
+	fmt.Println("Commands:")
+
+	fmt.Printf("  check\n")
+
+	if runtime.GOOS == "darwin" {
+		fmt.Printf("  install <key> <admin-username> <admin-password>\n")
+	} else {
+		fmt.Printf("  install <key>\n")
+	}
+
+	fmt.Printf("  rekey <key>\n")
+
+	if runtime.GOOS == "darwin" {
+		fmt.Printf("  service-account <admin-username> <admin-password>\n")
+	} else {
+		fmt.Printf("  service-account\n")
+	}
+
+	fmt.Printf("  uninstall\n")
+	fmt.Printf("  upgrade\n")
+
+	fmt.Printf("  version\n")
 }
 
 func exit(code int, delay bool) {
@@ -238,6 +385,13 @@ func startService(optionalArgs ...bool) {
 		// Continue so that a logging issue doesn't prevent updates, etc.
 	}
 
+	// Ensure EC keypairs exist, generate if missing
+	err = ensureECKeys(conf, logger)
+	if err != nil {
+		logger.Errorf(8102, "failed to ensure EC keypairs: %s", err.Error())
+		// Continue - EC keys are not critical for startup
+	}
+
 	// Create agent and response queue
 	requestQueue = queues.NewRequestQueue(global.TaskQueueSize)
 	responseQueue = queues.NewResponseQueue(global.TaskQueueSize)
@@ -270,11 +424,12 @@ func startService(optionalArgs ...bool) {
 		uemservice.WithTaskTicker(global.TaskTicker),
 		uemservice.WithBackgroundFunc(nil),
 		uemservice.WithTasksFunc(ServiceTasks),
+		uemservice.WithStartFunc(ServiceStarting),
 		uemservice.WithStopFunc(ServiceStopping),
 		uemservice.WithSEid(8500))
 
 	if err != nil {
-		logger.Fatalf(8004, "unable to create service: %v\n", err)
+		logger.Fatalf(8004, "unable to create service: %v", err)
 		return
 	}
 
@@ -305,6 +460,11 @@ func ServiceTasks(interfaces.Logger) {
 			lastStatus = now
 			sendStatus()
 		}
+	}
+
+	// Send service credentials if pending
+	if conf.CredentialsPendingSend() {
+		sendServiceCredentials()
 	}
 
 	// Check in with the server if it has been more than global.SyncInterval seconds or a shorter
@@ -339,17 +499,19 @@ func syncTime(elapsed int64) bool {
 	return false
 }
 
+// ServiceStarting will be called when the service starts
+func ServiceStarting(interfaces.Logger) {
+
+	// Initiate a sync to pick up service credentials
+	lastSync = time.Now().Unix()
+	communication.Sync()
+}
+
 // ServiceStopping will be called when the service is stopping
 func ServiceStopping(interfaces.Logger) {
 
 	// Stop user data listener (platform-specific, macOS only)
 	cleanupUserDataListener(logger)
-
-	// Save the configuration
-	//err := conf.Checkpoint()
-	//if err != nil {
-	//	logger.Infof(8006, "error saving configuration: %s", err.Error())
-	//}
 
 	// Try to tell the server
 	_ = communication.SendMessage(fmt.Sprintf("%s version %s (build %d) stopping", global.Name, global.Version, global.Build))
@@ -447,6 +609,42 @@ func sendStatus() {
 	if err != nil {
 		logger.Errorf(8062, "error executing status request: %s", err.Error())
 	}
+}
+
+// sendServiceCredentials creates an internal response to send encrypted service credentials to the server
+func sendServiceCredentials() {
+	// Only send if server public key is available
+	serverPublicEnc := conf.AP.Get(global.ConfigServerPublicEnc).String()
+	if serverPublicEnc == "" {
+		logger.Warning(8115, "server public key not available, deferring credential send", nil)
+		return
+	}
+
+	// Get our agentID from the configuration
+	agentID := conf.AP.Get(global.ConfigAgentID).String()
+	if agentID == "" {
+		logger.Warning(8117, "agent ID not set, deferring credential send", nil)
+		return
+	}
+
+	// Get double-encrypted credentials directly
+	encryptedForServer, err := conf.GetServiceCredentialsForServer()
+	if err != nil {
+		logger.Errorf(8116, "failed to encrypt credentials for server: %s", err.Error())
+		return
+	}
+
+	// Create response directly (no need for request/handler pattern for self-initiated responses)
+	response := schema.NewAgentResponse()
+	response.Cmd = commands.RefreshServiceAccount
+	response.RequestID = "none" // Indicates unsolicited response (not in response to server request)
+	response.ServiceCredentials = encryptedForServer
+	response.Response = "service credentials encrypted and ready"
+	response.Success = true
+
+	// Queue the response for transmission
+	responseQueue.Add(response)
+	logger.Info(8118, "service credentials queued for transmission", nil)
 }
 
 // simulateService runs the service in the foreground for testing. This is particularly useful on Windows.

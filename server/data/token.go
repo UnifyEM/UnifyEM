@@ -100,8 +100,15 @@ func (d *Data) ValidateToken(tokenString string, purpose string) (string, int, e
 	return "", 0, errors.New("invalid token")
 }
 
+type TokenRefreshData struct {
+	AccessToken     string
+	ServerPublicSig string
+	ServerPublicEnc string
+}
+
 // RefreshToken returns a new access token or an error
-func (d *Data) RefreshToken(refreshToken string) (string, error) {
+// If clientPublicSig and clientPublicEnc are provided (not empty), they will be updated in the agent metadata (for rekey scenarios)
+func (d *Data) RefreshToken(refreshToken string, clientPublicSig string, clientPublicEnc string) (TokenRefreshData, error) {
 	var err error
 	var role int
 	var accessToken string
@@ -109,7 +116,7 @@ func (d *Data) RefreshToken(refreshToken string) (string, error) {
 	// Validate the refresh token
 	subject, role, err := d.ValidateToken(refreshToken, schema.TokenPurposeRefresh)
 	if err != nil {
-		return "", err
+		return TokenRefreshData{}, err
 	}
 
 	// Check if the agent or user exists and is marked active
@@ -121,7 +128,48 @@ func (d *Data) RefreshToken(refreshToken string) (string, error) {
 	}
 
 	if !subjectActive {
-		return "", fmt.Errorf("subject disabled in database: %s", subject)
+		return TokenRefreshData{}, fmt.Errorf("subject disabled in database: %s", subject)
+	}
+
+	// If this is an agent and new client public keys are provided, update them (for rekey scenarios)
+	if role == schema.RoleAgent && (clientPublicSig != "" || clientPublicEnc != "") {
+		meta, err := d.database.GetAgentMeta(subject)
+		if err != nil {
+			return TokenRefreshData{}, fmt.Errorf("failed to get agent metadata: %w", err)
+		}
+
+		// Check for agent public key changes (should never happen - indicates potential security issue)
+		keyUpdated := false
+		if clientPublicSig != "" {
+			if meta.ClientPublicSig == "" {
+				// No existing key - store it
+				meta.ClientPublicSig = clientPublicSig
+				keyUpdated = true
+				d.logger.Info(6020, "agent public signature key received and stored", nil)
+			} else if meta.ClientPublicSig != clientPublicSig {
+				// Key changed - security warning, do NOT update
+				d.logger.Warning(6022, "different agent public signature key received and ignored (possible security issue)", nil)
+			}
+		}
+		if clientPublicEnc != "" {
+			if meta.ClientPublicEnc == "" {
+				// No existing key - store it
+				meta.ClientPublicEnc = clientPublicEnc
+				keyUpdated = true
+				d.logger.Info(6021, "agent public encryption key received and stored", nil)
+			} else if meta.ClientPublicEnc != clientPublicEnc {
+				// Key changed - security warning, do NOT update
+				d.logger.Warning(6023, "different agent public encryption key received and ignored (possible security issue)", nil)
+			}
+		}
+
+		// Only update metadata if keys were actually changed
+		if keyUpdated {
+			err = d.database.SetAgentMeta(meta)
+			if err != nil {
+				return TokenRefreshData{}, fmt.Errorf("failed to update agent metadata: %w", err)
+			}
+		}
 	}
 
 	// Create a new access token
@@ -130,8 +178,16 @@ func (d *Data) RefreshToken(refreshToken string) (string, error) {
 		role:    role,
 		purpose: schema.TokenPurposeAccess})
 	if err != nil {
-		return "", err
+		return TokenRefreshData{}, err
 	}
 
-	return accessToken, nil
+	// Get server public keys from configuration
+	serverPublicSig := d.conf.SP.Get(global.ConfigServerECPublicSig).String()
+	serverPublicEnc := d.conf.SP.Get(global.ConfigServerECPublicEnc).String()
+
+	return TokenRefreshData{
+		AccessToken:     accessToken,
+		ServerPublicSig: serverPublicSig,
+		ServerPublicEnc: serverPublicEnc,
+	}, nil
 }

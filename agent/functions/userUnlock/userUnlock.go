@@ -45,6 +45,26 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
+	password, ok := request.Parameters["password"]
+	if !ok || password == "" {
+		response.Response = "passing is missing or invalid"
+		return response, errors.New(response.Response)
+	}
+
+	// Obtain admin password from config
+	adminUser, adminPassword, err := h.config.GetServiceCredentials()
+	if err != nil {
+		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
+		return response, errors.New(response.Response)
+	}
+
+	userInfo := osActions.UserInfo{
+		Username:      username,
+		Password:      password,
+		AdminUser:     adminUser,
+		AdminPassword: adminPassword,
+	}
+
 	// Assemble log fields
 	f := fields.NewFields(
 		fields.NewField("cmd", request.Request),
@@ -54,7 +74,8 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.UnLockUser(username)
+
+	err = a.UnLockUser(userInfo)
 	if err != nil {
 		h.logger.Error(8210, "failed to unlock user", f)
 		response.Response = err.Error()

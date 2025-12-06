@@ -5,19 +5,26 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for Windows
-
 package osActions
 
 import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
+	"unsafe"
 
 	"github.com/StackExchange/wmi"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
+)
+
+// Windows constants for LogonUser
+const (
+	LOGON32_LOGON_NETWORK    = 3
+	LOGON32_PROVIDER_DEFAULT = 0
 )
 
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
@@ -38,6 +45,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 		Disabled     bool
 		LocalAccount bool
 	}
+
 	query := "SELECT Name, Domain, Disabled, LocalAccount FROM Win32_UserAccount"
 	err = wmi.Query(query, &wmiUsers)
 	if err != nil {
@@ -118,134 +126,102 @@ func parseAdminList(adminList []struct{ PartComponent string }) (map[string]stru
 }
 
 // lockUser disables the user account to deny access
-func (a *Actions) lockUser(username string) error {
-	if username == "" {
+func (a *Actions) lockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:no")
 	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, "/active:no")
-	if err != nil {
-		return fmt.Errorf("failed to lock user %s: %w", uq, err)
+		return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
 
 // unlockUser enables the user account to allow access
-func (a *Actions) unlockUser(username string) error {
-	if username == "" {
+func (a *Actions) unlockUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:yes")
 	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, "/ACTIVE:yes")
-	if err != nil {
-		return fmt.Errorf("failed to unlock user %s: %w", uq, err)
+		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
 
 // setPassword sets the password for the specified user
-func (a *Actions) setPassword(username, password string) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
+func (a *Actions) setPassword(userInfo UserInfo) error {
+
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
-	uq, err := safeUsername(username)
+	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password)
 	if err != nil {
-		return err
-	}
-
-	pq, err := safePassword(password)
-	if err != nil {
-		return err
-	}
-
-	_, err = runCmd.Combined("net", "user", uq, pq)
-	if err != nil {
-		return fmt.Errorf("failed to set password for user %s: %w", uq, err)
+		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
 	return nil
 }
 
 // addUser creates a new user and sets their password
-func (a *Actions) addUser(username, password string, admin bool) error {
-	if username == "" || password == "" {
-		return fmt.Errorf("username and password cannot be empty")
-	}
+func (a *Actions) addUser(userInfo UserInfo) error {
 
-	uq, err := safeUsername(username)
-	if err != nil {
-		return err
-	}
-
-	pq, err := safePassword(password)
-	if err != nil {
-		return err
+	if userInfo.Username == "" || userInfo.Password == "" {
+		return fmt.Errorf("username and password are required")
 	}
 
 	// Create the user and set the password
-	_, err = runCmd.Combined("net", "user", uq, pq, "/ADD")
+	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password, "/ADD")
 	if err != nil {
-		return fmt.Errorf("failed to create user %s: %w", uq, err)
+		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
 
 	// Add the user's password to allow boot drive bitlocker access
-	strippedPQ := strings.ReplaceAll(pq, "'", "''") // escape single quotes
+	// Escape PowerShell special characters: single quotes, backticks, dollar signs
+	escapedPW := escapePowerShellString(userInfo.Password)
 	_, err = runCmd.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
 			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
-			strippedPQ,
+			escapedPW,
 		),
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "BitLocker is not enabled") {
 			// Handle the case where BitLocker is not enabled
-			a.logger.Warningf(8401, "BitLocker is not enabled, not adding user %s to BitLocker", uq)
+			a.logger.Warningf(8401, "BitLocker is not enabled, not adding user %s to BitLocker", userInfo.Username)
 		} else {
 			return fmt.Errorf("failed adding password to BitLocker: %w", err)
 		}
 	}
 
 	// Check if the user should be an admin
-	if admin {
-		return a.setAdmin(username, true)
+	if userInfo.Admin {
+		return a.setAdmin(userInfo)
 	}
 	return nil
 }
 
-func (a *Actions) setAdmin(username string, admin bool) error {
-	if username == "" {
+func (a *Actions) setAdmin(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
-	if err != nil {
-		return err
-	}
-
-	if admin {
-		err = a.addToGroup(uq, "Administrators")
+	if userInfo.Admin {
+		err := a.addToGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to add user %s from Administators group: %w", uq, err)
+			return fmt.Errorf("failed to add user %s from Administrators group: %w", userInfo.Username, err)
 		}
 	} else {
-		err = a.removeFromGroup(uq, "Administrators")
+		err := a.removeFromGroup(userInfo.Username, "Administrators")
 		if err != nil {
-			return fmt.Errorf("failed to remove user %s from Administators group: %w", uq, err)
+			return fmt.Errorf("failed to remove user %s from Administrators group: %w", userInfo.Username, err)
 		}
 		// Just a best practice, but not really needed
-		_ = a.addToGroup(uq, "User")
+		_ = a.addToGroup(userInfo.Username, "User")
 	}
 	return nil
 }
@@ -258,7 +234,7 @@ func (a *Actions) addToGroup(user, group string) error {
 			return nil
 		}
 
-		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+		return fmt.Errorf("failed to add user %s to %s: %w", user, group, err)
 	}
 	return nil
 }
@@ -271,27 +247,132 @@ func (a *Actions) removeFromGroup(user, group string) error {
 			return nil
 		}
 
-		return fmt.Errorf("failed to set user %s as %s: %w", user, group, err)
+		return fmt.Errorf("failed to remove user %s from %s: %w", user, group, err)
 	}
 	return nil
 }
 
 // deleteUser removes a user from the system
-func (a *Actions) deleteUser(username string) error {
-	if username == "" {
+func (a *Actions) deleteUser(userInfo UserInfo) error {
+	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	uq, err := safeUsername(username)
-	if err != nil {
-		return err
-	}
-
 	// Delete the user
-	_, err = runCmd.Combined("net", "user", uq, "/DELETE")
+	_, err := runCmd.Combined("net", "user", userInfo.Username, "/DELETE")
 	if err != nil {
-		return fmt.Errorf("failed to delete user %s: %w", uq, err)
+		return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
 
 	return nil
+}
+
+// userExists checks if a user exists on the system
+func (a *Actions) userExists(username string) (bool, error) {
+	if username == "" {
+		return false, fmt.Errorf("username cannot be empty")
+	}
+
+	out, err := runCmd.Combined("net", "user", username)
+	if err != nil {
+		// Check if the error is because the user doesn't exist
+		outStr := string(out)
+		if strings.Contains(outStr, "not found") || strings.Contains(outStr, "could not be found") {
+			return false, nil
+		}
+		// Some other error occurred
+		return false, fmt.Errorf("failed to check if user %s exists: %w", username, err)
+	}
+
+	return true, nil
+}
+
+func (a *Actions) testCredentials(user string, pass string) error {
+	if user == "" || pass == "" {
+		return fmt.Errorf("username and password are required")
+	}
+
+	// Load advapi32.dll and get LogonUserW function
+	advapi32 := syscall.NewLazyDLL("advapi32.dll")
+	logonUser := advapi32.NewProc("LogonUserW")
+
+	// Convert strings to UTF16 pointers
+	userPtr, err := syscall.UTF16PtrFromString(user)
+	if err != nil {
+		return fmt.Errorf("failed to convert username: %w", err)
+	}
+
+	passPtr, err := syscall.UTF16PtrFromString(pass)
+	if err != nil {
+		return fmt.Errorf("failed to convert password: %w", err)
+	}
+
+	// Use "." for local domain
+	domainPtr, err := syscall.UTF16PtrFromString(".")
+	if err != nil {
+		return fmt.Errorf("failed to convert domain: %w", err)
+	}
+
+	var token uintptr
+
+	// Call LogonUserW
+	ret, _, _ := logonUser.Call(
+		uintptr(unsafe.Pointer(userPtr)),   // username
+		uintptr(unsafe.Pointer(domainPtr)), // domain
+		uintptr(unsafe.Pointer(passPtr)),   // password
+		uintptr(LOGON32_LOGON_NETWORK),     // logon type
+		uintptr(LOGON32_PROVIDER_DEFAULT),  // logon provider
+		uintptr(unsafe.Pointer(&token)),    // token handle
+	)
+
+	// Close the token handle if logon succeeded
+	if ret != 0 && token != 0 {
+		syscall.CloseHandle(syscall.Handle(token))
+		return nil
+	}
+
+	// Logon failed
+	return fmt.Errorf("authentication failed for user %s: invalid credentials", user)
+}
+
+// refreshServiceAccount generates a new password for the service account and ensures it's an administrator
+// Returns the new password on success
+func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
+	if userInfo.Username == "" {
+		return "", fmt.Errorf("username is required")
+	}
+
+	// Ensure the user exists
+	exists, err := a.userExists(userInfo.Username)
+	if err != nil {
+		return "", fmt.Errorf("failed to check if user exists: %w", err)
+	}
+	if !exists {
+		return "", fmt.Errorf("user %s does not exist", userInfo.Username)
+	}
+
+	// Ensure the user is an administrator
+	userInfo.Admin = true
+	err = a.setAdmin(userInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to set admin status for user %s: %w", userInfo.Username, err)
+	}
+
+	// Generate a new random password
+	newPassword := crypto.RandomPassword()
+
+	// Set the new password using net user (runs as SYSTEM, no old password needed)
+	_, err = runCmd.Combined("net", "user", userInfo.Username, newPassword)
+	if err != nil {
+		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
+	}
+
+	return newPassword, nil
+}
+
+// escapePowerShellString escapes special characters for use in PowerShell single-quoted strings
+func escapePowerShellString(s string) string {
+	// In PowerShell single-quoted strings, only single quotes need escaping (doubled)
+	// Backticks, dollar signs, etc. are literal in single quotes
+	return strings.ReplaceAll(s, "'", "''")
 }

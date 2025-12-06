@@ -109,6 +109,17 @@ func (c *Communications) Sync() {
 	// Update the agent config (includes sync intervals)
 	c.conf.AC.SetStringMap(serverResponse.Conf)
 
+	// Store service credentials if provided (encrypted with agent's public key)
+	if serverResponse.ServiceCredentials != "" {
+		// Only store if we don't already have fresh credentials pending send
+		if c.conf.CredentialsPendingSend() {
+			c.logger.Info(8030, "ignoring service account credentials from server, new credentials pending sending", nil)
+		} else {
+			c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
+			c.logger.Info(8031, "received service account credentials from server", nil)
+		}
+	}
+
 	// Checkpoint the configuration
 	err = c.conf.Checkpoint()
 	if err != nil {

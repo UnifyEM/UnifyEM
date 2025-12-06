@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/UnifyEM/UnifyEM/agent/osActions"
+	"github.com/UnifyEM/UnifyEM/common"
 	"howett.net/plist"
 )
 
@@ -471,4 +473,31 @@ func (h *Handler) getCurrentOrLastUser() string {
 func (h *Handler) getAppleScript(script string) (string, error) {
 	username := h.getCurrentOrLastUser()
 	return h.runUserAppleScript(username, script)
+}
+
+// checkServiceAccount tests if the service account credentials in memory are valid
+func (h *Handler) checkServiceAccount() string {
+	// Get credentials from config
+	username, password, err := h.config.GetServiceCredentials()
+	if err != nil {
+		return fmt.Sprintf("no: %v", err)
+	}
+
+	if username == "" || password == "" {
+		return "no: credentials not in memory"
+	}
+
+	// Verify this is the service account
+	if username != common.ServiceAccount {
+		return fmt.Sprintf("no: unexpected username %s", username)
+	}
+
+	// Instantiate osActions and test credentials
+	actions := osActions.New(h.logger)
+	err = actions.TestCredentials(username, password)
+	if err != nil {
+		return fmt.Sprintf("no: %v", err)
+	}
+
+	return "yes"
 }

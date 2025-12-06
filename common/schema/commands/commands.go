@@ -20,20 +20,21 @@ type Commands struct {
 
 // Command names
 const (
-	DownloadExecute = "download_execute"
-	Execute         = "execute"
-	Ping            = "ping"
-	Reboot          = "reboot"
-	Shutdown        = "shutdown"
-	Status          = "status"
-	Upgrade         = "upgrade"
-	UserAdd         = "user_add"
-	UserDelete      = "user_delete"
-	UserAdmin       = "user_admin"
-	UserPassword    = "user_password"
-	UserList        = "user_list"
-	UserLock        = "user_lock"
-	UserUnlock      = "user_unlock"
+	DownloadExecute       = "download_execute"
+	Execute               = "execute"
+	Ping                  = "ping"
+	Reboot                = "reboot"
+	RefreshServiceAccount = "refresh_service_account"
+	Shutdown              = "shutdown"
+	Status                = "status"
+	Upgrade               = "upgrade"
+	UserAdd               = "user_add"
+	UserDelete            = "user_delete"
+	UserAdmin             = "user_admin"
+	UserPassword          = "user_password"
+	UserList              = "user_list"
+	UserLock              = "user_lock"
+	UserUnlock            = "user_unlock"
 )
 
 // Command parameters
@@ -75,6 +76,12 @@ func init() {
 			Reboot: {
 				Name:         Reboot,
 				AckRequired:  false,
+				RequiredArgs: []string{"agent_id"},
+				OptionalArgs: []string{},
+			},
+			RefreshServiceAccount: {
+				Name:         RefreshServiceAccount,
+				AckRequired:  true,
 				RequiredArgs: []string{"agent_id"},
 				OptionalArgs: []string{},
 			},
@@ -129,7 +136,7 @@ func init() {
 			UserUnlock: {
 				Name:         UserUnlock,
 				AckRequired:  true,
-				RequiredArgs: []string{"user", "agent_id"},
+				RequiredArgs: []string{"user", "password", "agent_id"},
 				OptionalArgs: []string{},
 			},
 		},

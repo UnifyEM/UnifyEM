@@ -15,14 +15,15 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/userver"
 )
 
-// @Summary Refresh token
-// @Description Refreshes a user authentication token
+// @Summary Refresh access token
+// @Description Exchanges a refresh token for a new access token
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param refreshRequest body schema.RefreshRequest true "Refresh request"
-// @Success 200 {object} schema.APITokenRefreshResponse
-// @Failure 401 {object} schema.API401
+// @Param refreshRequest body schema.RefreshRequest true "Refresh token"
+// @Success 200 {object} schema.APITokenRefreshResponse "New access token"
+// @Failure 401 {object} schema.API401 "Invalid or expired refresh token"
+// @Security RefreshToken
 // @Router /refresh [post]
 // postLogin handles registration requests from agents
 func (a *API) postRefresh(req *http.Request) userver.JResponse {
@@ -46,7 +47,7 @@ func (a *API) postRefresh(req *http.Request) userver.JResponse {
 	logInfo := fields.NewFields(
 		fields.NewField("src_ip", remoteIP))
 
-	accessToken, err := a.data.RefreshToken(loginRequest.RefreshToken)
+	tokenData, err := a.data.RefreshToken(loginRequest.RefreshToken, loginRequest.ClientPublicSig, loginRequest.ClientPublicEnc)
 	if err != nil {
 		logInfo.Append(fields.NewField("refresh-result", "failed"), fields.NewField("error", err.Error()))
 		a.logger.Error(2865, "access token refresh failed", logInfo)
@@ -58,5 +59,10 @@ func (a *API) postRefresh(req *http.Request) userver.JResponse {
 
 	return userver.JResponse{
 		HTTPCode: http.StatusOK,
-		JSONData: schema.APITokenRefreshResponse{Status: schema.APIStatusOK, Code: http.StatusOK, AccessToken: accessToken}}
+		JSONData: schema.APITokenRefreshResponse{
+			Status:          schema.APIStatusOK,
+			Code:            http.StatusOK,
+			AccessToken:     tokenData.AccessToken,
+			ServerPublicSig: tokenData.ServerPublicSig,
+			ServerPublicEnc: tokenData.ServerPublicEnc}}
 }
