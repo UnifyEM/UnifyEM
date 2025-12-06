@@ -134,38 +134,86 @@ func (h *Handler) autoUpdates() string {
 
 // fde returns "yes" if full disk encryption is enabled, "no" if not, "unknown" otherwise
 func (h *Handler) fde() string {
-	// Check if root is on a LUKS device
-	out, err := exec.Command("lsblk", "-o", "NAME,TYPE,MOUNTPOINT").Output()
-	if err != nil {
-		return "unknown"
-	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if strings.Contains(line, "/") && strings.Contains(line, "crypt") {
-			return "yes"
-		}
-	}
-	// Check for LUKS header
-	out, err = exec.Command("cryptsetup", "status", "root").Output()
+	// Method 1: Check lsblk for crypt devices with FSTYPE column
+	out, err := exec.Command("lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT", "-n").Output()
 	if err == nil {
-		if strings.Contains(string(out), "LUKS header") {
-			return "yes"
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) >= 3 {
+				// Check if TYPE is "crypt" or FSTYPE is "crypto_LUKS"
+				if fields[1] == "crypt" || fields[2] == "crypto_LUKS" {
+					// If this encrypted device has a mountpoint, it's active FDE
+					if len(fields) >= 4 {
+						return "yes"
+					}
+				}
+			}
 		}
 	}
-	// Check for dm-crypt
-	out, err = exec.Command("ls", "/dev/mapper").Output()
+
+	// Method 2: Check /proc/mounts for dm-crypt devices
+	f, err := os.Open("/proc/mounts")
 	if err == nil {
-		if bytes.Contains(out, []byte("cryptroot")) || bytes.Contains(out, []byte("cryptswap")) {
-			return "yes"
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := scanner.Text()
+			// Check if any dm-crypt device is mounted (e.g., /dev/mapper/*)
+			if strings.Contains(line, "/dev/mapper/") {
+				// Verify it's a crypt device by checking if it exists in /dev/mapper/
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					devicePath := fields[0]
+					// Check if this mapper device is a crypt type
+					deviceName := strings.TrimPrefix(devicePath, "/dev/mapper/")
+					dmPath := "/sys/block/dm-*/dm/name"
+					dmDirs, _ := filepath.Glob("/sys/block/dm-*")
+					for _, dmDir := range dmDirs {
+						nameFile := filepath.Join(dmDir, "dm/name")
+						if nameBytes, err := os.ReadFile(nameFile); err == nil {
+							if strings.TrimSpace(string(nameBytes)) == deviceName {
+								// Found the device, check if it's a crypt device
+								uuidFile := filepath.Join(dmDir, "dm/uuid")
+								if uuidBytes, err := os.ReadFile(uuidFile); err == nil {
+									if strings.HasPrefix(string(uuidBytes), "CRYPT-") {
+										return "yes"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
-	// Check for eCryptfs
+
+	// Method 3: Check for active LUKS devices via dmsetup
+	out, err = exec.Command("dmsetup", "ls", "--target", "crypt").Output()
+	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+		// dmsetup found active crypt targets
+		return "yes"
+	}
+
+	// Method 4: Check cryptsetup status for common device names
+	commonNames := []string{"root", "cryptroot", "luks", "crypt", "sda1_crypt", "sda2_crypt", "nvme0n1p1_crypt"}
+	for _, name := range commonNames {
+		out, err = exec.Command("cryptsetup", "status", name).Output()
+		if err == nil {
+			if strings.Contains(string(out), "/dev/mapper/") {
+				return "yes"
+			}
+		}
+	}
+
+	// Method 5: Check for eCryptfs
 	out, err = exec.Command("mount").Output()
 	if err == nil {
 		if bytes.Contains(out, []byte("ecryptfs")) {
 			return "yes"
 		}
 	}
+
 	return "no"
 }
 
