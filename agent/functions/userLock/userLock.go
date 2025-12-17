@@ -8,6 +8,7 @@ package userLock
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
@@ -60,17 +61,10 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		fields.NewField("user", username),
 	)
 
-	// Obtain admin password from config
-	adminUser, adminPassword, err := h.config.GetServiceCredentials()
-	if err != nil {
-		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
-		return response, errors.New(response.Response)
-	}
-
+	// Note: lockUser does not require service account credentials on any platform
+	// as it runs with elevated privileges
 	userInfo := osActions.UserInfo{
-		Username:      username,
-		AdminUser:     adminUser,
-		AdminPassword: adminPassword,
+		Username: username,
 	}
 
 	a := osActions.New(h.logger)

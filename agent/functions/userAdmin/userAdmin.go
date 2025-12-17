@@ -40,17 +40,9 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.RequestID = request.RequestID
 	response.Success = false
 
-	// Obtain admin password from config
-	adminUser, adminPassword, err := h.config.GetServiceCredentials()
-	if err != nil {
-		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
-		return response, errors.New(response.Response)
-	}
-
-	userInfo := osActions.UserInfo{
-		AdminUser:     adminUser,
-		AdminPassword: adminPassword,
-	}
+	// Note: setAdmin does not require service account credentials on any platform
+	// as it runs with elevated privileges
+	userInfo := osActions.UserInfo{}
 
 	username, ok := request.Parameters["user"]
 	if !ok || username == "" {

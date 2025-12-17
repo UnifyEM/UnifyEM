@@ -8,6 +8,7 @@ package userAdd
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
@@ -60,11 +61,16 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		}
 	}
 
-	// Obtain admin password from config
-	adminUser, adminPassword, err := h.config.GetServiceCredentials()
-	if err != nil {
-		response.Response = fmt.Sprintf("unable to obtian service account credentials: %s", err.Error())
-		return response, errors.New(response.Response)
+	// Service account credentials are only required on macOS for FileVault operations
+	// On Linux and Windows, the agent runs with elevated privileges and doesn't need them
+	var adminUser, adminPassword string
+	var err error
+	if runtime.GOOS == "darwin" {
+		adminUser, adminPassword, err = h.config.GetServiceCredentials()
+		if err != nil {
+			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
+			return response, errors.New(response.Response)
+		}
 	}
 
 	userInfo := osActions.UserInfo{
