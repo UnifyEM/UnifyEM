@@ -1387,7 +1387,7 @@ paths:
       - application/json
       description: Agent requests registration and receives access and refresh tokens
       parameters:
-      - description: Agent sync request
+      - description: Agent registration request
         in: body
         name: registerRequest
         required: true
@@ -1397,13 +1397,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Registration successful
           schema:
             $ref: '#/definitions/schema.APIRegisterResponse'
         "401":
-          description: Unauthorized
+          description: Invalid registration token
           schema:
             $ref: '#/definitions/schema.API401'
+      security:
+      - RegToken: []
       summary: Agent registration
       tags:
       - Agent communication
@@ -1759,5 +1761,10 @@ securityDefinitions:
     description: Refresh token provided in request body.
     in: body
     name: refresh_token
+    type: apiKey
+  RegToken:
+    description: Registration token allowing agent registration.
+    in: body
+    name: token
     type: apiKey
 swagger: "2.0"
