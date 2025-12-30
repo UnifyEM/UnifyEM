@@ -8,7 +8,6 @@ package status
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -133,8 +132,11 @@ func (h *Handler) autoUpdates() string {
 }
 
 // fde returns "yes" if full disk encryption is enabled, "no" if not, "unknown" otherwise
+// This function uses multiple detection methods to identify LUKS-encrypted drives on Ubuntu and other Linux distros.
+// Methods 1-3 provide comprehensive LUKS detection, fixing issues with Ubuntu's default LUKS configuration.
 func (h *Handler) fde() string {
 	// Method 1: Check lsblk for crypt devices with FSTYPE column
+	// This method detects LUKS volumes by examining device type and filesystem type
 	out, err := exec.Command("lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT", "-n").Output()
 	if err == nil {
 		lines := strings.Split(string(out), "\n")
@@ -142,11 +144,9 @@ func (h *Handler) fde() string {
 			fields := strings.Fields(line)
 			if len(fields) >= 3 {
 				// Check if TYPE is "crypt" or FSTYPE is "crypto_LUKS"
+				// Finding any LUKS or crypt device is sufficient evidence of FDE
 				if fields[1] == "crypt" || fields[2] == "crypto_LUKS" {
-					// If this encrypted device has a mountpoint, it's active FDE
-					if len(fields) >= 4 {
-						return "yes"
-					}
+					return "yes"
 				}
 			}
 		}
@@ -167,7 +167,6 @@ func (h *Handler) fde() string {
 					devicePath := fields[0]
 					// Check if this mapper device is a crypt type
 					deviceName := strings.TrimPrefix(devicePath, "/dev/mapper/")
-					dmPath := "/sys/block/dm-*/dm/name"
 					dmDirs, _ := filepath.Glob("/sys/block/dm-*")
 					for _, dmDir := range dmDirs {
 						nameFile := filepath.Join(dmDir, "dm/name")
@@ -306,7 +305,7 @@ func (h *Handler) getDisplayEnv() (string, bool) {
 					if len(fields) == 2 && (strings.Contains(fields[1], "wayland") || strings.Contains(fields[1], "gnome-session")) {
 						pid := fields[0]
 						environPath := "/proc/" + pid + "/environ"
-						if envBytes, err := ioutil.ReadFile(environPath); err == nil {
+						if envBytes, err := os.ReadFile(environPath); err == nil {
 							envVars := strings.Split(string(envBytes), "\x00")
 							for _, env := range envVars {
 								if strings.HasPrefix(env, "WAYLAND_DISPLAY=") {

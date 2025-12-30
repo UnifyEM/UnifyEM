@@ -1291,6 +1291,11 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
+                "security": [
+                    {
+                        "RegToken": []
+                    }
+                ],
                 "description": "Agent requests registration and receives access and refresh tokens",
                 "consumes": [
                     "application/json"
@@ -1304,7 +1309,7 @@ const docTemplate = `{
                 "summary": "Agent registration",
                 "parameters": [
                     {
-                        "description": "Agent sync request",
+                        "description": "Agent registration request",
                         "name": "registerRequest",
                         "in": "body",
                         "required": true,
@@ -1315,13 +1320,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Registration successful",
                         "schema": {
                             "$ref": "#/definitions/schema.APIRegisterResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Invalid registration token",
                         "schema": {
                             "$ref": "#/definitions/schema.API401"
                         }
@@ -2708,6 +2713,12 @@ const docTemplate = `{
             "description": "Refresh token provided in request body.",
             "type": "apiKey",
             "name": "refresh_token",
+            "in": "body"
+        },
+        "RegToken": {
+            "description": "Registration token allowing agent registration.",
+            "type": "apiKey",
+            "name": "token",
             "in": "body"
         }
     }
