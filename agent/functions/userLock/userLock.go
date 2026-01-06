@@ -8,7 +8,6 @@ package userLock
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
@@ -34,6 +33,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
+	var err error
 
 	// Create a response to the server
 	response := schema.NewAgentResponse()
