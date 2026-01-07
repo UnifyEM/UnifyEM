@@ -107,7 +107,7 @@ func init() {
 				Name:         UserDelete,
 				AckRequired:  true,
 				RequiredArgs: []string{"user", "agent_id"},
-				OptionalArgs: []string{},
+				OptionalArgs: []string{"shutdown"},
 			},
 			UserAdmin: {
 				Name:         UserAdmin,

@@ -71,12 +71,24 @@ func (a *Actions) UserExists(username string) (bool, error) {
 	return a.userExists(user)
 }
 
-func (a *Actions) DeleteUser(userInfo UserInfo) error {
+func (a *Actions) DeleteUser(userInfo UserInfo, shutdown bool) error {
 
 	// Check for invalid characters in usernames and passwords
 	info, err := safeUserInfo(userInfo)
 	if err != nil {
 		return err
+	}
+
+	// If shutdown option is selected, only do so if
+	// locking the user account succeeds
+	if shutdown {
+		err = a.lockUser(info)
+		if err != nil {
+			return err
+		}
+
+		// Shutdown the system
+		return a.shutdownOrReboot(false)
 	}
 
 	return a.deleteUser(info)

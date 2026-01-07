@@ -48,10 +48,12 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
+	shutdown := true
 	shutdownParam, ok := request.Parameters["shutdown"]
-	shutdown := false
 	if ok {
-		shutdown = strings.ToLower(shutdownParam) == "yes" || strings.ToLower(shutdownParam) == "true"
+		if strings.ToLower(shutdownParam) == "no" || strings.ToLower(shutdownParam) == "false" {
+			shutdown = false
+		}
 	}
 
 	// Assemble log fields

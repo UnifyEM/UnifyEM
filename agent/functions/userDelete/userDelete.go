@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -47,6 +48,14 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
+	shutdown := true
+	shutdownParam, ok := request.Parameters["shutdown"]
+	if ok {
+		if strings.ToLower(shutdownParam) == "no" || strings.ToLower(shutdownParam) == "false" {
+			shutdown = false
+		}
+	}
+
 	userInfo := osActions.UserInfo{
 		Username: username,
 	}
@@ -68,7 +77,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err = a.DeleteUser(userInfo)
+	err = a.DeleteUser(userInfo, shutdown)
 	if err != nil {
 		h.logger.Error(8201, "failed to delete user", f)
 		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())

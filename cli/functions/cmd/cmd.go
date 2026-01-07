@@ -137,7 +137,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username>",
+		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=false]",
 		Short: "delete a user",
 		Long:  "delete a user from the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -181,7 +181,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserLock + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=true]",
+		Use:   commands.UserLock + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=false]",
 		Short: "lock user account",
 		Long:  "lock the specified user on the specified agent and optionally shutdown the device",
 		RunE: func(cmd *cobra.Command, args []string) error {
