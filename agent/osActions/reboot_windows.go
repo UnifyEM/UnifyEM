@@ -47,7 +47,7 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 }
 
 // enableShutdownPrivilege enables the SE_SHUTDOWN_NAME privilege for the current process
-func enableShutdownPrivilege() error {
+func (a *Actions) enableShutdownPrivilege() error {
 	var token windows.Token
 
 	processHandle := windows.CurrentProcess()
@@ -83,7 +83,7 @@ func enableShutdownPrivilege() error {
 	return nil
 }
 
-func attemptInitiateSystemShutdownEx(reboot bool) error {
+func (a *Actions) attemptInitiateSystemShutdownEx(reboot bool) error {
 	if err := enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
@@ -109,7 +109,7 @@ func attemptInitiateSystemShutdownEx(reboot bool) error {
 }
 
 // Attempt to use ExitWindowsEx
-func attemptExitWindowsEx(reboot bool) error {
+func (a *Actions) attemptExitWindowsEx(reboot bool) error {
 	if err := enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
@@ -140,7 +140,7 @@ func attemptExitWindowsEx(reboot bool) error {
 }
 
 // Attempt to use the `shutdown` command
-func attemptShutdownCommand(reboot bool) error {
+func (a *Actions) attemptShutdownCommand(reboot bool) error {
 	cmdArgs := []string{"shutdown", "/s", "/t", "0"} // Default: Shutdown
 	if reboot {
 		cmdArgs = []string{"shutdown", "/r", "/t", "0"} // Reboot
