@@ -22,21 +22,21 @@ const SE_SHUTDOWN_NAME = "SeShutdownPrivilege"
 func (a *Actions) shutdownOrReboot(reboot bool) error {
 	var err error
 
-	err = attemptInitiateSystemShutdownEx(reboot)
+	err = a.attemptInitiateSystemShutdownEx(reboot)
 	if err != nil {
 		a.logger.Errorf(8304, "InitiateSystemShutdownEx failed: %s", err.Error())
 	} else {
 		return nil
 	}
 
-	err = attemptExitWindowsEx(reboot)
+	err = a.attemptExitWindowsEx(reboot)
 	if err != nil {
 		a.logger.Errorf(8305, "ExitWindowsEx failed: %s", err.Error())
 	} else {
 		return nil
 	}
 
-	err = attemptShutdownCommand(reboot)
+	err = a.attemptShutdownCommand(reboot)
 	if err != nil {
 		a.logger.Errorf(8306, "Shutdown command failed: %s", err.Error())
 	} else {
@@ -84,7 +84,7 @@ func (a *Actions) enableShutdownPrivilege() error {
 }
 
 func (a *Actions) attemptInitiateSystemShutdownEx(reboot bool) error {
-	if err := enableShutdownPrivilege(); err != nil {
+	if err := a.enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
 
@@ -110,7 +110,7 @@ func (a *Actions) attemptInitiateSystemShutdownEx(reboot bool) error {
 
 // Attempt to use ExitWindowsEx
 func (a *Actions) attemptExitWindowsEx(reboot bool) error {
-	if err := enableShutdownPrivilege(); err != nil {
+	if err := a.enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
 

@@ -29,7 +29,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 	}
 
 	// Get the sudo group members
-	sudoers, err := getSudoGroupMembers()
+	sudoers, err := a.getSudoGroupMembers()
 	if err != nil {
 		return schema.DeviceUserList{}, fmt.Errorf("failed to get admin group members: %w", err)
 	}
@@ -91,7 +91,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 }
 
 // getSudoGroupMembers retrieves the members of the sudo and wheel groups (union)
-func getSudoGroupMembers() (map[string]struct{}, error) {
+func (a *Actions) getSudoGroupMembers() (map[string]struct{}, error) {
 	sudoers := make(map[string]struct{})
 
 	// Helper to parse group output
