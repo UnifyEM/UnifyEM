@@ -75,8 +75,15 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, err
 	}
 
-	h.logger.Info(8200, "user deleted", f)
-	response.Success = true
-	response.Response = fmt.Sprintf("successfully deleted user %s", username)
-	return response, nil
+	if runtime.GOOS == "darwin" {
+		h.logger.Info(8200, "user locked (macOS limitation)", f)
+		response.Success = true
+		response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete)", username)
+		return response, nil
+	} else {
+		h.logger.Info(8200, "user deleted", f)
+		response.Success = true
+		response.Response = fmt.Sprintf("successfully deleted user %s", username)
+		return response, nil
+	}
 }
