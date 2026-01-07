@@ -189,15 +189,15 @@ func (d *Data) processServiceCredentials(agentID string, response schema.AgentRe
 // agentStatus handles incoming status messages from agents
 func (d *Data) agentStatus(agentID string, response schema.AgentResponse) error {
 
-	// Make sure that response.Data ia not nil
+	// Make sure that response.Data is not nil
 	if response.Data == nil {
 		return fmt.Errorf("response data is nil")
 	}
 
-	// Convert response.Data to a map[string]string
-	mapData, err := schema.ConvertMapString(response.Data)
+	// Convert response.Data to AgentStatusData (supports both new and legacy formats)
+	statusData, err := schema.ConvertAgentStatusData(response.Data)
 	if err != nil {
-		return fmt.Errorf("unable to convert response data to map[string]string: %w", err)
+		return fmt.Errorf("unable to convert response data to AgentStatusData: %w", err)
 	}
 
 	// Add to the event store
@@ -206,7 +206,7 @@ func (d *Data) agentStatus(agentID string, response schema.AgentResponse) error 
 		Time:      time.Now(),
 		EventType: schema.AgentEventStatus,
 		Event:     "status",
-		Details:   mapData})
+		Details:   statusData.Details})
 	if err != nil {
 		return fmt.Errorf("failed to add event to event store: %w", err)
 	}
@@ -214,7 +214,8 @@ func (d *Data) agentStatus(agentID string, response schema.AgentResponse) error 
 	// Update the agent status
 	err = d.database.UpdateAgentStatus(agentID, schema.AgentStatus{
 		LastUpdated: time.Now(),
-		Details:     mapData})
+		Details:     statusData.Details,
+		Info:        statusData.Info})
 	if err != nil {
 		return fmt.Errorf("failed to update agent status: %w", err)
 	}

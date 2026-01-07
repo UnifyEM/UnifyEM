@@ -274,6 +274,12 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 		success = false
 	}
 
+	_, err = a.deleteUserWithSSH(userInfo)
+	if err != nil {
+		a.logger.Warningf(8468, "error deleting user with SSH: %s", common.SingleLine(err.Error()))
+		success = false
+	}
+
 	_, err = a.deleteUserWithLC(userInfo)
 	if err != nil {
 		a.logger.Warningf(8462, "error deleting user with launchctl: %s", common.SingleLine(err.Error()))
@@ -359,6 +365,35 @@ func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
 	}
 	return common.SingleLine(out), nil
 }
+func (a *Actions) deleteUserWithSSH(userInfo UserInfo) (string, error) {
+	if userInfo.AdminUser == "" || userInfo.AdminPassword == "" {
+		return "", fmt.Errorf("administrator username and password must be supplied")
+	}
+
+	a.logger.Debugf(8467, "Calling sysadminctl via SSH (as service account) to delete user %s", userInfo.Username)
+
+	// Use SSH to localhost to escape the sandbox and run sysadminctl as root
+	out, err := runCmd.SSH(
+		&runCmd.UserLogin{
+			Username:  userInfo.AdminUser,
+			Password:  userInfo.AdminPassword,
+			RunAsRoot: true,
+		},
+		"sysadminctl", "-deleteUser", userInfo.Username,
+		"-adminUser", userInfo.AdminUser,
+		"-adminPassword", userInfo.AdminPassword)
+
+	if err != nil {
+		return common.SingleLine(out), fmt.Errorf("failed to SSH DELETE user %s: %w", userInfo.Username, err)
+	}
+
+	if strings.Contains(out, "-14120") || strings.Contains(out, "Error:") {
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %s", userInfo.Username, common.SingleLine(out))
+	}
+
+	return common.SingleLine(out), nil
+}
+
 func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
 
 	// Set up the command

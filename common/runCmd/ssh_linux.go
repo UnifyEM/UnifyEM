@@ -1,11 +1,15 @@
+//go:build linux
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-package common
+package runCmd
 
-const (
-	Version = "0.0.44"
-	Build   = 78
-)
+import "fmt"
+
+// SSH is not implemented on Linux
+func SSH(user *UserLogin, cmdAndArgs ...string) (string, error) {
+	return "", fmt.Errorf("SSH execution not implemented on Linux")
+}

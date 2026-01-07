@@ -452,3 +452,8 @@ func (h *Handler) bootTime() string {
 func (h *Handler) checkServiceAccount() string {
 	return "n/a"
 }
+
+// info returns platform-specific informational items
+func (h *Handler) info() []string {
+	return []string{}
+}

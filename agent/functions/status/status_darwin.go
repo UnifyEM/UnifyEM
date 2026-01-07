@@ -501,3 +501,21 @@ func (h *Handler) checkServiceAccount() string {
 
 	return "yes"
 }
+
+// info returns platform-specific informational items
+func (h *Handler) info() []string {
+	var items []string
+
+	// Check remote login status
+	cmd := exec.Command("systemsetup", "-getremotelogin")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Error occurred - return both stdout and stderr
+		items = append(items, fmt.Sprintf("Remote Login: error: %s", strings.TrimSpace(string(output))))
+	} else {
+		// Success - return stdout
+		items = append(items, strings.TrimSpace(string(output)))
+	}
+
+	return items
+}

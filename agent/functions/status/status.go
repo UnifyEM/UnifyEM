@@ -63,39 +63,43 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		fields.NewField("requester", request.Requester),
 		fields.NewField("request_id", request.RequestID),
 	)
-	f.AppendMapString(responseData)
+	f.AppendMapString(responseData.Details)
 
 	// Log the response using separate fields
 	h.logger.Info(2703, "status data", f)
 	return response, nil
 }
 
-// CollectStatusData gathers all status items into a map for reporting or testing.
-func (h *Handler) CollectStatusData() map[string]string {
-	responseData := make(map[string]string)
-	responseData["uem_agent"] = fmt.Sprintf("%s-%d", global.Version, global.Build)
-	responseData["collected"] = time.Now().Format("2006-01-02T15:04:05-07:00")
-	responseData["os"] = h.osName()
-	responseData["os_version"] = h.osVersion()
-	responseData["firewall"] = h.firewall()
-	responseData["antivirus"] = h.antivirus()
-	responseData["auto_updates"] = h.autoUpdates()
-	responseData["full_disk_encryption"] = h.fde()
-	responseData["password"] = h.password()
+// CollectStatusData gathers all status items into AgentStatusData for reporting or testing.
+func (h *Handler) CollectStatusData() schema.AgentStatusData {
+	details := make(map[string]string)
+	details["uem_agent"] = fmt.Sprintf("%s-%d", global.Version, global.Build)
+	details["collected"] = time.Now().Format("2006-01-02T15:04:05-07:00")
+	details["os"] = h.osName()
+	details["os_version"] = h.osVersion()
+	details["firewall"] = h.firewall()
+	details["antivirus"] = h.antivirus()
+	details["auto_updates"] = h.autoUpdates()
+	details["full_disk_encryption"] = h.fde()
+	details["password"] = h.password()
 	lock, err := h.screenLock()
 	if err != nil && h.logger != nil {
 		h.logger.Error(2704, err.Error(), nil)
-		responseData["screen_lock"] = "unknown"
+		details["screen_lock"] = "unknown"
 	} else {
-		responseData["screen_lock"] = lock
+		details["screen_lock"] = lock
 	}
-	responseData["screen_lock_delay"] = h.screenLockDelay()
-	responseData["hostname"] = h.hostname()
-	responseData["last_user"] = h.lastUser()
-	responseData["boot_time"] = h.bootTime()
-	responseData["ip"] = h.ip()
-	responseData["service_account"] = h.checkServiceAccount()
-	return responseData
+	details["screen_lock_delay"] = h.screenLockDelay()
+	details["hostname"] = h.hostname()
+	details["last_user"] = h.lastUser()
+	details["boot_time"] = h.bootTime()
+	details["ip"] = h.ip()
+	details["service_account"] = h.checkServiceAccount()
+
+	return schema.AgentStatusData{
+		Details: details,
+		Info:    h.info(),
+	}
 }
 
 // trapError is a helper function to log errors
