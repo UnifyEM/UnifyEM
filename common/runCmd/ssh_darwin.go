@@ -34,8 +34,7 @@ func (r *Runner) SSH(user *UserLogin, cmdAndArgs ...string) (string, error) {
 	}
 
 	if r.logger != nil {
-		cmdStr := strings.Join(cmdAndArgs, " ")
-		r.logger.Debugf(8300, "SSH command requested: %s (user: %s, runAsRoot: %v)", cmdStr, user.Username, user.RunAsRoot)
+		r.logger.Debugf(8300, "SSH command requested: %s (arguments redacted) (user: %s, runAsRoot: %v)", cmdAndArgs[0], user.Username, user.RunAsRoot)
 	}
 
 	// Check if SSH is running and start if needed
@@ -219,14 +218,14 @@ func (r *Runner) executeSSH(user *UserLogin, command string) (string, error) {
 	// If running as root, we need a PTY for sudo password prompt
 	if user.RunAsRoot {
 		if r.logger != nil {
-			r.logger.Debugf(8330, "executing command with sudo: %s", command)
+			r.logger.Debugf(8330, "executing command with sudo (command redacted)")
 		}
 		return r.executeWithSudo(session, user.Password, command)
 	}
 
 	// Simple execution without sudo
 	if r.logger != nil {
-		r.logger.Debugf(8331, "executing command as user %s: %s", user.Username, command)
+		r.logger.Debugf(8331, "executing command as user %s (command redacted)", user.Username)
 	}
 	var stdout, stderr bytes.Buffer
 	session.Stdout = &stdout

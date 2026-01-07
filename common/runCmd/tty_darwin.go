@@ -28,8 +28,9 @@ import (
 // Returns all output from the command and any error that occurred.
 func (r *Runner) osTTY(def Interactive) (string, error) {
 	if r.logger != nil {
-		cmdStr := strings.Join(def.Command, " ")
-		r.logger.Debugf(8360, "TTY executing command: %s", cmdStr)
+		if len(def.Command) > 0 {
+			r.logger.Debugf(8360, "TTY executing command: %s (arguments redacted)", def.Command[0])
+		}
 	}
 	// Set default timeout if not specified
 	timeout := def.Timeout

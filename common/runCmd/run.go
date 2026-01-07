@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"strings"
 
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
@@ -81,10 +80,9 @@ func (r *Runner) run(runType int, cmdAndArgs ...string) (string, error) {
 		return "", fmt.Errorf("no command provided")
 	}
 
-	// Log command execution
+	// Log command execution (arguments redacted for security)
 	if r.logger != nil {
-		cmdStr := strings.Join(cmdAndArgs, " ")
-		r.logger.Debugf(8350, "executing command: %s", cmdStr)
+		r.logger.Debugf(8350, "executing command: %s (arguments redacted)", cmdAndArgs[0])
 	}
 
 	// Set up the command
