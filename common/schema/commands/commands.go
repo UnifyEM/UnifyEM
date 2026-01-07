@@ -59,7 +59,7 @@ func init() {
 				Name:         Execute,
 				AckRequired:  true,
 				RequiredArgs: []string{"cmd", "agent_id"},
-				OptionalArgs: allArgN(12),
+				OptionalArgs: append(allArgN(12), "ssh"),
 			},
 			Status: {
 				Name:         Status,
