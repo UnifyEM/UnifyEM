@@ -8,6 +8,7 @@ package userAdmin
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
@@ -33,6 +34,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
+	var err error
 
 	// Create a response to the server
 	response := schema.NewAgentResponse()
@@ -40,17 +42,11 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.RequestID = request.RequestID
 	response.Success = false
 
-	// Note: setAdmin does not require service account credentials on any platform
-	// as it runs with elevated privileges
-	userInfo := osActions.UserInfo{}
-
 	username, ok := request.Parameters["user"]
 	if !ok || username == "" {
 		response.Response = "username is missing or invalid"
 		return response, errors.New(response.Response)
 	}
-
-	userInfo.Username = username
 
 	admin, ok := request.Parameters["admin"]
 	if !ok || admin == "" {
@@ -63,7 +59,18 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		makeAdmin = true
 	}
 
-	userInfo.Admin = makeAdmin
+	userInfo := osActions.UserInfo{
+		Username: username,
+		Admin:    makeAdmin,
+	}
+
+	if runtime.GOOS == "darwin" {
+		userInfo.AdminUser, userInfo.AdminPassword, err = h.config.GetServiceCredentials()
+		if err != nil {
+			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
+			return response, errors.New(response.Response)
+		}
+	}
 
 	// Assemble log fields
 	f := fields.NewFields(

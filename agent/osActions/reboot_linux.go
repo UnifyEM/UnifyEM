@@ -9,8 +9,6 @@ package osActions
 
 import (
 	"errors"
-
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 )
 
 // shutdownOrReboot attempts a clean shutdown/reboot
@@ -19,9 +17,9 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 
 	// Try systemctl first (systemd-based distributions)
 	if reboot {
-		_, err = runCmd.Combined("systemctl", "reboot")
+		_, err = a.runner.Combined("systemctl", "reboot")
 	} else {
-		_, err = runCmd.Combined("systemctl", "poweroff")
+		_, err = a.runner.Combined("systemctl", "poweroff")
 	}
 
 	if err != nil {
@@ -30,9 +28,9 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 
 		// Fall back to shutdown command
 		if reboot {
-			_, err = runCmd.Combined("shutdown", "-r", "now")
+			_, err = a.runner.Combined("shutdown", "-r", "now")
 		} else {
-			_, err = runCmd.Combined("shutdown", "-h", "now")
+			_, err = a.runner.Combined("shutdown", "-h", "now")
 		}
 
 		if err != nil {
@@ -40,9 +38,9 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 
 			// Last resort, try the older init-based commands
 			if reboot {
-				_, err = runCmd.Combined("reboot")
+				_, err = a.runner.Combined("reboot")
 			} else {
-				_, err = runCmd.Combined("poweroff")
+				_, err = a.runner.Combined("poweroff")
 			}
 
 			if err != nil {

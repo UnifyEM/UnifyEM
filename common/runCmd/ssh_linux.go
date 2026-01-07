@@ -10,6 +10,6 @@ package runCmd
 import "fmt"
 
 // SSH is not implemented on Linux
-func SSH(user *UserLogin, cmdAndArgs ...string) (string, error) {
+func (r *Runner) SSH(user *UserLogin, cmdAndArgs ...string) (string, error) {
 	return "", fmt.Errorf("SSH execution not implemented on Linux")
 }

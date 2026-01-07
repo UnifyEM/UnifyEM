@@ -28,6 +28,7 @@ type Handler struct {
 	config *global.AgentConfig
 	logger interfaces.Logger
 	comms  *communications.Communications
+	runner *runCmd.Runner
 }
 
 func New(config *global.AgentConfig, logger interfaces.Logger, comms *communications.Communications) *Handler {
@@ -35,6 +36,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 		config: config,
 		logger: logger,
 		comms:  comms,
+		runner: runCmd.New(runCmd.WithLogger(logger)),
 	}
 }
 
@@ -93,12 +95,15 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 
 	if useSSH {
 		// Execute via SSH using service account credentials
+		h.logger.Info(8203, "attempting SSH execution", f)
 		output, err = h.executeViaSSH(cmd, args)
 		if err != nil {
+			h.logger.Infof(8204, "SSH execution failed: %s", err.Error())
 			response.Response = fmt.Sprintf("error executing via SSH \"%s\": %s", humanReadable, err.Error())
 			response.Success = false
 			returnData["exit_status"] = "-1"
 		} else {
+			h.logger.Info(8205, "SSH execution succeeded", f)
 			response.Success = true
 			response.Response = "executed via SSH"
 		}
@@ -164,7 +169,7 @@ func (h *Handler) executeViaSSH(cmd string, args []string) ([]byte, error) {
 	cmdAndArgs := append([]string{cmd}, args...)
 
 	// Execute via SSH with root privileges
-	output, err := runCmd.SSH(
+	output, err := h.runner.SSH(
 		&runCmd.UserLogin{
 			Username:  username,
 			Password:  password,

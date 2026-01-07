@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/UnifyEM/UnifyEM/common/crypto"
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -24,7 +23,7 @@ import (
 func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 
 	// Get a list of users using getent
-	output, err := runCmd.Stdout("getent", "passwd")
+	output, err := a.runner.Stdout("getent", "passwd")
 	if err != nil {
 		return schema.DeviceUserList{}, fmt.Errorf("failed to get user list: %w", err)
 	}
@@ -109,13 +108,13 @@ func getSudoGroupMembers() (map[string]struct{}, error) {
 	}
 
 	// Try getent group sudo
-	output, err1 := runCmd.Stdout("getent", "group", "sudo")
+	output, err1 := a.runner.Stdout("getent", "group", "sudo")
 	if err1 == nil && len(output) > 0 {
 		parseMembers(output)
 	}
 
 	// Try getent group wheel
-	output, err2 := runCmd.Stdout("getent", "group", "wheel")
+	output, err2 := a.runner.Stdout("getent", "group", "wheel")
 	if err2 == nil && len(output) > 0 {
 		parseMembers(output)
 	}
@@ -140,17 +139,17 @@ func (a *Actions) lockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	_, err := runCmd.Combined("usermod", "-s", "/usr/sbin/nologin", userInfo.Username)
+	_, err := a.runner.Combined("usermod", "-s", "/usr/sbin/nologin", userInfo.Username)
 	if err != nil {
 		// Try alternative location if /usr/sbin/nologin doesn't exist
-		_, err = runCmd.Combined("usermod", "-s", "/bin/false", userInfo.Username)
+		_, err = a.runner.Combined("usermod", "-s", "/bin/false", userInfo.Username)
 		if err != nil {
 			return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 		}
 	}
 
 	// Also lock the password
-	_, err = runCmd.Combined("passwd", "-l", userInfo.Username)
+	_, err = a.runner.Combined("passwd", "-l", userInfo.Username)
 	if err != nil {
 		a.logger.Errorf(8311, "Failed to lock password for user %s: %s", userInfo.Username, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -177,13 +176,13 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		}
 	}
 
-	_, err := runCmd.Combined("usermod", "-s", shell, userInfo.Username)
+	_, err := a.runner.Combined("usermod", "-s", shell, userInfo.Username)
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
 
 	// Also unlock the password
-	_, err = runCmd.Combined("passwd", "-u", userInfo.Username)
+	_, err = a.runner.Combined("passwd", "-u", userInfo.Username)
 	if err != nil {
 		a.logger.Errorf(8312, "Failed to unlock password for user %s: %s", userInfo.Username, err.Error())
 		// Continue even if this fails, as changing the shell is the primary method
@@ -217,7 +216,7 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Create the user
-	_, err := runCmd.Combined("useradd", "-m", "-s", "/bin/bash", userInfo.Username)
+	_, err := a.runner.Combined("useradd", "-m", "-s", "/bin/bash", userInfo.Username)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
@@ -246,10 +245,10 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 	adminGroup := "sudo" // Default for Debian/Ubuntu
 
 	// Check if sudo group exists
-	_, err := runCmd.Combined("getent", "group", "sudo")
+	_, err := a.runner.Combined("getent", "group", "sudo")
 	if err != nil {
 		// Try wheel group (RHEL/CentOS/Fedora)
-		_, err = runCmd.Combined("getent", "group", "wheel")
+		_, err = a.runner.Combined("getent", "group", "wheel")
 		if err != nil {
 			return fmt.Errorf("neither sudo nor wheel group exists")
 		}
@@ -258,7 +257,7 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 	if userInfo.Admin {
 		// Add user to admin group
-		_, err := runCmd.Combined("usermod", "-aG", adminGroup, userInfo.Username)
+		_, err := a.runner.Combined("usermod", "-aG", adminGroup, userInfo.Username)
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to %s group: %w", userInfo.Username, adminGroup, err)
 		}
@@ -278,7 +277,7 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 		}
 	} else {
 		// Remove user from admin group using gpasswd
-		_, err = runCmd.Combined("gpasswd", "-d", userInfo.Username, adminGroup)
+		_, err = a.runner.Combined("gpasswd", "-d", userInfo.Username, adminGroup)
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from %s group: %w", userInfo.Username, adminGroup, err)
 		}
@@ -312,7 +311,7 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 	}
 
 	// Delete the user
-	_, err := runCmd.Combined("userdel", userInfo.Username)
+	_, err := a.runner.Combined("userdel", userInfo.Username)
 	if err != nil {
 		return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
@@ -326,7 +325,7 @@ func (a *Actions) userExists(username string) (bool, error) {
 		return false, fmt.Errorf("username cannot be empty")
 	}
 
-	_, err := runCmd.Stdout("getent", "passwd", username)
+	_, err := a.runner.Stdout("getent", "passwd", username)
 	if err != nil {
 		// Check if the error is because the user doesn't exist
 		if strings.Contains(err.Error(), "exit status 2") {

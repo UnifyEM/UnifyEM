@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"golang.org/x/sys/windows"
 )
 
@@ -147,7 +146,7 @@ func attemptShutdownCommand(reboot bool) error {
 		cmdArgs = []string{"shutdown", "/r", "/t", "0"} // Reboot
 	}
 
-	_, err := runCmd.Combined(cmdArgs...)
+	_, err := a.runner.Combined(cmdArgs...)
 	if err != nil {
 		return fmt.Errorf("shutdown command failed: %w", err)
 	}

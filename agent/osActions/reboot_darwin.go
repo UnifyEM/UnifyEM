@@ -9,8 +9,6 @@ package osActions
 
 import (
 	"errors"
-
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 )
 
 // shutdownOrReboot attempts a clean shutdown/reboot
@@ -18,9 +16,9 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 	var err error
 
 	if reboot {
-		_, err = runCmd.Combined("shutdown", "-r", "now")
+		_, err = a.runner.Combined("shutdown", "-r", "now")
 	} else {
-		_, err = runCmd.Combined("shutdown", "-h", "now")
+		_, err = a.runner.Combined("shutdown", "-h", "now")
 	}
 
 	if err != nil {
@@ -28,9 +26,9 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 		a.logger.Info(8302, "Falling back to osascript", nil)
 
 		if reboot {
-			_, err = runCmd.Combined("osascript", "-e", `tell application "System Events" to restart`)
+			_, err = a.runner.Combined("osascript", "-e", `tell application "System Events" to restart`)
 		} else {
-			_, err = runCmd.Combined("osascript", "-e", `tell application "System Events" to shut down`)
+			_, err = a.runner.Combined("osascript", "-e", `tell application "System Events" to shut down`)
 		}
 
 		if err != nil {
