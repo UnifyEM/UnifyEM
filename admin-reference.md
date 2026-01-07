@@ -50,16 +50,20 @@ user_add agent_id=<agent ID> user=<user> password=<password> [admin=<true | fals
 
 user_admin agent_id=<agent ID> user=<user> admin=<true | false>
 
-user_delete agent_id=<agent ID> user=<user>
+user_delete agent_id=<agent ID> user=<user> [shutdown=<true | false>]
 
 user_password agent_id=<agent ID> user=<user> password=<password>
 
 user_list agent_id=<agent ID>
 
-user_lock agent_id=<agent ID> user=<user> [shutdown=yes]
+user_lock agent_id=<agent ID> user=<user> [shutdown=<true | false>]
 
 user_unlock agent_id=<agent ID> user=<user>
 ```
+
+**Note:** For `user_lock` and `user_delete`, the `shutdown` parameter defaults to `true`. When enabled, the system will
+shut down after the user is locked or deleted to ensure the user cannot continue using the device. Set `shutdown=false`
+to lock or delete a user without forcing a shutdown.
 
 # Agent Triggers
 
