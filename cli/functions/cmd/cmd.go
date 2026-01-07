@@ -192,7 +192,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserUnlock + " agent_id=<agent ID> | tag=<tag> user=<username>",
+		Use:   commands.UserUnlock + " agent_id=<agent ID> | tag=<tag> user=<username> password=<new password>",
 		Short: "unlock user account",
 		Long:  "unlock the specified user account on the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
