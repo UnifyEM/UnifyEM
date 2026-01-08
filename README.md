@@ -36,7 +36,7 @@ The `main` branch is intended to be stable. All other branches are for developme
 Supported operating systems:
 
 - **Linux:** Developed and tested on Ubuntu 24.04 x64.
-- **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
+- **macOS:** Developed and tested on macOS Sequoia 15 arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
 
 ## Known issues and work-in-progress
