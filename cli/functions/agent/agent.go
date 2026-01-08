@@ -45,7 +45,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "get <agent_id>",
 		Short: "get agent",
-		Long:  "get information about the specified agent",
+		Long:  "get information about the agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentGet(args, util.NewNVPairs(args))
 		},
@@ -54,7 +54,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "delete <agent_id>",
 		Short: "delete agent",
-		Long:  "delete the specified agent from the server",
+		Long:  "delete the agent from the UEM server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentDelete(args, util.NewNVPairs(args))
 		},
@@ -62,7 +62,7 @@ func Register() *cobra.Command {
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "lost <agent_id>",
-		Short: "active lost mode",
+		Short: "activate lost mode",
 		Long:  "instruct the agent to enter lost mode",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			triggers := schema.NewAgentTriggers()
@@ -74,7 +74,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "uninstall <agent_id>",
 		Short: "uninstall agent",
-		Long:  "uninstall the specified agent",
+		Long:  "uninstall the agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			triggers := schema.NewAgentTriggers()
 			triggers.Uninstall = true
@@ -84,7 +84,7 @@ func Register() *cobra.Command {
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "wipe <agent_id>",
-		Short: "wipe agent disk",
+		Short: "wipe disk",
 		Long:  "instruct the agent to wipe all drives and set lost mode",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			triggers := schema.NewAgentTriggers()
@@ -97,7 +97,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "reset <agent_id>",
 		Short: "reset agent",
-		Long:  "clear the lost, lock, wipe, and uninstall flags for the specified agent",
+		Long:  "clear the lost, lock, wipe, and uninstall flags for the agent (if possible)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentResetTriggers(args)
 		},
@@ -115,7 +115,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "tags <agent_id>",
 		Short: "list tags for an agent",
-		Long:  "list all tags assigned to the specified agent",
+		Long:  "list all tags assigned to the agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentListTags(args)
 		},
@@ -124,7 +124,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "tag-add <agent_id> <tag1> [<tag2> ...]",
 		Short: "add tags to an agent",
-		Long:  "add one or more tags to the specified agent",
+		Long:  "add one or more tags to the agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentAddTags(args)
 		},
@@ -133,7 +133,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "tag-remove <agent_id> <tag1> [<tag2> ...]",
 		Short: "remove tags from an agent",
-		Long:  "remove one or more tags from the specified agent",
+		Long:  "remove one or more tags from the agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentRemoveTags(args)
 		},
@@ -142,7 +142,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "user-add <agent_id>|tag=<tag> <user1> [<user2> ...]",
 		Short: "add users to an agent",
-		Long:  "add one or more users to the specified agent or all agents with a tag",
+		Long:  "add one or more users to the agent or all agents with a tag",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentAddUsers(args)
 		},
@@ -151,7 +151,7 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "user-remove <agent_id>|tag=<tag> <user1> [<user2> ...]",
 		Short: "remove users from an agent",
-		Long:  "remove one or more users from the specified agent or all agents with a tag",
+		Long:  "remove one or more users from the agent or all agents with a tag",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentRemoveUsers(args)
 		},
