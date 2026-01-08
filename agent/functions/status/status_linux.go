@@ -58,26 +58,24 @@ func (h *Handler) osVersion() string {
 
 // firewall returns "yes" if a firewall is enabled, "no" if not, "unknown" otherwise
 func (h *Handler) firewall() string {
+
 	// Check for ufw
 	out, err := exec.Command("ufw", "status").Output()
 	if err == nil {
 		if bytes.Contains(out, []byte("Status: active")) {
 			return "yes"
 		}
-		if bytes.Contains(out, []byte("Status: inactive")) {
-			return "no"
-		}
 	}
-	// Check for firewalld
+
+	// Check for firewalld - note that err with exit code 4 means inactive, it's not an error
+        // If it is running, err==nil, exit code -
 	out, err = exec.Command("systemctl", "is-active", "firewalld").Output()
 	if err == nil {
 		if strings.TrimSpace(string(out)) == "active" {
 			return "yes"
 		}
-		if strings.TrimSpace(string(out)) == "inactive" {
-			return "no"
-		}
 	}
+
 	// Check for iptables rules
 	out, err = exec.Command("iptables", "-L").Output()
 	if err == nil && len(out) > 0 {
@@ -86,7 +84,9 @@ func (h *Handler) firewall() string {
 			return "yes"
 		}
 	}
-	return "unknown"
+	
+	// No firewall detected
+	return "no"
 }
 
 // antivirus returns "yes" if a known AV process is running, "no" if not, "unknown" otherwise
@@ -105,6 +105,7 @@ func (h *Handler) antivirus() string {
 
 // autoUpdates returns "yes" if automatic updates are enabled, "no" if not, "unknown" otherwise
 func (h *Handler) autoUpdates() string {
+
 	// Check for unattended-upgrades (Debian/Ubuntu)
 	f, err := os.Open("/etc/apt/apt.conf.d/20auto-upgrades")
 	if err == nil {
@@ -120,21 +121,23 @@ func (h *Handler) autoUpdates() string {
 			}
 		}
 	}
+
 	// Check for dnf-automatic (Fedora/RHEL)
 	out, err := exec.Command("systemctl", "is-enabled", "dnf-automatic.timer").Output()
 	if err == nil {
 		if strings.Contains(string(out), "enabled") {
 			return "yes"
 		}
-		return "no"
 	}
-	return "unknown"
+
+	// No auto-update found	
+        return "no"
 }
 
-// fde returns "yes" if full disk encryption is enabled, "no" if not, "unknown" otherwise
+// fde returns "yes" if full disk encryption is enabled, otherwise "no"
 // This function uses multiple detection methods to identify LUKS-encrypted drives on Ubuntu and other Linux distros.
-// Methods 1-3 provide comprehensive LUKS detection, fixing issues with Ubuntu's default LUKS configuration.
 func (h *Handler) fde() string {
+
 	// Method 1: Check lsblk for crypt devices with FSTYPE column
 	// This method detects LUKS volumes by examining device type and filesystem type
 	out, err := exec.Command("lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT", "-n").Output()
@@ -189,9 +192,11 @@ func (h *Handler) fde() string {
 
 	// Method 3: Check for active LUKS devices via dmsetup
 	out, err = exec.Command("dmsetup", "ls", "--target", "crypt").Output()
-	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
-		// dmsetup found active crypt targets
-		return "yes"
+	if err == nil {
+                if strings.Contains(string(out), "crypt_dev_") {
+			// dmsetup found active crypt targets
+			return "yes"
+                }
 	}
 
 	// Method 4: Check cryptsetup status for common device names
@@ -213,6 +218,7 @@ func (h *Handler) fde() string {
 		}
 	}
 
+	// No encrypted file systems found
 	return "no"
 }
 
