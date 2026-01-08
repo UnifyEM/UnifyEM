@@ -94,7 +94,12 @@ func (h *Handler) CollectStatusData() schema.AgentStatusData {
 	details["last_user"] = h.lastUser()
 	details["boot_time"] = h.bootTime()
 	details["ip"] = h.ip()
-	details["service_account"] = h.checkServiceAccount()
+
+	if global.HaveServiceAccount {
+		details["service_account"] = h.checkServiceAccount()
+	} else {
+		details["service_account"] = "n/a"
+	}
 
 	return schema.AgentStatusData{
 		Details: details,

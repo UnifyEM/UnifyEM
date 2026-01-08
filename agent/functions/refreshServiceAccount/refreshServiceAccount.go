@@ -28,6 +28,13 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.Cmd = request.Request
 	response.RequestID = request.RequestID
 
+	if !global.HaveServiceAccount {
+		response.Response = "service account not implemented on this platform"
+		response.Success = true
+		h.logger.Infof(8126, "service account not implemented on this platform")
+		return response, nil
+	}
+
 	// Get current credentials from config
 	username, oldPassword, err := h.config.GetServiceCredentials()
 	if err != nil {
