@@ -43,6 +43,14 @@ func NewAgentMeta(agentID string) AgentMeta {
 type AgentStatus struct {
 	LastUpdated time.Time         `json:"last_updated"`
 	Details     map[string]string `json:"details"`
+	Info        []string          `json:"info,omitempty"`
+}
+
+// AgentStatusData is the structure sent by the agent for status updates.
+// This is converted to AgentStatus on the server side.
+type AgentStatusData struct {
+	Details map[string]string `json:"details"`
+	Info    []string          `json:"info,omitempty"`
 }
 
 // AgentTagsRequest Request for adding/removing tags

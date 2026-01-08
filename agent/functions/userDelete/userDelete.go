@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -33,6 +34,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
+	var err error
 
 	// Create a response to the server
 	response := schema.NewAgentResponse()
@@ -46,22 +48,24 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
-	// Service account credentials are only required on macOS for FileVault operations
-	// On Linux and Windows, the agent runs with elevated privileges and doesn't need them
-	var adminUser, adminPassword string
-	var err error
-	if runtime.GOOS == "darwin" {
-		adminUser, adminPassword, err = h.config.GetServiceCredentials()
-		if err != nil {
-			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
-			return response, errors.New(response.Response)
+	shutdown := true
+	shutdownParam, ok := request.Parameters["shutdown"]
+	if ok {
+		if strings.ToLower(shutdownParam) == "no" || strings.ToLower(shutdownParam) == "false" {
+			shutdown = false
 		}
 	}
 
 	userInfo := osActions.UserInfo{
-		Username:      username,
-		AdminUser:     adminUser,
-		AdminPassword: adminPassword,
+		Username: username,
+	}
+
+	if runtime.GOOS == "darwin" {
+		userInfo.AdminUser, userInfo.AdminPassword, err = h.config.GetServiceCredentials()
+		if err != nil {
+			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
+			return response, errors.New(response.Response)
+		}
 	}
 
 	// Assemble log fields
@@ -73,13 +77,19 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err = a.DeleteUser(userInfo)
+	err = a.DeleteUser(userInfo, shutdown)
 	if err != nil {
 		h.logger.Error(8201, "failed to delete user", f)
 		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())
 		return response, err
 	}
 
+	if runtime.GOOS == "darwin" {
+		h.logger.Info(8200, "user locked (macOS limitation)", f)
+		response.Success = true
+		response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete)", username)
+		return response, nil
+	}
 	h.logger.Info(8200, "user deleted", f)
 	response.Success = true
 	response.Response = fmt.Sprintf("successfully deleted user %s", username)

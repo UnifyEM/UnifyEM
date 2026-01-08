@@ -47,10 +47,12 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
+	shutdown := true
 	shutdownParam, ok := request.Parameters["shutdown"]
-	shutdown := false
 	if ok {
-		shutdown = strings.ToLower(shutdownParam) == "yes" || strings.ToLower(shutdownParam) == "true"
+		if strings.ToLower(shutdownParam) == "no" || strings.ToLower(shutdownParam) == "false" {
+			shutdown = false
+		}
 	}
 
 	// Assemble log fields
@@ -61,10 +63,16 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		fields.NewField("user", username),
 	)
 
-	// Note: lockUser does not require service account credentials on any platform
-	// as it runs with elevated privileges
 	userInfo := osActions.UserInfo{
 		Username: username,
+	}
+
+	if runtime.GOOS == "darwin" {
+		userInfo.AdminUser, userInfo.AdminPassword, err = h.config.GetServiceCredentials()
+		if err != nil {
+			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
+			return response, errors.New(response.Response)
+		}
 	}
 
 	a := osActions.New(h.logger)

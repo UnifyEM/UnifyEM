@@ -98,9 +98,6 @@ func (c *Communications) triggerSetLost(lost bool) {
 
 func (c *Communications) triggerUninstall() {
 	c.triggerLogAndSend("uninstall")
-	if global.PROTECTED {
-		return
-	}
 
 	prog, err := os.Executable()
 	if err != nil {
@@ -118,20 +115,14 @@ func (c *Communications) triggerUninstall() {
 
 func (c *Communications) triggerWipe() {
 	c.triggerLogAndSend("wipe")
-	if global.PROTECTED {
-		return
-	}
 
-	// Initiate wipe // TODO
+	// TODO
+	// Initiate wipe
+	// TODO
 }
 
 func (c *Communications) triggerLogAndSend(triggerName string) {
-	msg := triggerName
-	if global.PROTECTED {
-		msg += " trigger ignored in protected mode"
-	} else {
-		msg += " trigger activated"
-	}
+	msg := triggerName + " trigger activated"
 
 	// Log it
 	c.logger.Infof(8044, msg)

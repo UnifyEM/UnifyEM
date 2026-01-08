@@ -23,7 +23,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 
 	// Get a list of users
 	a.logger.Debugf(8431, "Calling dscl to obtain list of users")
-	output, err := runCmd.Stdout("dscl", ".", "list", "/Users")
+	output, err := a.runner.Stdout("dscl", ".", "list", "/Users")
 	if err != nil {
 		return schema.DeviceUserList{}, err
 	}
@@ -74,7 +74,7 @@ func (a *Actions) getUsers() (schema.DeviceUserList, error) {
 // getAdminGroupMembers retrieves the members of the admin group
 func (a *Actions) getAdminGroupMembers() (map[string]struct{}, error) {
 	a.logger.Debugf(8432, "Calling dscl to obtain list of users")
-	output, err := runCmd.Stdout("dscl", ".", "read", "/Groups/admin", "GroupMembership")
+	output, err := a.runner.Stdout("dscl", ".", "read", "/Groups/admin", "GroupMembership")
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (a *Actions) canUserLogin(username string) bool {
 	}
 
 	a.logger.Debugf(8433, "Calling dscl to obtain information for user %s", username)
-	output, err := runCmd.Stdout("dscl", ".", "-read", "/Users/"+username, "UserShell")
+	output, err := a.runner.Stdout("dscl", ".", "-read", "/Users/"+username, "UserShell")
 	if err != nil {
 		return false
 	}
@@ -113,18 +113,34 @@ func (a *Actions) canUserLogin(username string) bool {
 
 // lockUser changes the user's shell to /usr/bin/false to deny access
 func (a *Actions) lockUser(userInfo UserInfo) error {
+	var err error
+
 	if userInfo.Username == "" {
 		return fmt.Errorf("username cannot be empty")
 	}
 
+	// Darwin also requires admin credentials to update FileVault
+	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
+	if err != nil {
+		return err
+	}
+
+	// Remove the user's Secure Token
+	// This also changes their password to a random one
+	_, err = a.removeSecureToken(userInfo)
+	if err != nil {
+		a.logger.Warningf(8461, "error removing secure token: %s", common.SingleLine(err.Error()))
+		// Continue anyway
+	}
+
 	// Remove the user from FileVault
-	err := a.removeFileVault(userInfo)
+	err = a.removeFileVault(userInfo)
 	if err != nil {
 		a.logger.Warningf(8417, "Failed to remove user %s from FileVault (may not be enrolled): %v", userInfo.Username, err)
 	}
 
 	a.logger.Debugf(8434, "Calling dscl to set shell for user %s to /usr/bin/false", userInfo.Username)
-	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", userInfo.Username), "UserShell", "/usr/bin/false")
+	_, err = a.runner.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", userInfo.Username), "UserShell", "/usr/bin/false")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 	}
@@ -146,7 +162,7 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 
 	// Enable user
 	a.logger.Debugf(8435, "Calling dscl to set shell for user %s to /bin/zsh", userInfo.Username)
-	_, err = runCmd.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", userInfo.Username), "UserShell", "/bin/zsh")
+	_, err = a.runner.Combined("dscl", ".", "-create", fmt.Sprintf("/Users/%s", userInfo.Username), "UserShell", "/bin/zsh")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
@@ -157,7 +173,6 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 
 // setPassword sets the password for the specified user
 func (a *Actions) setPassword(userInfo UserInfo) error {
-
 	if userInfo.Username == "" || userInfo.Password == "" {
 		return fmt.Errorf("username and password are required")
 	}
@@ -178,7 +193,7 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 
 	// Set the password
 	a.logger.Debugf(8435, "Calling dscl to set password for user %s", userInfo.Username)
-	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password)
+	_, err = a.runner.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
@@ -200,7 +215,7 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Set up the command
-	a.logger.Debugf(8436, "Calling sysadminctl to set shell for user %s to /bin/zsh", userInfo.Username)
+	a.logger.Debugf(8436, "Calling sysadminctl to add user %s", userInfo.Username)
 	var cmd = []string{"sysadminctl", "-addUser", userInfo.Username, "-shell", "/bin/zsh", "-password", userInfo.Password, "-home", fmt.Sprintf("/Users/%s", userInfo.Username)}
 
 	// Add admin if required
@@ -208,15 +223,15 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 		cmd = append(cmd, "-admin")
 	}
 
-	//Create user
-	_, err := runCmd.Combined(cmd...)
+	// Create user
+	_, err := a.runner.Combined(cmd...)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
 
 	// Create home directory
 	a.logger.Debugf(8437, "Calling createhomedir to create home directory for %s", userInfo.Username)
-	_, err = runCmd.Combined("createhomedir", "-c", "-u", userInfo.Username)
+	_, err = a.runner.Combined("createhomedir", "-c", "-u", userInfo.Username)
 	if err != nil {
 		return fmt.Errorf("failed to create home directory for user %s: %w", userInfo.Username, err)
 	}
@@ -233,13 +248,13 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 	if userInfo.Admin {
 		a.logger.Debugf(8438, "Calling dseditgroup to add user %s to admin group", userInfo.Username)
-		_, err := runCmd.Combined("dseditgroup", "-o", "edit", "-a", userInfo.Username, "-t", "user", "admin")
+		_, err := a.runner.Combined("dseditgroup", "-o", "edit", "-a", userInfo.Username, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to add user %s to admin group: %w", userInfo.Username, err)
 		}
 	} else {
 		a.logger.Debugf(8439, "Calling dseditgroup to remove user %s from admin group", userInfo.Username)
-		_, err := runCmd.Combined("dseditgroup", "-o", "edit", "-d", userInfo.Username, "-t", "user", "admin")
+		_, err := a.runner.Combined("dseditgroup", "-o", "edit", "-d", userInfo.Username, "-t", "user", "admin")
 		if err != nil {
 			return fmt.Errorf("failed to remove user %s from admin group: %w", userInfo.Username, err)
 		}
@@ -249,61 +264,73 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 
 // deleteUser removes a user from the system
 //
-// TODO: This is a work in progress - it intentionally tries several methods prior to existing
+// macOS only partially deletes the user and does delete their home directory
+// Lock the user instead
 func (a *Actions) deleteUser(userInfo UserInfo) error {
-	var err, exitErr error
-	var success bool
+	return a.lockUser(userInfo)
 
-	if userInfo.Username == "" {
-		return fmt.Errorf("username cannot be empty")
-	}
+	/*
 
-	// Darwin also requires admin credentials to update FileVault
-	err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
-	if err != nil {
-		return err
-	}
+		var err, exitErr error
+		var success bool
 
-	// Assume error
-	exitErr = fmt.Errorf("error deleting user %s", userInfo.Username)
-	success = true
+		if userInfo.Username == "" {
+			return fmt.Errorf("username cannot be empty")
+		}
 
-	_, err = a.removeSecureToken(userInfo)
-	if err != nil {
-		a.logger.Warningf(8461, "error removing secure token: %s", common.SingleLine(err.Error()))
-		success = false
-	}
-
-	_, err = a.deleteUserWithLC(userInfo)
-	if err != nil {
-		a.logger.Warningf(8462, "error deleting user with launchctl: %s", common.SingleLine(err.Error()))
-		success = false
-	}
-
-	_, err = a.deleteUserWithAdmin(userInfo)
-	if err != nil {
-		a.logger.Infof(8463, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-		a.logger.Infof(8464, "attempting to delete user %s with dscl", userInfo.Username)
-
-		// Try with dscl
-		_, err = a.deleteUserWithDscl(userInfo)
+		// Darwin also requires admin credentials to update FileVault
+		err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
 		if err != nil {
-			a.logger.Infof(8465, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+			return err
+		}
+
+		// Assume error
+		exitErr = fmt.Errorf("error deleting user %s", userInfo.Username)
+		success = true
+
+		_, err = a.removeSecureToken(userInfo)
+		if err != nil {
+			a.logger.Warningf(8461, "error removing secure token: %s", common.SingleLine(err.Error()))
 			success = false
 		}
-	}
 
-	// Remove from FileVault just in case
-	err = a.removeFileVault(userInfo)
-	if err != nil {
-		a.logger.Infof(8466, "failed to remove user %s from FileVault: %s", userInfo.Username, common.SingleLine(err.Error()))
-		success = false
-	}
+		_, err = a.deleteUserWithSSH(userInfo)
+		if err != nil {
+			a.logger.Warningf(8468, "error deleting user with SSH: %s", common.SingleLine(err.Error()))
+			success = false
+		}
 
-	if success {
-		return nil
-	}
-	return exitErr
+			_, err = a.deleteUserWithLC(userInfo)
+			if err != nil {
+				a.logger.Warningf(8462, "error deleting user with launchctl: %s", common.SingleLine(err.Error()))
+				success = false
+			}
+
+			_, err = a.deleteUserWithAdmin(userInfo)
+			if err != nil {
+				a.logger.Infof(8463, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+				a.logger.Infof(8464, "attempting to delete user %s with dscl", userInfo.Username)
+
+				// Try with dscl
+				_, err = a.deleteUserWithDscl(userInfo)
+				if err != nil {
+					a.logger.Infof(8465, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
+					success = false
+				}
+			}
+
+		// Remove from FileVault just in case
+		err = a.removeFileVault(userInfo)
+		if err != nil {
+			a.logger.Infof(8466, "failed to remove user %s from FileVault: %s", userInfo.Username, common.SingleLine(err.Error()))
+			success = false
+		}
+
+		if success {
+			return nil
+		}
+		return exitErr
+	*/
 }
 
 func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
@@ -316,7 +343,7 @@ func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
 	a.logger.Debugf(8440, "Calling sysadminctl (as service account) to delete user %s", userInfo.Username)
 
 	// Escape the sandbox and run sysadminctl as root via sudo
-	out, err := runCmd.TTYAsUser(
+	out, err := a.runner.TTYAsUser(
 		&runCmd.UserLogin{
 			Username:  userInfo.AdminUser,
 			Password:  userInfo.AdminPassword,
@@ -324,7 +351,7 @@ func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
 		},
 		"sysadminctl", "-deleteUser", userInfo.Username, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
 
-	//out, err := runCmd.Combined("sysadminctl", "-deleteUser", userInfo.Username, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
+	//out, err := a.runner.Combined("sysadminctl", "-deleteUser", userInfo.Username, "-adminUser", userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword)
 	if err != nil {
 		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
@@ -345,7 +372,7 @@ func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
 	a.logger.Debugf(8441, "Calling dscl (as service account) to delete user %s", userInfo.Username)
 
 	// Escape the sandbox and run dscl as root via sudo
-	out, err := runCmd.TTYAsUser(
+	out, err := a.runner.TTYAsUser(
 		&runCmd.UserLogin{
 			Username:  userInfo.AdminUser,
 			Password:  userInfo.AdminPassword,
@@ -353,12 +380,41 @@ func (a *Actions) deleteUserWithDscl(userInfo UserInfo) (string, error) {
 		},
 		"dscl", ".", "-delete", fmt.Sprintf("/Users/%s", userInfo.Username))
 
-	//out, err := runCmd.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", userInfo.Username))
+	//out, err := a.runner.Combined("dscl", ".", "-delete", fmt.Sprintf("/Users/%s", userInfo.Username))
 	if err != nil {
 		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
 	return common.SingleLine(out), nil
 }
+func (a *Actions) deleteUserWithSSH(userInfo UserInfo) (string, error) {
+	if userInfo.AdminUser == "" || userInfo.AdminPassword == "" {
+		return "", fmt.Errorf("administrator username and password must be supplied")
+	}
+
+	a.logger.Debugf(8467, "Calling sysadminctl via SSH as service account to delete user %s", userInfo.Username)
+
+	// Use SSH to localhost to escape the sandbox and run sysadminctl as root
+	out, err := a.runner.SSH(
+		&runCmd.UserLogin{
+			Username:  userInfo.AdminUser,
+			Password:  userInfo.AdminPassword,
+			RunAsRoot: true,
+		},
+		"sysadminctl", "-deleteUser", userInfo.Username,
+		"-adminUser", userInfo.AdminUser,
+		"-adminPassword", userInfo.AdminPassword)
+
+	if err != nil {
+		return common.SingleLine(out), fmt.Errorf("failed to SSH DELETE user %s: %w", userInfo.Username, err)
+	}
+
+	if strings.Contains(out, "-14120") || strings.Contains(out, "Error:") {
+		return common.SingleLine(out), fmt.Errorf("failed to delete user %s: %s", userInfo.Username, common.SingleLine(out))
+	}
+
+	return common.SingleLine(out), nil
+}
+
 func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
 
 	// Set up the command
@@ -366,7 +422,7 @@ func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
 
 	a.logger.Debugf(8442, "Calling sysadminctl via launchctl (as service account) to delete user %s", userInfo.Username)
 
-	out, err := runCmd.Combined(cmd...)
+	out, err := a.runner.Combined(cmd...)
 	fmt.Printf("\n\n*****\n%s\n*****\n\n", out)
 	if err != nil {
 		return out, fmt.Errorf("failed to LC DELETE user %s: %w", userInfo.Username, err) // TODO
@@ -375,6 +431,7 @@ func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
 }
 
 func (a *Actions) addFileVault(userInfo UserInfo) error {
+
 	// Validate required fields
 	if userInfo.Username == "" || userInfo.Password == "" {
 		return fmt.Errorf("username and password are required")
@@ -406,11 +463,11 @@ func (a *Actions) addFileVault(userInfo UserInfo) error {
 	}
 
 	// Log attempt to add user to FileVault
-	a.logger.Info(8443, "Calling sysadminctl with service account credentials to add user to FileVault with secure token",
+	a.logger.Info(8443, "Calling sysadminctl with service account credentials to grant secure token",
 		fields.NewFields(fields.NewField("user", userInfo.Username)))
 
 	// Run fdesetup with interactive prompts
-	output, err := runCmd.TTY(interactive)
+	output, err := a.runner.TTY(interactive)
 	if err != nil {
 		// Check if FileVault is not enabled
 		if strings.Contains(output, "FileVault is not enabled") {
@@ -438,7 +495,7 @@ func (a *Actions) addFileVault(userInfo UserInfo) error {
 	a.logger.Debugf(8444, "Calling diskutil to update preboot after adding user %s to FileVault", userInfo.Username)
 
 	// Update the preboot
-	_, err = runCmd.Combined("diskutil", "apfs", "updatePreboot", "/")
+	_, err = a.runner.Combined("diskutil", "apfs", "updatePreboot", "/")
 	if err != nil {
 		// Log warning but don't fail - this is not critical
 		a.logger.Warningf(8412, "Failed to update preboot after adding user %s to FileVault: %v", userInfo.Username, err)
@@ -459,7 +516,7 @@ func (a *Actions) removeFileVault(userInfo UserInfo) error {
 	a.logger.Debugf(8445, "Calling fdesetup to remove user %s from FileVault", userInfo.Username)
 
 	// Attempt to remove from FileVault
-	_, err := runCmd.Combined("fdesetup", "remove", "-user", userInfo.Username)
+	_, err := a.runner.Combined("fdesetup", "remove", "-user", userInfo.Username)
 	if err != nil {
 		if strings.Contains(err.Error(), "User could not be found") {
 			return nil
@@ -469,7 +526,7 @@ func (a *Actions) removeFileVault(userInfo UserInfo) error {
 	return nil
 }
 
-// removeSecureToken removes a user's secure token
+// removeSecureToken changes a user's password to a random value and removes their secure token
 func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
 	fmt.Printf("removeSecureToken called\n")
 
@@ -486,12 +543,15 @@ func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
 	// Generate a temporary random password for the user
 	// This is needed because sysadminctl requires the user's password to remove the secure token
 	tempPassword := crypto.RandomPassword()
-
-	a.logger.Debugf(8446, "Setting temporary password for user %s before removing secure token", userInfo.Username)
+	a.logger.Debugf(8446, "Setting temporary password for user %s to enable removing secure token", userInfo.Username)
 
 	// Change the user's password to our known temporary value
 	// Use passwd command which can be run by root/admin without knowing current password
-	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), tempPassword)
+	err = a.setPassword(UserInfo{
+		Username:      userInfo.Username,
+		Password:      tempPassword,
+		AdminUser:     userInfo.AdminUser,
+		AdminPassword: userInfo.AdminPassword})
 	if err != nil {
 		a.logger.Warningf(8462, "Failed to set temporary password for user %s: %v", userInfo.Username, err)
 		// Continue anyway - secure token removal might still work
@@ -500,7 +560,7 @@ func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
 	a.logger.Debugf(8446, "Calling sysadminctl to remove secure token for user %s", userInfo.Username)
 
 	// Attempt to remove the secure token using the temporary password
-	out, err := runCmd.Combined("sysadminctl", "-secureTokenOff", userInfo.Username, "-adminUser",
+	out, err := a.runner.Combined("sysadminctl", "-secureTokenOff", userInfo.Username, "-adminUser",
 		userInfo.AdminUser, "-adminPassword", userInfo.AdminPassword, "-password", tempPassword)
 	if err != nil {
 		if strings.Contains(err.Error(), "User could not be found") {
@@ -520,7 +580,7 @@ func (a *Actions) userExists(username string) (bool, error) {
 
 	a.logger.Debugf(8447, "Calling dscl to determine if user %s exists or not", username)
 
-	_, err := runCmd.Combined("dscl", ".", "-read", fmt.Sprintf("/Users/%s", username))
+	_, err := a.runner.Combined("dscl", ".", "-read", fmt.Sprintf("/Users/%s", username))
 	if err != nil {
 		// Check if the error is because the user doesn't exist
 		if strings.Contains(err.Error(), "eDSRecordNotFound") || strings.Contains(err.Error(), "No such file or directory") {
@@ -563,7 +623,7 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 
 	// Use dscl to change the password, authenticating with the old password
 	// Format: dscl . -passwd /Users/<username> <oldpassword> <newpassword>
-	_, err = runCmd.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password, newPassword)
+	_, err = a.runner.Combined("dscl", ".", "-passwd", fmt.Sprintf("/Users/%s", userInfo.Username), userInfo.Password, newPassword)
 	if err != nil {
 		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
 	}
@@ -575,7 +635,7 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 // the user is an administrator, and the user has FileVault access (secure token)
 func (a *Actions) testCredentials(username string, password string) error {
 	if username == "" || password == "" {
-		return fmt.Errorf("username and password are required")
+		return fmt.Errorf("credential test failed, username and password cannot be empty")
 	}
 
 	// Verify the credentials are valid by attempting authentication with dscl
@@ -583,7 +643,7 @@ func (a *Actions) testCredentials(username string, password string) error {
 
 	a.logger.Debugf(8449, "Calling dscl with -authonly to test credentials for user %s password", username)
 
-	_, err := runCmd.Combined("dscl", ".", "-authonly", username, password)
+	_, err := a.runner.Combined("dscl", ".", "-authonly", username, password)
 	if err != nil {
 		return fmt.Errorf("authentication failed for user %s: invalid credentials", username)
 	}
@@ -600,7 +660,7 @@ func (a *Actions) testCredentials(username string, password string) error {
 
 	// Verify the user has a secure token (for filevault)
 	a.logger.Debugf(8450, "Calling sysadminctl to check secure token status for user %s", username)
-	out, err := runCmd.Combined("sysadminctl", "-secureTokenStatus", username)
+	out, err := a.runner.Combined("sysadminctl", "-secureTokenStatus", username)
 	if err != nil {
 		return fmt.Errorf("failed to check secure token status for user %s: %w", username, err)
 	}

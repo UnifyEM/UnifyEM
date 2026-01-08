@@ -34,6 +34,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
+	var err error
 
 	// Create a response to the server
 	response := schema.NewAgentResponse()
@@ -61,24 +62,18 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		}
 	}
 
-	// Service account credentials are only required on macOS for FileVault operations
-	// On Linux and Windows, the agent runs with elevated privileges and doesn't need them
-	var adminUser, adminPassword string
-	var err error
+	userInfo := osActions.UserInfo{
+		Username: username,
+		Password: password,
+		Admin:    makeAdmin,
+	}
+
 	if runtime.GOOS == "darwin" {
-		adminUser, adminPassword, err = h.config.GetServiceCredentials()
+		userInfo.AdminUser, userInfo.AdminPassword, err = h.config.GetServiceCredentials()
 		if err != nil {
 			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
 			return response, errors.New(response.Response)
 		}
-	}
-
-	userInfo := osActions.UserInfo{
-		Username:      username,
-		Password:      password,
-		Admin:         makeAdmin,
-		AdminUser:     adminUser,
-		AdminPassword: adminPassword,
 	}
 
 	// Assemble log fields

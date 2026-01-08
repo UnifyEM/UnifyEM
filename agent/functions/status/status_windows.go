@@ -152,27 +152,27 @@ func (h *Handler) fde() string {
 }
 
 func (h *Handler) password() string {
+
 	// Check AutoAdminLogon
 	autoAdminLogon, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
-			return "yes"
+			return "unknown"
 		}
-		return "unknown"
 	}
 	if autoAdminLogon == "1" {
 		return "no"
 	}
 
 	// Check non-admin auto-login
-	defaultUserName, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName")
+	defaultPassword, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultPassword")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			return "yes"
 		}
 		return "unknown"
 	}
-	if defaultUserName != "" {
+	if defaultPassword != "" {
 		return "no"
 	}
 
@@ -419,4 +419,9 @@ func (h *Handler) getUserRegistryKey() (registry.Key, error) {
 // checkServiceAccount is not implemented for Windows
 func (h *Handler) checkServiceAccount() string {
 	return "n/a"
+}
+
+// info returns platform-specific informational items
+func (h *Handler) info() []string {
+	return []string{}
 }

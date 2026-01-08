@@ -10,10 +10,6 @@ import (
 	"github.com/UnifyEM/UnifyEM/common"
 )
 
-// PROTECTED is for development and testing purposes. It prevents the agent from
-// taking *some* potentially harmful actions. This should be set to false in production.
-const PROTECTED = true
-
 // These constants are used throughout the agent
 const (
 	Version                   = common.Version

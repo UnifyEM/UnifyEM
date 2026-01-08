@@ -17,7 +17,6 @@ import (
 	"github.com/StackExchange/wmi"
 
 	"github.com/UnifyEM/UnifyEM/common/crypto"
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -131,7 +130,7 @@ func (a *Actions) lockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:no")
+	_, err := a.runner.Combined("net", "user", userInfo.Username, "/ACTIVE:no")
 	if err != nil {
 		return fmt.Errorf("failed to lock user %s: %w", userInfo.Username, err)
 	}
@@ -144,7 +143,7 @@ func (a *Actions) unlockUser(userInfo UserInfo) error {
 		return fmt.Errorf("username cannot be empty")
 	}
 
-	_, err := runCmd.Combined("net", "user", userInfo.Username, "/ACTIVE:yes")
+	_, err := a.runner.Combined("net", "user", userInfo.Username, "/ACTIVE:yes")
 	if err != nil {
 		return fmt.Errorf("failed to unlock user %s: %w", userInfo.Username, err)
 	}
@@ -158,7 +157,7 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password)
+	_, err := a.runner.Combined("net", "user", userInfo.Username, userInfo.Password)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
@@ -173,7 +172,7 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Create the user and set the password
-	_, err := runCmd.Combined("net", "user", userInfo.Username, userInfo.Password, "/ADD")
+	_, err := a.runner.Combined("net", "user", userInfo.Username, userInfo.Password, "/ADD")
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
@@ -181,7 +180,7 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	// Add the user's password to allow boot drive bitlocker access
 	// Escape PowerShell special characters: single quotes, backticks, dollar signs
 	escapedPW := escapePowerShellString(userInfo.Password)
-	_, err = runCmd.Combined(
+	_, err = a.runner.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
@@ -227,7 +226,7 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 }
 
 func (a *Actions) addToGroup(user, group string) error {
-	out, err := runCmd.Combined("net", "localgroup", group, user, "/ADD")
+	out, err := a.runner.Combined("net", "localgroup", group, user, "/ADD")
 	if err != nil {
 		if strings.Contains(string(out), "is already a member") {
 			// Consider this a success
@@ -240,7 +239,7 @@ func (a *Actions) addToGroup(user, group string) error {
 }
 
 func (a *Actions) removeFromGroup(user, group string) error {
-	out, err := runCmd.Combined("net", "localgroup", group, user, "/DELETE")
+	out, err := a.runner.Combined("net", "localgroup", group, user, "/DELETE")
 	if err != nil {
 		if strings.Contains(string(out), "is not a member") {
 			// Consider this a success
@@ -259,7 +258,7 @@ func (a *Actions) deleteUser(userInfo UserInfo) error {
 	}
 
 	// Delete the user
-	_, err := runCmd.Combined("net", "user", userInfo.Username, "/DELETE")
+	_, err := a.runner.Combined("net", "user", userInfo.Username, "/DELETE")
 	if err != nil {
 		return fmt.Errorf("failed to delete user %s: %w", userInfo.Username, err)
 	}
@@ -273,7 +272,7 @@ func (a *Actions) userExists(username string) (bool, error) {
 		return false, fmt.Errorf("username cannot be empty")
 	}
 
-	out, err := runCmd.Combined("net", "user", username)
+	out, err := a.runner.Combined("net", "user", username)
 	if err != nil {
 		// Check if the error is because the user doesn't exist
 		outStr := string(out)
@@ -362,7 +361,7 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	newPassword := crypto.RandomPassword()
 
 	// Set the new password using net user (runs as SYSTEM, no old password needed)
-	_, err = runCmd.Combined("net", "user", userInfo.Username, newPassword)
+	_, err = a.runner.Combined("net", "user", userInfo.Username, newPassword)
 	if err != nil {
 		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
 	}

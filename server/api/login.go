@@ -34,7 +34,6 @@ var authFailResponse = schema.API401{
 // @Param credentials body schema.LoginRequest true "Username and password"
 // @Success 200 {object} schema.APILoginResponse "Authentication successful"
 // @Failure 401 {object} schema.API401 "Authentication failed"
-// @Security CredentialsAuth
 // @Router /login [post]
 func (a *API) postLogin(req *http.Request) userver.JResponse {
 

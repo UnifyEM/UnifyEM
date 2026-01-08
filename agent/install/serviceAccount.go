@@ -29,9 +29,8 @@ func (i *Install) ServiceAccount() error {
 
 	if exists {
 		return i.refreshServiceAccount(actions)
-	} else {
-		return i.createServiceAccount(actions)
 	}
+	return i.createServiceAccount(actions)
 }
 
 func (i *Install) createServiceAccount(actions *osActions.Actions) error {

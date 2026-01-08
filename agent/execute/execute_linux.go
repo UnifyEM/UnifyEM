@@ -1,9 +1,9 @@
+//go:build linux
+
 /******************************************************************************
  * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
-
-//go:build linux
 
 package execute
 
@@ -19,7 +19,7 @@ import (
 func Execute(logger interfaces.Logger, file string, args []string) error {
 	var err error
 
-	// systemd has a nasty habbit of killing child processes when the parent dies
+	// systemd has a nasty habit of killing child processes when the parent dies
 	// so we need to use systemd-run to start the process in a new scope
 	newArgs := []string{"--scope", "--quiet"}
 	newArgs = append(newArgs, file)

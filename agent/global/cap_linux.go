@@ -3,9 +3,8 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-package common
+package global
 
 const (
-	Version = "0.0.45"
-	Build   = 88
+	HaveServiceAccount = false
 )

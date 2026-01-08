@@ -6,12 +6,16 @@
 package osActions
 
 import (
+	"fmt"
+
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
+	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
 type Actions struct {
 	logger interfaces.Logger
+	runner *runCmd.Runner
 }
 type UserInfo struct {
 	Username      string // name of new user
@@ -21,8 +25,16 @@ type UserInfo struct {
 	AdminPassword string // password of the existing admin (required on some platforms)
 }
 
+func (ui *UserInfo) Debug() string {
+	return fmt.Sprintf("Username=%s Password=%s Admin=%t AdminUser=%s AdminPassword=%s",
+		ui.Username, ui.Password, ui.Admin, ui.AdminUser, ui.AdminPassword)
+}
+
 func New(logger interfaces.Logger) *Actions {
-	return &Actions{logger: logger}
+	return &Actions{
+		logger: logger,
+		runner: runCmd.New(runCmd.WithLogger(logger)),
+	}
 }
 
 func (a *Actions) Shutdown() error {
@@ -59,12 +71,24 @@ func (a *Actions) UserExists(username string) (bool, error) {
 	return a.userExists(user)
 }
 
-func (a *Actions) DeleteUser(userInfo UserInfo) error {
+func (a *Actions) DeleteUser(userInfo UserInfo, shutdown bool) error {
 
 	// Check for invalid characters in usernames and passwords
 	info, err := safeUserInfo(userInfo)
 	if err != nil {
 		return err
+	}
+
+	// If shutdown option is selected, only do so if
+	// locking the user account succeeds
+	if shutdown {
+		err = a.lockUser(info)
+		if err != nil {
+			return err
+		}
+
+		// Shutdown the system
+		return a.shutdownOrReboot(false)
 	}
 
 	return a.deleteUser(info)
@@ -108,13 +132,11 @@ func (a *Actions) UnLockUser(userInfo UserInfo) error {
 }
 
 func (a *Actions) SetPassword(userInfo UserInfo) error {
-
 	// Check for invalid characters in usernames and passwords
 	info, err := safeUserInfo(userInfo)
 	if err != nil {
 		return err
 	}
-
 	return a.setPassword(info)
 }
 

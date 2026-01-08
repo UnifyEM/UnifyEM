@@ -49,12 +49,11 @@ func (u *UEMLogger) rotateLogs() error {
 			u.fileHandle = nil
 			u.logStdout = true
 			return fmt.Errorf("failed to open new log file after rotating: %w", err)
-		} else {
-			u.fileHandle = fh
-
-			// Attempt to set the file mode to 0644 on a best-effort basis
-			_ = os.Chmod(u.logfile, 0644)
 		}
+		u.fileHandle = fh
+
+		// Attempt to set the file mode to 0644 on a best-effort basis
+		_ = os.Chmod(u.logfile, 0644)
 
 		u.currentLogDate = currentDate
 

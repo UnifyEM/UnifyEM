@@ -113,12 +113,12 @@ func (c *Communications) refreshToken() (string, error) {
 		c.logger.Info(8013, "access token refresh successful", nil)
 		return refreshResponse.AccessToken, nil
 
-	} else {
-		// Registration is required
-		token, rErr := c.register()
-		if rErr != nil {
-			c.logger.Errorf(8014, "registration failed: %s", rErr.Error())
-		}
-		return token, rErr
 	}
+
+	// Registration is required
+	token, rErr := c.register()
+	if rErr != nil {
+		c.logger.Errorf(8014, "registration failed: %s", rErr.Error())
+	}
+	return token, rErr
 }

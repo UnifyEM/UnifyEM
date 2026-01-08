@@ -8,6 +8,7 @@ package userPassword
 import (
 	"errors"
 	"fmt"
+	"runtime"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -32,6 +33,7 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 }
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
+	var err error
 
 	// Create a response to the server
 	response := schema.NewAgentResponse()
@@ -51,20 +53,17 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		return response, errors.New(response.Response)
 	}
 
-	adminUser, ok := request.Parameters["adminUser"]
-	if !ok {
-		adminUser = ""
-	}
-	adminPassword, ok := request.Parameters["adminPassword"]
-	if !ok {
-		adminPassword = ""
+	userInfo := osActions.UserInfo{
+		Username: username,
+		Password: password,
 	}
 
-	userInfo := osActions.UserInfo{
-		Username:      username,
-		Password:      password,
-		AdminUser:     adminUser,
-		AdminPassword: adminPassword,
+	if runtime.GOOS == "darwin" {
+		userInfo.AdminUser, userInfo.AdminPassword, err = h.config.GetServiceCredentials()
+		if err != nil {
+			response.Response = fmt.Sprintf("unable to obtain service account credentials: %s", err.Error())
+			return response, errors.New(response.Response)
+		}
 	}
 
 	// Assemble log fields
@@ -76,7 +75,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err := a.SetPassword(userInfo)
+	err = a.SetPassword(userInfo)
 	if err != nil {
 		h.logger.Error(8212, "failed to set password", f)
 		response.Response = fmt.Sprintf("failed to set password: %s", err.Error())

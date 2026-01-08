@@ -1,6 +1,8 @@
 # UnifyEM
 
-*** Note: Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+
+The "protected" mode that was originally in the agent for development purposes has been removed.
 
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
@@ -36,12 +38,12 @@ The `main` branch is intended to be stable. All other branches are for developme
 Supported operating systems:
 
 - **Linux:** Developed and tested on Ubuntu 24.04 x64.
-- **macOS:** Developed and tested on macOS Sequoia 15, arm64 (Apple Silicon).
+- **macOS:** Developed and tested on macOS Sequoia 15 arm64 (Apple Silicon).
 - **Windows:** Developed and tested on Windows 11 amd64 and arm64.
 
 ## Known issues and work-in-progress
 
-- user_delete does not yet work on macOS due to complex issues with sandboxing. A service running as system can create users, change their passwords, etc., but not delete them. 
+- On macOS, `user_delete` locks the user account rather than fully deleting it due to complex issues with sandboxing and FileVault. The user's shell is set to `/usr/bin/false`, their secure token is removed, and they are removed from FileVault. By default, the system shuts down after locking to ensure the user cannot continue using the device (use `shutdown=false` to prevent this). 
 - The `uem-cli user` commands are a work in progress and do not add users to endpoints. To add a user to an endpoint, see `uem-cli cmd user_add --help`.
 - Disk wipe has not yet been implemented.
 - The agents **should** be able to add, delete, and update user accounts, including ensuring access to BitLocker and FileVault. Testing and feedback would be greatly appreciated.

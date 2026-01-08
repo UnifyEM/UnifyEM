@@ -261,7 +261,6 @@ func (s *HServer) listen(server *http.Server) error {
 	if s.TLS {
 		// This will use the previously configured TLS information
 		return s.server.ServeTLS(listener, "", "")
-	} else {
-		return s.server.Serve(listener)
 	}
+	return s.server.Serve(listener)
 }

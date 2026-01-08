@@ -22,7 +22,7 @@ import (
 // @Tags Agent management
 // @Security BearerAuth
 // @Produce json
-// @Param id path string false "Agent ID"
+// @Param id path string true "Agent ID"
 // @Success 200 {object} schema.APIGenericResponse
 // @Failure 400 {object} schema.API400
 // @Failure 401 {object} schema.API401

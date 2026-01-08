@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/UnifyEM/UnifyEM/common/runCmd"
 	"golang.org/x/sys/windows"
 )
 
@@ -23,21 +22,21 @@ const SE_SHUTDOWN_NAME = "SeShutdownPrivilege"
 func (a *Actions) shutdownOrReboot(reboot bool) error {
 	var err error
 
-	err = attemptInitiateSystemShutdownEx(reboot)
+	err = a.attemptInitiateSystemShutdownEx(reboot)
 	if err != nil {
 		a.logger.Errorf(8304, "InitiateSystemShutdownEx failed: %s", err.Error())
 	} else {
 		return nil
 	}
 
-	err = attemptExitWindowsEx(reboot)
+	err = a.attemptExitWindowsEx(reboot)
 	if err != nil {
 		a.logger.Errorf(8305, "ExitWindowsEx failed: %s", err.Error())
 	} else {
 		return nil
 	}
 
-	err = attemptShutdownCommand(reboot)
+	err = a.attemptShutdownCommand(reboot)
 	if err != nil {
 		a.logger.Errorf(8306, "Shutdown command failed: %s", err.Error())
 	} else {
@@ -48,7 +47,7 @@ func (a *Actions) shutdownOrReboot(reboot bool) error {
 }
 
 // enableShutdownPrivilege enables the SE_SHUTDOWN_NAME privilege for the current process
-func enableShutdownPrivilege() error {
+func (a *Actions) enableShutdownPrivilege() error {
 	var token windows.Token
 
 	processHandle := windows.CurrentProcess()
@@ -84,8 +83,8 @@ func enableShutdownPrivilege() error {
 	return nil
 }
 
-func attemptInitiateSystemShutdownEx(reboot bool) error {
-	if err := enableShutdownPrivilege(); err != nil {
+func (a *Actions) attemptInitiateSystemShutdownEx(reboot bool) error {
+	if err := a.enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
 
@@ -110,8 +109,8 @@ func attemptInitiateSystemShutdownEx(reboot bool) error {
 }
 
 // Attempt to use ExitWindowsEx
-func attemptExitWindowsEx(reboot bool) error {
-	if err := enableShutdownPrivilege(); err != nil {
+func (a *Actions) attemptExitWindowsEx(reboot bool) error {
+	if err := a.enableShutdownPrivilege(); err != nil {
 		return fmt.Errorf("failed to enable shutdown privilege: %w", err)
 	}
 
@@ -141,13 +140,13 @@ func attemptExitWindowsEx(reboot bool) error {
 }
 
 // Attempt to use the `shutdown` command
-func attemptShutdownCommand(reboot bool) error {
+func (a *Actions) attemptShutdownCommand(reboot bool) error {
 	cmdArgs := []string{"shutdown", "/s", "/t", "0"} // Default: Shutdown
 	if reboot {
 		cmdArgs = []string{"shutdown", "/r", "/t", "0"} // Reboot
 	}
 
-	_, err := runCmd.Combined(cmdArgs...)
+	_, err := a.runner.Combined(cmdArgs...)
 	if err != nil {
 		return fmt.Errorf("shutdown command failed: %w", err)
 	}

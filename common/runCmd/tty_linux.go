@@ -21,11 +21,16 @@ import (
 	"github.com/creack/pty"
 )
 
-// TTY runs a command in a pseudo-terminal and handles interactive prompts
+// osTTY runs a command in a pseudo-terminal and handles interactive prompts
 // by waiting for specific strings and sending responses.
 // If AsUser is specified, it will first login as that user before running the command.
 // Returns all output from the command and any error that occurred.
-func osTTY(def Interactive) (string, error) {
+func (r *Runner) osTTY(def Interactive) (string, error) {
+	if r.logger != nil {
+		if len(def.Command) > 0 {
+			r.logger.Debugf(8360, "TTY executing command: %s (arguments redacted)", def.Command[0])
+		}
+	}
 	// Set default timeout if not specified
 	timeout := def.Timeout
 	if timeout <= 0 {

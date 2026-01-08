@@ -36,18 +36,18 @@ type Action struct {
 // by waiting for specific strings and sending responses.
 // If AsUser is specified, it will first login as that user before running the command.
 // Returns all output from the command and any error that occurred.
-func TTY(def Interactive) (string, error) {
-	return osTTY(def)
+func (r *Runner) TTY(def Interactive) (string, error) {
+	return r.osTTY(def)
 }
 
 // TTYAsUser runs a non-interactive command as another user and returns output
 // This is a convenience function for commands that don't need interaction
-func TTYAsUser(asUser *UserLogin, cmdAndArgs ...string) (string, error) {
+func (r *Runner) TTYAsUser(asUser *UserLogin, cmdAndArgs ...string) (string, error) {
 	if len(cmdAndArgs) == 0 {
 		return "", fmt.Errorf("no command specified")
 	}
 
-	return TTY(Interactive{
+	return r.TTY(Interactive{
 		Command: cmdAndArgs,
 		Actions: []Action{}, // No interactions
 		AsUser:  asUser,

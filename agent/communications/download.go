@@ -27,12 +27,14 @@ func (c *Communications) Download(url string) (string, error) {
 	// Get the server URL
 	server, err := getServerURL(url)
 	if err != nil {
+		closeDelete(tmpFile)
 		return "", fmt.Errorf("error parsing URL: %w", err)
 	}
 
 	// Get the server URL
 	ourServer := c.conf.AP.Get(global.ConfigServerURL).String()
 	if ourServer == "" {
+		closeDelete(tmpFile)
 		return "", fmt.Errorf("unable to obtain ServerURL %w", err)
 	}
 
@@ -43,17 +45,15 @@ func (c *Communications) Download(url string) (string, error) {
 		// GetToken() will attempt refresh or registration if required
 		token, err = c.GetToken()
 		if err != nil {
+			closeDelete(tmpFile)
 			return "", err
-		}
-	} else {
-		if global.PROTECTED {
-			return "", fmt.Errorf("protected mode on, refusing to download %s", url)
 		}
 	}
 
 	// Create a new request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		closeDelete(tmpFile)
 		return "", fmt.Errorf("error creating http request: %w", err)
 	}
 
@@ -66,6 +66,7 @@ func (c *Communications) Download(url string) (string, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		closeDelete(tmpFile)
 		return "", fmt.Errorf("error sending http request: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
@@ -74,8 +75,6 @@ func (c *Communications) Download(url string) (string, error) {
 
 	// Check the HTTP status code
 	if resp.StatusCode != http.StatusOK {
-
-		// Close and delete the temporary file
 		closeDelete(tmpFile)
 		return "", fmt.Errorf("error downloading %s: received status code %d", url, resp.StatusCode)
 	}
@@ -90,7 +89,6 @@ func (c *Communications) Download(url string) (string, error) {
 	// Close the temporary file
 	err = tmpFile.Close()
 	if err != nil {
-		closeDelete(tmpFile)
 		return "", fmt.Errorf("error closing temporary file: %w", err)
 	}
 

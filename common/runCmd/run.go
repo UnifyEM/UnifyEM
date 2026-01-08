@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+
+	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
 
 const (
@@ -19,32 +21,56 @@ const (
 	RunStderr
 )
 
-// Combined runs a command given as a slice of strings and return a combined stdout and stderr string
-func Combined(cmdAndArgs ...string) (string, error) {
-	return run(RunCombined, cmdAndArgs...)
+// Runner provides command execution with optional logging
+type Runner struct {
+	logger interfaces.Logger
 }
 
-// Separate runs a command given as a slice of strings and returns stdout and stderr separately in the same tring
+// Option configures a Runner
+type Option func(*Runner)
+
+// New creates a new Runner with optional configuration
+func New(opts ...Option) *Runner {
+	r := &Runner{}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
+}
+
+// WithLogger configures logging for command operations
+func WithLogger(logger interfaces.Logger) Option {
+	return func(r *Runner) {
+		r.logger = logger
+	}
+}
+
+// Combined runs a command given as a slice of strings and return a combined stdout and stderr string
+func (r *Runner) Combined(cmdAndArgs ...string) (string, error) {
+	return r.run(RunCombined, cmdAndArgs...)
+}
+
+// Separate runs a command given as a slice of strings and returns stdout and stderr separately in the same string
 //
 //goland:noinspection GoUnusedExportedFunction
-func Separate(cmdAndArgs ...string) (string, error) {
-	return run(RunSeparate, cmdAndArgs...)
+func (r *Runner) Separate(cmdAndArgs ...string) (string, error) {
+	return r.run(RunSeparate, cmdAndArgs...)
 }
 
 // Stdout runs a command given as a slice of strings and return stdout only
-func Stdout(cmdAndArgs ...string) (string, error) {
-	return run(RunStdout, cmdAndArgs...)
+func (r *Runner) Stdout(cmdAndArgs ...string) (string, error) {
+	return r.run(RunStdout, cmdAndArgs...)
 }
 
-// Stderr runs a command given as a slice of strings and return stdout only
+// Stderr runs a command given as a slice of strings and return stderr only
 //
 //goland:noinspection GoUnusedExportedFunction
-func Stderr(cmdAndArgs ...string) (string, error) {
-	return run(RunStderr, cmdAndArgs...)
+func (r *Runner) Stderr(cmdAndArgs ...string) (string, error) {
+	return r.run(RunStderr, cmdAndArgs...)
 }
 
-// run a command given as a slice of strings and return a combined stdout and stderr string
-func run(runType int, cmdAndArgs ...string) (string, error) {
+// run a command given as a slice of strings and return output based on runType
+func (r *Runner) run(runType int, cmdAndArgs ...string) (string, error) {
 	var err error
 	var out []byte
 	var outStr string
@@ -52,6 +78,11 @@ func run(runType int, cmdAndArgs ...string) (string, error) {
 
 	if len(cmdAndArgs) == 0 {
 		return "", fmt.Errorf("no command provided")
+	}
+
+	// Log command execution (arguments redacted for security)
+	if r.logger != nil {
+		r.logger.Debugf(8350, "executing command: %s (arguments redacted)", cmdAndArgs[0])
 	}
 
 	// Set up the command
@@ -81,6 +112,15 @@ func run(runType int, cmdAndArgs ...string) (string, error) {
 	exitCode := -1
 	if cmd.ProcessState != nil {
 		exitCode = cmd.ProcessState.ExitCode()
+	}
+
+	// Log result
+	if r.logger != nil {
+		if err != nil {
+			r.logger.Debugf(8351, "command failed: %s, exit code: %d, error: %v", cmdAndArgs[0], exitCode, err)
+		} else {
+			r.logger.Debugf(8352, "command succeeded: %s, exit code: %d", cmdAndArgs[0], exitCode)
+		}
 	}
 
 	// Check for an error

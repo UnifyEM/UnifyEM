@@ -111,6 +111,12 @@ func (c *AgentConfig) Delete() error {
 // Credentials are stored as "username:password" encrypted with agent's public encryption key
 // This marks credentials as pending send to server
 func (c *AgentConfig) SetServiceCredentials(username, password string) error {
+
+	if //goland:noinspection GoBoolExpressions
+	!HaveServiceAccount {
+		return fmt.Errorf("service account not implemented on this platform")
+	}
+
 	// Get agent's public encryption key
 	agentPublicEnc := c.AP.Get(ConfigAgentECPublicEnc).String()
 	if agentPublicEnc == "" {
@@ -136,6 +142,12 @@ func (c *AgentConfig) SetServiceCredentials(username, password string) error {
 // GetServiceCredentials decrypts and returns service account credentials
 // Returns username and password as separate strings
 func (c *AgentConfig) GetServiceCredentials() (username, password string, err error) {
+
+	if //goland:noinspection GoBoolExpressions
+	!HaveServiceAccount {
+		return "", "", fmt.Errorf("service account not implemented on this platform")
+	}
+
 	if c.serviceCredentialsEncrypted == "" {
 		return "", "", fmt.Errorf("no credentials available")
 	}

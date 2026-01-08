@@ -23,10 +23,15 @@ const (
 	CREATE_UNICODE_ENVIRONMENT = 0x00000400
 )
 
-// TTY runs a command in Windows, handling interactive prompts where possible.
+// osTTY runs a command in Windows, handling interactive prompts where possible.
 // If AsUser is specified, it will run the command as that user using Windows authentication.
 // Returns all output from the command and any error that occurred.
-func osTTY(def Interactive) (string, error) {
+func (r *Runner) osTTY(def Interactive) (string, error) {
+	if r.logger != nil {
+		if len(def.Command) > 0 {
+			r.logger.Debugf(8360, "TTY executing command: %s (arguments redacted)", def.Command[0])
+		}
+	}
 	if def.AsUser != nil {
 		// Use Windows-specific user impersonation
 		return runAsUserWindows(def)

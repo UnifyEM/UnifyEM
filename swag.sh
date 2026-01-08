@@ -4,4 +4,4 @@
 # Please see the LICENSE file for details                                      #
 ################################################################################
 
-swag init -g main.go -d server --parseDependency --parseInternal --parseDepth 5
+swag init --v3.1 -g main.go -d server --parseDependency --parseInternal --parseDepth 5
