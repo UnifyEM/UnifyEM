@@ -45,10 +45,6 @@ func (c *Communications) Download(url string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-	} else {
-		if global.PROTECTED {
-			return "", fmt.Errorf("protected mode on, refusing to download %s", url)
-		}
 	}
 
 	// Create a new request

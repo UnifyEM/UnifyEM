@@ -1,6 +1,8 @@
 # UnifyEM
 
-*** Note: Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+Significant changes have been made, including requiring admin credentials to install on macOS, creating a service account, and syncing during installation. Please refer to the details below.
+
+The "protected" mode that was originally in the agent for development purposes has been removed.
 
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
