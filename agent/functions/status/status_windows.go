@@ -152,27 +152,27 @@ func (h *Handler) fde() string {
 }
 
 func (h *Handler) password() string {
+
 	// Check AutoAdminLogon
 	autoAdminLogon, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
-			return "yes"
+			return "unknown"
 		}
-		return "unknown"
 	}
 	if autoAdminLogon == "1" {
 		return "no"
 	}
 
 	// Check non-admin auto-login
-	defaultUserName, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName")
+	defaultPassword, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultPassword")
 	if err != nil {
 		if errors.Is(err, registry.ErrNotExist) {
 			return "yes"
 		}
 		return "unknown"
 	}
-	if defaultUserName != "" {
+	if defaultPassword != "" {
 		return "no"
 	}
 
