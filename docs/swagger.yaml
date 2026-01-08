@@ -1,577 +1,603 @@
-basePath: /api/v1
-definitions:
-  schema.API400:
-    properties:
-      code:
-        example: 400
-        type: integer
-      details:
-        example: bad request
-        type: string
-      status:
-        example: error
-        type: string
-    type: object
-  schema.API401:
-    properties:
-      code:
-        example: 401
-        type: integer
-      details:
-        example: authentication failed
-        type: string
-      status:
-        example: error
-        type: string
-    type: object
-  schema.API404:
-    properties:
-      code:
-        example: 404
-        type: integer
-      details:
-        example: object not found
-        type: string
-      status:
-        example: error
-        type: string
-    type: object
-  schema.API500:
-    properties:
-      code:
-        example: 500
-        type: integer
-      details:
-        example: internal server error
-        type: string
-      status:
-        example: error
-        type: string
-    type: object
-  schema.APICmdResponse:
-    properties:
-      agent_friendly_name:
-        example: Tuxedo001 Linux Laptop
-        type: string
-      agent_id:
-        example: A-12345678-abcd-1234-5648-1234567890ab
-        type: string
-      code:
-        example: 200
-        type: integer
-      details:
-        example: request queued for agent
-        type: string
-      request_id:
-        example: R-6f9dcb2e-2e1b-4c3a-8a67-5b3e0d740df6
-        type: string
-      status:
-        example: ok
-        type: string
-    type: object
-  schema.APIConfigResponse:
-    properties:
-      code:
-        example: 200
-        type: integer
-      data:
-        additionalProperties:
-          type: string
-        type: object
-      details:
-        example: Config set retrieved
-        type: string
-      status:
-        example: ok
-        type: string
-    type: object
-  schema.APIEventsResponse:
-    properties:
-      code:
-        example: 200
-        type: integer
-      data:
-        items:
-          $ref: '#/definitions/schema.AgentEvent'
-        type: array
-      details:
-        example: events
-        type: string
-      status:
-        example: ok
-        type: string
-    type: object
-  schema.APIGenericResponse:
-    properties:
-      code:
-        description: HTTP status code
-        example: 200
-        type: integer
-      details:
-        description: Optional response details
-        example: request processed
-        type: string
-      status:
-        description: API status response - see schema/apiMeta.go
-        example: ok
-        type: string
-    type: object
-  schema.APILoginResponse:
-    properties:
-      access_token:
-        description: JWT access token
-        example: jwt
-        type: string
-      code:
-        description: HTTP status code
-        example: 200
-        type: integer
-      refresh_token:
-        description: JTW refresh token
-        example: jwt
-        type: string
-      status:
-        description: Text Status
-        example: ok
-        type: string
-    type: object
-  schema.APIRegisterResponse:
-    properties:
-      access_token:
-        type: string
-      agent_id:
-        type: string
-      code:
-        type: integer
-      details:
-        type: string
-      refresh_token:
-        type: string
-      server_public_enc:
-        type: string
-      server_public_sig:
-        type: string
-      status:
-        type: string
-    type: object
-  schema.APIReportResponse:
-    properties:
-      code:
-        type: integer
-      details:
-        type: string
-      report:
-        $ref: '#/definitions/schema.Report'
-      status:
-        type: string
-    type: object
-  schema.APIRequestStatusResponse:
-    properties:
-      code:
-        type: integer
-      details:
-        type: string
-      report:
-        $ref: '#/definitions/schema.AgentRequestRecordList'
-      status:
-        type: string
-    type: object
-  schema.APISyncResponse:
-    properties:
-      code:
-        type: integer
-      conf:
-        additionalProperties:
-          type: string
-        type: object
-      details:
-        type: string
-      requests:
-        description: Requests for the agent to process and respond to
-        items:
-          $ref: '#/definitions/schema.AgentRequest'
-        type: array
-      service_credentials:
-        description: Encrypted "username:password" with agent's public key
-        type: string
-      status:
-        type: string
-      triggers:
-        $ref: '#/definitions/schema.AgentTriggers'
-    type: object
-  schema.APITokenRefreshResponse:
-    properties:
-      access_token:
-        description: JWT access token
-        example: jwt
-        type: string
-      code:
-        description: HTTP status code
-        example: 200
-        type: integer
-      server_public_enc:
-        description: Server's EC public encryption key
-        type: string
-      server_public_sig:
-        description: Server's EC public signature key
-        type: string
-      status:
-        description: Text Status
-        example: ok
-        type: string
-    type: object
-  schema.AgentEvent:
-    properties:
-      agent_id:
-        type: string
-      details:
-        additionalProperties:
-          type: string
-        type: object
-      event:
-        type: string
-      event_id:
-        type: string
-      time:
-        type: string
-      type:
-        type: string
-    type: object
-  schema.AgentMessage:
-    properties:
-      agent_id:
-        description: The ID of the agent
-        type: string
-      message:
-        description: The message itself
-        type: string
-      message_type:
-        description: Kind of message (avoiding Type as it is a reserved word)
-        type: string
-      sent:
-        description: Timestamp of when the message was sent
-        type: string
-    type: object
-  schema.AgentMeta:
-    properties:
-      active:
-        type: boolean
-      agent_id:
-        type: string
-      build:
-        type: integer
-      client_public_enc:
-        type: string
-      client_public_sig:
-        type: string
-      first_seen:
-        type: string
-      friendly_name:
-        type: string
-      last_ip:
-        type: string
-      last_seen:
-        type: string
-      service_credentials:
-        description: Encrypted "username:password" with agent's public key
-        type: string
-      status:
-        $ref: '#/definitions/schema.AgentStatus'
-      tags:
-        items:
-          type: string
-        type: array
-      triggers:
-        $ref: '#/definitions/schema.AgentTriggers'
-      users:
-        items:
-          type: string
-        type: array
-      version:
-        type: string
-    type: object
-  schema.AgentRegisterRequest:
-    properties:
-      build:
-        type: integer
-      client_public_enc:
-        type: string
-      client_public_sig:
-        type: string
-      token:
-        type: string
-      version:
-        type: string
-    type: object
-  schema.AgentRequest:
-    properties:
-      ack_required:
-        type: boolean
-      agent_id:
-        type: string
-      created:
-        type: string
-      parameters:
-        additionalProperties:
-          type: string
-        type: object
-      request:
-        type: string
-      request_id:
-        type: string
-      requester:
-        type: string
-    type: object
-  schema.AgentRequestRecord:
-    properties:
-      ack_required:
-        type: boolean
-      agent:
-        type: string
-      agent_id:
-        type: string
-      cancelled:
-        type: boolean
-      last_updated:
-        type: string
-      parameters:
-        additionalProperties:
-          type: string
-        type: object
-      request_id:
-        type: string
-      requester:
-        type: string
-      response_data: {}
-      response_details:
-        type: string
-      send_count:
-        type: integer
-      status:
-        type: string
-      time_created:
-        type: string
-    type: object
-  schema.AgentRequestRecordList:
-    properties:
-      requests:
-        items:
-          $ref: '#/definitions/schema.AgentRequestRecord'
-        type: array
-    type: object
-  schema.AgentResponse:
-    properties:
-      cmd:
-        type: string
-      data: {}
-      request_id:
-        type: string
-      response:
-        type: string
-      service_credentials:
-        description: Double-encrypted "username:password" for server
-        type: string
-      success:
-        type: boolean
-    type: object
-  schema.AgentStatus:
-    properties:
-      details:
-        additionalProperties:
-          type: string
-        type: object
-      last_updated:
-        type: string
-    type: object
-  schema.AgentSyncRequest:
-    properties:
-      build:
-        type: integer
-      messages:
-        items:
-          $ref: '#/definitions/schema.AgentMessage'
-        type: array
-      responses:
-        description: List of responses to previous requests
-        items:
-          $ref: '#/definitions/schema.AgentResponse'
-        type: array
-      version:
-        type: string
-    type: object
-  schema.AgentTagsRequest:
-    properties:
-      tags:
-        items:
-          type: string
-        type: array
-    type: object
-  schema.AgentTagsResponse:
-    properties:
-      code:
-        type: integer
-      status:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-    type: object
-  schema.AgentTriggers:
-    properties:
-      lost:
-        example: false
-        type: boolean
-      uninstall:
-        example: false
-        type: boolean
-      wipe:
-        example: false
-        type: boolean
-    type: object
-  schema.AgentUsersRequest:
-    properties:
-      users:
-        items:
-          type: string
-        type: array
-    type: object
-  schema.AgentUsersResponse:
-    properties:
-      code:
-        type: integer
-      status:
-        type: string
-      users:
-        items:
-          type: string
-        type: array
-    type: object
-  schema.AgentsByTagResponse:
-    properties:
-      agents:
-        items:
-          $ref: '#/definitions/schema.AgentMeta'
-        type: array
-      code:
-        type: integer
-      status:
-        type: string
-    type: object
-  schema.CmdRequest:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      cmd:
-        type: string
-    type: object
-  schema.ConfigRequest:
-    properties:
-      parameters:
-        additionalProperties:
-          type: string
-        type: object
-    type: object
-  schema.LoginRequest:
-    properties:
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  schema.RefreshRequest:
-    properties:
-      client_public_enc:
-        type: string
-      client_public_sig:
-        type: string
-      refresh_token:
-        type: string
-    type: object
-  schema.Report:
-    properties:
-      data:
-        items:
+components:
+  schemas:
+    schema.API400:
+      properties:
+        code:
+          example: 400
           type: integer
-        type: array
-      name:
-        type: string
-      type:
-        type: string
-    type: object
-  schema.ReportRequest:
-    properties:
-      args:
-        additionalProperties:
+        details:
+          example: bad request
           type: string
-        type: object
-      report:
-        type: string
-    type: object
-  schema.UserCreateRequest:
-    properties:
-      display_name:
-        type: string
-      email:
-        type: string
-      user:
-        type: string
-    type: object
-  schema.UserCreateResponse:
-    properties:
-      code:
-        type: integer
-      status:
-        type: string
-      user:
-        $ref: '#/definitions/schema.UserMeta'
-    type: object
-  schema.UserDeleteResponse:
-    properties:
-      code:
-        type: integer
-      status:
-        type: string
-    type: object
-  schema.UserList:
-    properties:
-      code:
-        example: 200
-        type: integer
-      status:
-        example: ok
-        type: string
-      users:
-        items:
-          $ref: '#/definitions/schema.UserMeta'
-        type: array
-    type: object
-  schema.UserMeta:
-    properties:
-      created_at:
-        example: "2023-01-01T00:00:00Z"
-        type: string
-      display_name:
-        example: Alice Smith
-        type: string
-      email:
-        example: alice@example.com
-        type: string
-      last_updated:
-        example: "2023-01-01T00:00:00Z"
-        type: string
-      user:
-        example: alice
-        type: string
-    type: object
-host: localhost:8080
+        status:
+          example: error
+          type: string
+      type: object
+    schema.API401:
+      properties:
+        code:
+          example: 401
+          type: integer
+        details:
+          example: authentication failed
+          type: string
+        status:
+          example: error
+          type: string
+      type: object
+    schema.API404:
+      properties:
+        code:
+          example: 404
+          type: integer
+        details:
+          example: object not found
+          type: string
+        status:
+          example: error
+          type: string
+      type: object
+    schema.API500:
+      properties:
+        code:
+          example: 500
+          type: integer
+        details:
+          example: internal server error
+          type: string
+        status:
+          example: error
+          type: string
+      type: object
+    schema.APICmdResponse:
+      properties:
+        agent_friendly_name:
+          example: Tuxedo001 Linux Laptop
+          type: string
+        agent_id:
+          example: A-12345678-abcd-1234-5648-1234567890ab
+          type: string
+        code:
+          example: 200
+          type: integer
+        details:
+          example: request queued for agent
+          type: string
+        request_id:
+          example: R-6f9dcb2e-2e1b-4c3a-8a67-5b3e0d740df6
+          type: string
+        status:
+          example: ok
+          type: string
+      type: object
+    schema.APIConfigResponse:
+      properties:
+        code:
+          example: 200
+          type: integer
+        data:
+          additionalProperties:
+            type: string
+          type: object
+        details:
+          example: Config set retrieved
+          type: string
+        status:
+          example: ok
+          type: string
+      type: object
+    schema.APIEventsResponse:
+      properties:
+        code:
+          example: 200
+          type: integer
+        data:
+          items:
+            $ref: '#/components/schemas/schema.AgentEvent'
+          type: array
+          uniqueItems: false
+        details:
+          example: events
+          type: string
+        status:
+          example: ok
+          type: string
+      type: object
+    schema.APIGenericResponse:
+      properties:
+        code:
+          description: HTTP status code
+          example: 200
+          type: integer
+        details:
+          description: Optional response details
+          example: request processed
+          type: string
+        status:
+          description: API status response - see schema/apiMeta.go
+          example: ok
+          type: string
+      type: object
+    schema.APILoginResponse:
+      properties:
+        access_token:
+          description: JWT access token
+          example: jwt
+          type: string
+        code:
+          description: HTTP status code
+          example: 200
+          type: integer
+        refresh_token:
+          description: JTW refresh token
+          example: jwt
+          type: string
+        status:
+          description: Text Status
+          example: ok
+          type: string
+      type: object
+    schema.APIRegisterResponse:
+      properties:
+        access_token:
+          type: string
+        agent_id:
+          type: string
+        code:
+          type: integer
+        details:
+          type: string
+        refresh_token:
+          type: string
+        server_public_enc:
+          type: string
+        server_public_sig:
+          type: string
+        status:
+          type: string
+      type: object
+    schema.APIReportResponse:
+      properties:
+        code:
+          type: integer
+        details:
+          type: string
+        report:
+          $ref: '#/components/schemas/schema.Report'
+        status:
+          type: string
+      type: object
+    schema.APIRequestStatusResponse:
+      properties:
+        code:
+          type: integer
+        details:
+          type: string
+        report:
+          $ref: '#/components/schemas/schema.AgentRequestRecordList'
+        status:
+          type: string
+      type: object
+    schema.APISyncResponse:
+      properties:
+        code:
+          type: integer
+        conf:
+          additionalProperties:
+            type: string
+          type: object
+        details:
+          type: string
+        requests:
+          description: Requests for the agent to process and respond to
+          items:
+            $ref: '#/components/schemas/schema.AgentRequest'
+          type: array
+          uniqueItems: false
+        service_credentials:
+          description: Encrypted "username:password" with agent's public key
+          type: string
+        status:
+          type: string
+        triggers:
+          $ref: '#/components/schemas/schema.AgentTriggers'
+      type: object
+    schema.APITokenRefreshResponse:
+      properties:
+        access_token:
+          description: JWT access token
+          example: jwt
+          type: string
+        code:
+          description: HTTP status code
+          example: 200
+          type: integer
+        server_public_enc:
+          description: Server's EC public encryption key
+          type: string
+        server_public_sig:
+          description: Server's EC public signature key
+          type: string
+        status:
+          description: Text Status
+          example: ok
+          type: string
+      type: object
+    schema.AgentEvent:
+      properties:
+        agent_id:
+          type: string
+        details:
+          additionalProperties:
+            type: string
+          type: object
+        event:
+          type: string
+        event_id:
+          type: string
+        time:
+          type: string
+        type:
+          type: string
+      type: object
+    schema.AgentMessage:
+      properties:
+        agent_id:
+          description: The ID of the agent
+          type: string
+        message:
+          description: The message itself
+          type: string
+        message_type:
+          description: Kind of message (avoiding Type as it is a reserved word)
+          type: string
+        sent:
+          description: Timestamp of when the message was sent
+          type: string
+      type: object
+    schema.AgentMeta:
+      properties:
+        active:
+          type: boolean
+        agent_id:
+          type: string
+        build:
+          type: integer
+        client_public_enc:
+          type: string
+        client_public_sig:
+          type: string
+        first_seen:
+          type: string
+        friendly_name:
+          type: string
+        last_ip:
+          type: string
+        last_seen:
+          type: string
+        service_credentials:
+          description: Encrypted "username:password" with agent's public key
+          type: string
+        status:
+          $ref: '#/components/schemas/schema.AgentStatus'
+        tags:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+        triggers:
+          $ref: '#/components/schemas/schema.AgentTriggers'
+        users:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+        version:
+          type: string
+      type: object
+    schema.AgentRegisterRequest:
+      properties:
+        build:
+          type: integer
+        client_public_enc:
+          type: string
+        client_public_sig:
+          type: string
+        token:
+          type: string
+        version:
+          type: string
+      type: object
+    schema.AgentRequest:
+      properties:
+        ack_required:
+          type: boolean
+        agent_id:
+          type: string
+        created:
+          type: string
+        parameters:
+          additionalProperties:
+            type: string
+          type: object
+        request:
+          type: string
+        request_id:
+          type: string
+        requester:
+          type: string
+      type: object
+    schema.AgentRequestRecord:
+      properties:
+        ack_required:
+          type: boolean
+        agent:
+          type: string
+        agent_id:
+          type: string
+        cancelled:
+          type: boolean
+        last_updated:
+          type: string
+        parameters:
+          additionalProperties:
+            type: string
+          type: object
+        request_id:
+          type: string
+        requester:
+          type: string
+        response_data: {}
+        response_details:
+          type: string
+        send_count:
+          type: integer
+        status:
+          type: string
+        time_created:
+          type: string
+      type: object
+    schema.AgentRequestRecordList:
+      properties:
+        requests:
+          items:
+            $ref: '#/components/schemas/schema.AgentRequestRecord'
+          type: array
+          uniqueItems: false
+      type: object
+    schema.AgentResponse:
+      properties:
+        cmd:
+          type: string
+        data: {}
+        request_id:
+          type: string
+        response:
+          type: string
+        service_credentials:
+          description: Double-encrypted "username:password" for server
+          type: string
+        success:
+          type: boolean
+      type: object
+    schema.AgentStatus:
+      properties:
+        details:
+          additionalProperties:
+            type: string
+          type: object
+        info:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+        last_updated:
+          type: string
+      type: object
+    schema.AgentSyncRequest:
+      properties:
+        build:
+          type: integer
+        messages:
+          items:
+            $ref: '#/components/schemas/schema.AgentMessage'
+          type: array
+          uniqueItems: false
+        responses:
+          description: List of responses to previous requests
+          items:
+            $ref: '#/components/schemas/schema.AgentResponse'
+          type: array
+          uniqueItems: false
+        version:
+          type: string
+      type: object
+    schema.AgentTagsRequest:
+      properties:
+        tags:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+      type: object
+    schema.AgentTagsResponse:
+      properties:
+        code:
+          type: integer
+        status:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+      type: object
+    schema.AgentTriggers:
+      properties:
+        lost:
+          example: false
+          type: boolean
+        uninstall:
+          example: false
+          type: boolean
+        wipe:
+          example: false
+          type: boolean
+      type: object
+    schema.AgentUsersRequest:
+      properties:
+        users:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+      type: object
+    schema.AgentUsersResponse:
+      properties:
+        code:
+          type: integer
+        status:
+          type: string
+        users:
+          items:
+            type: string
+          type: array
+          uniqueItems: false
+      type: object
+    schema.AgentsByTagResponse:
+      properties:
+        agents:
+          items:
+            $ref: '#/components/schemas/schema.AgentMeta'
+          type: array
+          uniqueItems: false
+        code:
+          type: integer
+        status:
+          type: string
+      type: object
+    schema.CmdRequest:
+      properties:
+        args:
+          additionalProperties:
+            type: string
+          type: object
+        cmd:
+          type: string
+      type: object
+    schema.ConfigRequest:
+      properties:
+        parameters:
+          additionalProperties:
+            type: string
+          type: object
+      type: object
+    schema.LoginRequest:
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+      type: object
+    schema.RefreshRequest:
+      properties:
+        client_public_enc:
+          type: string
+        client_public_sig:
+          type: string
+        refresh_token:
+          type: string
+      type: object
+    schema.Report:
+      properties:
+        data:
+          items:
+            type: integer
+          type: array
+        name:
+          type: string
+        type:
+          type: string
+      type: object
+    schema.ReportRequest:
+      properties:
+        args:
+          additionalProperties:
+            type: string
+          type: object
+        report:
+          type: string
+      type: object
+    schema.UserCreateRequest:
+      properties:
+        display_name:
+          type: string
+        email:
+          type: string
+        user:
+          type: string
+      type: object
+    schema.UserCreateResponse:
+      properties:
+        code:
+          type: integer
+        status:
+          type: string
+        user:
+          $ref: '#/components/schemas/schema.UserMeta'
+      type: object
+    schema.UserDeleteResponse:
+      properties:
+        code:
+          type: integer
+        status:
+          type: string
+      type: object
+    schema.UserList:
+      properties:
+        code:
+          example: 200
+          type: integer
+        status:
+          example: ok
+          type: string
+        users:
+          items:
+            $ref: '#/components/schemas/schema.UserMeta'
+          type: array
+          uniqueItems: false
+      type: object
+    schema.UserMeta:
+      properties:
+        created_at:
+          example: "2023-01-01T00:00:00Z"
+          type: string
+        display_name:
+          example: Alice Smith
+          type: string
+        email:
+          example: alice@example.com
+          type: string
+        last_updated:
+          example: "2023-01-01T00:00:00Z"
+          type: string
+        user:
+          example: alice
+          type: string
+      type: object
+  securitySchemes:
+    BearerAuth:
+      description: Type "Bearer" followed by a space and JWT token.
+      in: header
+      name: Authorization
+      type: apiKey
+externalDocs:
+  description: ""
+  url: ""
 info:
-  contact: {}
   description: Unified Endpoint Management Server
   title: UEM-Server
   version: "0.1"
+openapi: 3.1.0
 paths:
   /agent/{id}:
     delete:
@@ -581,26 +607,33 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Delete agent
@@ -612,118 +645,144 @@ paths:
       - description: Agent ID
         in: path
         name: id
-        type: string
-      produces:
-      - application/json
+        required: true
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Get agent information
       tags:
       - Agent management
     post:
-      consumes:
-      - application/json
       description: updates an agent by ID
       parameters:
       - description: Agent ID
         in: path
         name: id
         required: true
-        type: string
-      - description: Agent data
-        in: body
-        name: agent
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentMeta'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentMeta'
+        description: Agent data
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Update agent information
       tags:
       - Agent management
     put:
-      consumes:
-      - application/json
       description: updates an agent by ID
       parameters:
       - description: Agent ID
         in: path
         name: id
         required: true
-        type: string
-      - description: Agent data
-        in: body
-        name: agent
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentMeta'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentMeta'
+        description: Agent data
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Update agent information
@@ -737,26 +796,33 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentTagsResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentTagsResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: List agent tags
@@ -764,40 +830,46 @@ paths:
       - Agent management
   /agent/{id}/tags/add:
     post:
-      consumes:
-      - application/json
       description: Adds one or more tags to the specified agent (duplicates ignored)
       parameters:
       - description: Agent ID
         in: path
         name: id
         required: true
-        type: string
-      - description: Tags to add
-        in: body
-        name: tags
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentTagsRequest'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentTagsRequest'
+        description: Tags to add
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentTagsResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentTagsResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Add tags to agent
@@ -805,40 +877,46 @@ paths:
       - Agent management
   /agent/{id}/tags/remove:
     post:
-      consumes:
-      - application/json
       description: Removes one or more tags from the specified agent (case-insensitive)
       parameters:
       - description: Agent ID
         in: path
         name: id
         required: true
-        type: string
-      - description: Tags to remove
-        in: body
-        name: tags
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentTagsRequest'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentTagsRequest'
+        description: Tags to remove
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentTagsResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentTagsResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Remove tags from agent
@@ -846,8 +924,6 @@ paths:
       - Agent management
   /agent/{id}/users/add:
     post:
-      consumes:
-      - application/json
       description: Adds one or more users to the specified agent (duplicates ignored,
         users must exist)
       parameters:
@@ -855,32 +931,40 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      - description: Users to add
-        in: body
-        name: users
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentUsersRequest'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentUsersRequest'
+        description: Users to add
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentUsersResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentUsersResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Add users to agent
@@ -888,40 +972,46 @@ paths:
       - Agent management
   /agent/{id}/users/remove:
     post:
-      consumes:
-      - application/json
       description: Removes one or more users from the specified agent
       parameters:
       - description: Agent ID
         in: path
         name: id
         required: true
-        type: string
-      - description: Users to remove
-        in: body
-        name: users
-        required: true
         schema:
-          $ref: '#/definitions/schema.AgentUsersRequest'
-      produces:
-      - application/json
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentUsersRequest'
+        description: Users to remove
+        required: true
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentUsersResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentUsersResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Remove users from agent
@@ -935,26 +1025,33 @@ paths:
         in: path
         name: tag
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.AgentsByTagResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.AgentsByTagResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Get agents by tag
@@ -962,35 +1059,39 @@ paths:
       - Agent management
   /cmd:
     post:
-      consumes:
-      - application/json
       description: Creates and queues a command request for an agent
-      parameters:
-      - description: Command request
-        in: body
-        name: cmdRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.CmdRequest'
+        description: Command request
         required: true
-        schema:
-          $ref: '#/definitions/schema.CmdRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APICmdResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APICmdResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Send command to agent
@@ -999,83 +1100,91 @@ paths:
   /config/agents:
     get:
       description: Retrieves the current global agent configuration
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIConfigResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIConfigResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Retrieve global agent configuration
       tags:
       - Configuration
     post:
-      consumes:
-      - application/json
       description: Updates the global agent configuration
-      parameters:
-      - description: Agent configuration
-        in: body
-        name: configAgents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.ConfigRequest'
+        description: Agent configuration
         required: true
-        schema:
-          $ref: '#/definitions/schema.ConfigRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Update global agent configuration
       tags:
       - Configuration
     put:
-      consumes:
-      - application/json
       description: Updates the global agent configuration
-      parameters:
-      - description: Agent configuration
-        in: body
-        name: configAgents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.ConfigRequest'
+        description: Agent configuration
         required: true
-        schema:
-          $ref: '#/definitions/schema.ConfigRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Update global agent configuration
@@ -1084,83 +1193,91 @@ paths:
   /config/server:
     get:
       description: Retrieves the current server configuration
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIConfigResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIConfigResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Retrieve server configuration
       tags:
       - Configuration
     post:
-      consumes:
-      - application/json
       description: Updates the server configuration
-      parameters:
-      - description: Server configuration
-        in: body
-        name: configServer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.ConfigRequest'
+        description: Server configuration
         required: true
-        schema:
-          $ref: '#/definitions/schema.ConfigRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Update server configuration
       tags:
       - Configuration
     put:
-      consumes:
-      - application/json
       description: Updates the server configuration
-      parameters:
-      - description: Server configuration
-        in: body
-        name: configServer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.ConfigRequest'
+        description: Server configuration
         required: true
-        schema:
-          $ref: '#/definitions/schema.ConfigRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Update server configuration
@@ -1173,44 +1290,55 @@ paths:
       - description: Start date in YYYYMMDD format
         in: query
         name: start
-        type: string
+        schema:
+          type: string
       - description: End date in YYYYMMDD format
         in: query
         name: end
-        type: string
+        schema:
+          type: string
       - description: Start time in Unix timestamp format
         in: query
         name: start_time
-        type: string
+        schema:
+          type: string
       - description: End time in Unix timestamp format
         in: query
         name: end_time
-        type: string
+        schema:
+          type: string
       - description: Agent ID
         in: query
         name: agent_id
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/schema.APIEventsResponse'
+                type: array
           description: OK
-          schema:
-            items:
-              $ref: '#/definitions/schema.APIEventsResponse'
-            type: array
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Retrieve events
@@ -1219,21 +1347,25 @@ paths:
   /files/list:
     post:
       description: Creates deploy.json containing names and hashes of uem-* files
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Generate deploy.json
@@ -1241,21 +1373,25 @@ paths:
       - Files
     put:
       description: Creates deploy.json containing names and hashes of uem-* files
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Generate deploy.json
@@ -1263,42 +1399,40 @@ paths:
       - Files
   /login:
     post:
-      consumes:
-      - application/json
       description: Login with username and password to obtain access and refresh tokens
-      parameters:
-      - description: Username and password
-        in: body
-        name: credentials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.LoginRequest'
+        description: Username and password
         required: true
-        schema:
-          $ref: '#/definitions/schema.LoginRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APILoginResponse'
           description: Authentication successful
-          schema:
-            $ref: '#/definitions/schema.APILoginResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Authentication failed
-          schema:
-            $ref: '#/definitions/schema.API401'
-      security:
-      - CredentialsAuth: []
       summary: User authentication
       tags:
       - Authentication
   /ping:
     get:
       description: Pinging the server tests authentication and communication
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
       security:
       - BearerAuth: []
       summary: Ping the server
@@ -1306,54 +1440,58 @@ paths:
       - Testing
   /refresh:
     post:
-      consumes:
-      - application/json
       description: Exchanges a refresh token for a new access token
-      parameters:
-      - description: Refresh token
-        in: body
-        name: refreshRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.RefreshRequest'
+        description: Refresh token
         required: true
-        schema:
-          $ref: '#/definitions/schema.RefreshRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APITokenRefreshResponse'
           description: New access token
-          schema:
-            $ref: '#/definitions/schema.APITokenRefreshResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Invalid or expired refresh token
-          schema:
-            $ref: '#/definitions/schema.API401'
-      security:
-      - RefreshToken: []
       summary: Refresh access token
       tags:
       - Authentication
   /regToken:
     get:
       description: Retrieves the current registration token
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Retrieve registration token
@@ -1361,21 +1499,25 @@ paths:
       - '"Registration token"'
     post:
       description: Creates a new registration token
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Create new registration token
@@ -1383,63 +1525,65 @@ paths:
       - '"Registration token"'
   /register:
     post:
-      consumes:
-      - application/json
       description: Agent requests registration and receives access and refresh tokens
-      parameters:
-      - description: Agent registration request
-        in: body
-        name: registerRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentRegisterRequest'
+        description: Agent registration request
         required: true
-        schema:
-          $ref: '#/definitions/schema.AgentRegisterRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIRegisterResponse'
           description: Registration successful
-          schema:
-            $ref: '#/definitions/schema.APIRegisterResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Invalid registration token
-          schema:
-            $ref: '#/definitions/schema.API401'
-      security:
-      - RegToken: []
       summary: Agent registration
       tags:
       - Agent communication
   /report:
     post:
-      consumes:
-      - application/json
       description: Generates a report on the system
-      parameters:
-      - description: Report request
-        in: body
-        name: request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.ReportRequest'
+        description: Report request
         required: true
-        schema:
-          $ref: '#/definitions/schema.ReportRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIReportResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIReportResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Generate report
@@ -1453,26 +1597,33 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Delete request
@@ -1485,30 +1636,40 @@ paths:
       - description: Request ID
         in: path
         name: id
-        type: string
-      produces:
-      - application/json
+        required: true
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIRequestStatusResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIRequestStatusResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Retrieve request status information
@@ -1524,26 +1685,33 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Reset agent triggers
@@ -1558,26 +1726,33 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APIGenericResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APIGenericResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
       security:
       - BearerAuth: []
       summary: Reset agent triggers
@@ -1585,27 +1760,27 @@ paths:
       - Agent management
   /sync:
     post:
-      consumes:
-      - application/json
       description: Agent syncs with the server to send and receive messages
-      parameters:
-      - description: Agent sync request
-        in: body
-        name: syncRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.AgentSyncRequest'
+        description: Agent sync request
         required: true
-        schema:
-          $ref: '#/definitions/schema.AgentSyncRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.APISyncResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.APISyncResponse'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
       security:
       - BearerAuth: []
       summary: Agent sync with server
@@ -1614,60 +1789,70 @@ paths:
   /user:
     get:
       description: Retrieves a list of all users
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.UserList'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.UserList'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: List all users
       tags:
       - User management
     post:
-      consumes:
-      - application/json
       description: Adds a new user
-      parameters:
-      - description: User data
-        in: body
-        name: user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/schema.UserCreateRequest'
+        description: User data
         required: true
-        schema:
-          $ref: '#/definitions/schema.UserCreateRequest'
-      produces:
-      - application/json
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.UserCreateResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.UserCreateResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Conflict
-          schema:
-            $ref: '#/definitions/schema.API400'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Add a new user
@@ -1681,30 +1866,39 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.UserDeleteResponse'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.UserDeleteResponse'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Delete a user
@@ -1717,54 +1911,43 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          type: string
       responses:
         "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.UserMeta'
           description: OK
-          schema:
-            $ref: '#/definitions/schema.UserMeta'
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API400'
           description: Bad Request
-          schema:
-            $ref: '#/definitions/schema.API400'
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API401'
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/schema.API401'
         "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API404'
           description: Not Found
-          schema:
-            $ref: '#/definitions/schema.API404'
         "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/schema.API500'
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/schema.API500'
       security:
       - BearerAuth: []
       summary: Get user by ID
       tags:
       - User management
-securityDefinitions:
-  BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
-    in: header
-    name: Authorization
-    type: apiKey
-  CredentialsAuth:
-    description: Username and password provided in request body.
-    in: body
-    name: credentials
-    type: apiKey
-  RefreshToken:
-    description: Refresh token provided in request body.
-    in: body
-    name: refresh_token
-    type: apiKey
-  RegToken:
-    description: Registration token allowing agent registration.
-    in: body
-    name: token
-    type: apiKey
-swagger: "2.0"
+servers:
+- url: localhost:8080/api/v1

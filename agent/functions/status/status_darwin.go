@@ -82,9 +82,8 @@ func (h *Handler) firewall() string {
 		return "yes"
 	} else if strings.Contains(string(out), "Firewall is disabled") {
 		return "no"
-	} else {
-		return "unknown"
 	}
+	return "unknown"
 }
 
 func (h *Handler) antivirus() string {

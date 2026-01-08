@@ -28,7 +28,8 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.Cmd = request.Request
 	response.RequestID = request.RequestID
 
-	if !global.HaveServiceAccount {
+	if //goland:noinspection GoBoolExpressions
+	!global.HaveServiceAccount {
 		response.Response = "service account not implemented on this platform"
 		response.Success = true
 		h.logger.Infof(8126, "service account not implemented on this platform")

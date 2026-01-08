@@ -23,7 +23,6 @@ import (
 // @Param refreshRequest body schema.RefreshRequest true "Refresh token"
 // @Success 200 {object} schema.APITokenRefreshResponse "New access token"
 // @Failure 401 {object} schema.API401 "Invalid or expired refresh token"
-// @Security RefreshToken
 // @Router /refresh [post]
 // postLogin handles registration requests from agents
 func (a *API) postRefresh(req *http.Request) userver.JResponse {

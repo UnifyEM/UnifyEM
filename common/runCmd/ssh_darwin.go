@@ -199,7 +199,9 @@ func (r *Runner) executeSSH(user *UserLogin, command string) (string, error) {
 		}
 		return "", fmt.Errorf("failed to connect to SSH: %w", err)
 	}
-	defer client.Close()
+	defer func(client *ssh.Client) {
+		_ = client.Close()
+	}(client)
 
 	if r.logger != nil {
 		r.logger.Debugf(8328, "SSH connection established, creating session")
@@ -213,7 +215,9 @@ func (r *Runner) executeSSH(user *UserLogin, command string) (string, error) {
 		}
 		return "", fmt.Errorf("failed to create SSH session: %w", err)
 	}
-	defer session.Close()
+	defer func(session *ssh.Session) {
+		_ = session.Close()
+	}(session)
 
 	// If running as root, we need a PTY for sudo password prompt
 	if user.RunAsRoot {

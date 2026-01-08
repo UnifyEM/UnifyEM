@@ -18,12 +18,12 @@ func Validate(cmd string, parameters map[string]string) error {
 	var cmdTemplate Command
 
 	// Check if the command exists
-	if c, ok := cmds.Commands[cmd]; !ok {
+	c, ok := cmds.Commands[cmd]
+	if !ok {
 		err = errors.New("invalid command")
 		return err
-	} else {
-		cmdTemplate = c
 	}
+	cmdTemplate = c
 
 	// Check if all required arguments are present
 	for _, arg := range cmdTemplate.RequiredArgs {

@@ -36,10 +36,9 @@ func Login() string {
 		if token != "" {
 			credentials.SetAccessToken(token)
 			return token
-		} else {
-			// Refresh failed, so we need to log in again
-			credentials.RefreshExpired()
 		}
+		// Refresh failed, so we need to log in again
+		credentials.RefreshExpired()
 	}
 
 	// Get the user's home directory

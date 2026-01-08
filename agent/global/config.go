@@ -112,7 +112,8 @@ func (c *AgentConfig) Delete() error {
 // This marks credentials as pending send to server
 func (c *AgentConfig) SetServiceCredentials(username, password string) error {
 
-	if !HaveServiceAccount {
+	if //goland:noinspection GoBoolExpressions
+	!HaveServiceAccount {
 		return fmt.Errorf("service account not implemented on this platform")
 	}
 
@@ -142,7 +143,8 @@ func (c *AgentConfig) SetServiceCredentials(username, password string) error {
 // Returns username and password as separate strings
 func (c *AgentConfig) GetServiceCredentials() (username, password string, err error) {
 
-	if !HaveServiceAccount {
+	if //goland:noinspection GoBoolExpressions
+	!HaveServiceAccount {
 		return "", "", fmt.Errorf("service account not implemented on this platform")
 	}
 

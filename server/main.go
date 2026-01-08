@@ -38,18 +38,6 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
-// @securityDefinitions.apikey CredentialsAuth
-// @in body
-// @name credentials
-// @description Username and password provided in request body.
-// @securityDefinitions.apikey RefreshToken
-// @in body
-// @name refresh_token
-// @description Refresh token provided in request body.
-// @securityDefinitions.apikey RegToken
-// @in body
-// @name token
-// @description Registration token allowing agent registration.
 
 var conf *global.ServerConfig
 var logger interfaces.Logger

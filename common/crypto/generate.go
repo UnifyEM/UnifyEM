@@ -14,7 +14,7 @@ import (
 	"fmt"
 )
 
-// GenerateKeyPairs generates two P-384 keypairs (one for signing, one for encryption)
+// GenerateKeyPairs generates two P-384 key pairs (one for signing, one for encryption)
 // and returns all keys as base64-encoded strings
 func GenerateKeyPairs() (privateSig, publicSig, privateEnc, publicEnc string, err error) {
 	// Generate signature keypair
