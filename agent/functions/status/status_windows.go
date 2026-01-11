@@ -156,23 +156,29 @@ func (h *Handler) password() string {
 	// Check AutoAdminLogon
 	autoAdminLogon, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon")
 	if err != nil {
-		if errors.Is(err, registry.ErrNotExist) {
+		if !errors.Is(err, registry.ErrNotExist) {
+			// Real error (permissions, etc.) - can't determine
 			return "unknown"
 		}
-	}
-	if autoAdminLogon == "1" {
+		// Key doesn't exist - auto-login not configured, continue checking
+	} else if autoAdminLogon == "1" {
+		// Auto-login enabled without password
 		return "no"
 	}
 
 	// Check non-admin auto-login
 	defaultPassword, err := h.registryGetString(registry.LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultPassword")
 	if err != nil {
-		if errors.Is(err, registry.ErrNotExist) {
-			return "yes"
+		if !errors.Is(err, registry.ErrNotExist) {
+			// Real error - can't determine
+			return "unknown"
 		}
-		return "unknown"
+		// Key doesn't exist - no default password configured
+		return "yes"
 	}
+
 	if defaultPassword != "" {
+		// Default password is set - auto-login configured
 		return "no"
 	}
 
@@ -202,12 +208,7 @@ func (h *Handler) screenLock() (string, error) {
 	}
 
 	// Find the longest of the screen lock times (AC vs DC)
-	var screenLockTimeout uint32 = 0
-	if info.TimeoutAC > info.TimeoutDC {
-		screenLockTimeout = info.TimeoutAC
-	} else {
-		screenLockTimeout = info.TimeoutDC
-	}
+	screenLockTimeout := max(info.TimeoutAC, info.TimeoutDC)
 
 	// There is no point comparing unless both are effective
 	if screenSaverSecure && screenSaverTimeout > 0 && screenLockTimeout != 0 {

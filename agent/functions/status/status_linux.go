@@ -193,7 +193,7 @@ func (h *Handler) fde() string {
 	// Method 3: Check for active LUKS devices via dmsetup
 	out, err = exec.Command("dmsetup", "ls", "--target", "crypt").Output()
 	if err == nil {
-		if strings.Contains(string(out), "crypt_dev_") {
+		if len(strings.TrimSpace(string(out))) > 0 {
 			// dmsetup found active crypt targets
 			return "yes"
 		}
@@ -286,8 +286,8 @@ func (h *Handler) getDisplayEnv() (string, bool) {
 					if envBytes, err := os.ReadFile(environPath); err == nil {
 						envVars := strings.Split(string(envBytes), "\x00")
 						for _, env := range envVars {
-							if strings.HasPrefix(env, "DISPLAY=") {
-								return strings.TrimPrefix(env, "DISPLAY="), true
+							if val, ok := strings.CutPrefix(env, "DISPLAY="); ok {
+								return val, true
 							}
 						}
 					}
@@ -314,8 +314,8 @@ func (h *Handler) getDisplayEnv() (string, bool) {
 						if envBytes, err := os.ReadFile(environPath); err == nil {
 							envVars := strings.Split(string(envBytes), "\x00")
 							for _, env := range envVars {
-								if strings.HasPrefix(env, "WAYLAND_DISPLAY=") {
-									return strings.TrimPrefix(env, "WAYLAND_DISPLAY="), true
+								if val, ok := strings.CutPrefix(env, "WAYLAND_DISPLAY="); ok {
+									return val, true
 								}
 							}
 						}
@@ -398,8 +398,7 @@ func (h *Handler) screenLockDelay() string {
 			scanner := bufio.NewScanner(f)
 			for scanner.Scan() {
 				line := scanner.Text()
-				if strings.HasPrefix(line, "Timeout=") {
-					val := strings.TrimPrefix(line, "Timeout=")
+				if val, ok := strings.CutPrefix(line, "Timeout="); ok {
 					return val
 				}
 			}
