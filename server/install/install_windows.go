@@ -1,11 +1,11 @@
+//go:build windows
+
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
 // Windows specific functions
-//go:build windows
-
 package install
 
 import (

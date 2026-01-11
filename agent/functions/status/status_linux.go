@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
@@ -68,7 +68,7 @@ func (h *Handler) firewall() string {
 	}
 
 	// Check for firewalld - note that err with exit code 4 means inactive, it's not an error
-        // If it is running, err==nil, exit code -
+	// If it is running, err==nil, exit code -
 	out, err = exec.Command("systemctl", "is-active", "firewalld").Output()
 	if err == nil {
 		if strings.TrimSpace(string(out)) == "active" {
@@ -84,7 +84,7 @@ func (h *Handler) firewall() string {
 			return "yes"
 		}
 	}
-	
+
 	// No firewall detected
 	return "no"
 }
@@ -130,8 +130,8 @@ func (h *Handler) autoUpdates() string {
 		}
 	}
 
-	// No auto-update found	
-        return "no"
+	// No auto-update found
+	return "no"
 }
 
 // fde returns "yes" if full disk encryption is enabled, otherwise "no"
@@ -193,10 +193,10 @@ func (h *Handler) fde() string {
 	// Method 3: Check for active LUKS devices via dmsetup
 	out, err = exec.Command("dmsetup", "ls", "--target", "crypt").Output()
 	if err == nil {
-                if strings.Contains(string(out), "crypt_dev_") {
+		if strings.Contains(string(out), "crypt_dev_") {
 			// dmsetup found active crypt targets
 			return "yes"
-                }
+		}
 	}
 
 	// Method 4: Check cryptsetup status for common device names

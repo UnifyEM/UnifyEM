@@ -1,11 +1,11 @@
+//go:build !windows
+
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
 // Code for operating systems other than windows
-//go:build !windows
-
 package main
 
 import (
