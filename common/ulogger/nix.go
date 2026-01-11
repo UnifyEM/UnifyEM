@@ -5,7 +5,7 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for operating systems other than windows
+// Package ulogger code for operating systems other than windows
 package ulogger
 
 import (

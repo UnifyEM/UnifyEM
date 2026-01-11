@@ -5,7 +5,7 @@
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for operating systems other than windows
+// Package uconfig provides code for operating systems other than windows
 package uconfig
 
 import (
