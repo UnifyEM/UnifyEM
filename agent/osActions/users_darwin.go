@@ -268,69 +268,6 @@ func (a *Actions) setAdmin(userInfo UserInfo) error {
 // Lock the user instead
 func (a *Actions) deleteUser(userInfo UserInfo) error {
 	return a.lockUser(userInfo)
-
-	/*
-
-		var err, exitErr error
-		var success bool
-
-		if userInfo.Username == "" {
-			return fmt.Errorf("username cannot be empty")
-		}
-
-		// Darwin also requires admin credentials to update FileVault
-		err = a.TestCredentials(userInfo.AdminUser, userInfo.AdminPassword)
-		if err != nil {
-			return err
-		}
-
-		// Assume error
-		exitErr = fmt.Errorf("error deleting user %s", userInfo.Username)
-		success = true
-
-		_, err = a.removeSecureToken(userInfo)
-		if err != nil {
-			a.logger.Warningf(8461, "error removing secure token: %s", common.SingleLine(err.Error()))
-			success = false
-		}
-
-		_, err = a.deleteUserWithSSH(userInfo)
-		if err != nil {
-			a.logger.Warningf(8468, "error deleting user with SSH: %s", common.SingleLine(err.Error()))
-			success = false
-		}
-
-			_, err = a.deleteUserWithLC(userInfo)
-			if err != nil {
-				a.logger.Warningf(8462, "error deleting user with launchctl: %s", common.SingleLine(err.Error()))
-				success = false
-			}
-
-			_, err = a.deleteUserWithAdmin(userInfo)
-			if err != nil {
-				a.logger.Infof(8463, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-				a.logger.Infof(8464, "attempting to delete user %s with dscl", userInfo.Username)
-
-				// Try with dscl
-				_, err = a.deleteUserWithDscl(userInfo)
-				if err != nil {
-					a.logger.Infof(8465, "sysadminctl error deleting user %s: %s", userInfo.Username, common.SingleLine(err.Error()))
-					success = false
-				}
-			}
-
-		// Remove from FileVault just in case
-		err = a.removeFileVault(userInfo)
-		if err != nil {
-			a.logger.Infof(8466, "failed to remove user %s from FileVault: %s", userInfo.Username, common.SingleLine(err.Error()))
-			success = false
-		}
-
-		if success {
-			return nil
-		}
-		return exitErr
-	*/
 }
 
 func (a *Actions) deleteUserWithAdmin(userInfo UserInfo) (string, error) {
@@ -423,7 +360,6 @@ func (a *Actions) deleteUserWithLC(userInfo UserInfo) (string, error) {
 	a.logger.Debugf(8442, "Calling sysadminctl via launchctl (as service account) to delete user %s", userInfo.Username)
 
 	out, err := a.runner.Combined(cmd...)
-	fmt.Printf("\n\n*****\n%s\n*****\n\n", out)
 	if err != nil {
 		return out, fmt.Errorf("failed to LC DELETE user %s: %w", userInfo.Username, err) // TODO
 	}
@@ -528,7 +464,6 @@ func (a *Actions) removeFileVault(userInfo UserInfo) error {
 
 // removeSecureToken changes a user's password to a random value and removes their secure token
 func (a *Actions) removeSecureToken(userInfo UserInfo) (string, error) {
-	fmt.Printf("removeSecureToken called\n")
 
 	if userInfo.Username == "" {
 		return "", fmt.Errorf("username cannot be empty")
