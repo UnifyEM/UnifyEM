@@ -1,7 +1,7 @@
 //go:build linux
 
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
@@ -57,6 +57,18 @@ func (i *Install) installService() error {
 
 	// Set the target path
 	targetPath := binaryPath + string(os.PathSeparator) + serviceName
+
+	// Ensure target directory exists
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		err = os.MkdirAll(binaryPath, 0755)
+		if err != nil {
+			return fmt.Errorf("could not create directory %s: %w", binaryPath, err)
+		}
+		// Set ownership to root:root
+		cmd := exec.Command("chown", "root:root", binaryPath)
+		_ = cmd.Run() // Best effort
+		fmt.Printf("Created directory %s\n", binaryPath)
+	}
 
 	// Copy the executable to the target directory
 	if exePath != targetPath {

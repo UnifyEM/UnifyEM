@@ -4,6 +4,8 @@ Significant changes have been made, including requiring admin credentials to ins
 
 The "protected" mode that was originally in the agent for development purposes has been removed.
 
+The constants in agent/global/global.go that allow HTTP and disable hash verification now default to false. This requires the use of HTTPS to contact the manager.
+
 ## Releases
 Compiled binaries for all supported platforms can be found at https://github.com/UnifyEM/UnifyEM/releases
 

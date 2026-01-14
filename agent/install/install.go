@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
@@ -118,10 +118,22 @@ func (i *Install) Install() error {
 		return errors.New("installation token is required")
 	}
 
-	// Save the key
-	i.config.AP.Set(global.ConfigRegToken, i.token)
-	i.config.AP.Set(global.ConfigRefreshToken, "")
-	i.config.AP.Set(global.ConfigServerURL, "")
+	// Check if we already have valid credentials (agent ID and refresh token)
+	existingAgentID := i.config.AP.Get(global.ConfigAgentID).String()
+	existingRefreshToken := i.config.AP.Get(global.ConfigRefreshToken).String()
+
+	// Only clear credentials if we don't have both agent ID and refresh token
+	if existingAgentID != "" && existingRefreshToken != "" {
+		i.logger.Info(8604, "existing agent credentials found, preserving for reuse", nil)
+		// Keep existing credentials, just update the installation token as backup
+		i.config.AP.Set(global.ConfigRegToken, i.token)
+	} else {
+		// No valid existing credentials, prepare for new registration
+		i.config.AP.Set(global.ConfigRegToken, i.token)
+		i.config.AP.Set(global.ConfigRefreshToken, "")
+		i.config.AP.Set(global.ConfigServerURL, "")
+	}
+
 	err = i.config.Checkpoint()
 	if err != nil {
 		return err

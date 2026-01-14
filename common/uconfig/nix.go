@@ -1,11 +1,11 @@
+//go:build linux || darwin
+
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
-// Code for operating systems other than windows
-//go:build linux || darwin
-
+// Package uconfig provides code for operating systems other than windows
 package uconfig
 
 import (

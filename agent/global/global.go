@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024-2025 Tenebris Technologies Inc.                         *
+ * Copyright (c) 2024-2026 Tenebris Technologies Inc.                         *
  * Please see the LICENSE file for details                                    *
  ******************************************************************************/
 
@@ -29,14 +29,15 @@ const (
 	SocketPerms               = 0666 // Allow user processes to connect
 )
 
-// These constants are used for development and testing purposes only and disable important security features.
+// These constants are intended for development purposes only and disable important security features.
 // For production use, the following constants should all be false.
 //
 //goland:noinspection GoUnusedConst
 const (
-	Unsafe      = true // Allows self-signed certificates and HTTP
-	DisableHash = true // Don't require hash verification on file downloads
-	DisableSig  = true // Don't require signed requests from the server
+	Unsafe      = false // Allows self-signed certificates and HTTP
+	DisableHash = false // Don't require hash verification on file downloads
+	// DisableSig is not implemented yet
+	DisableSig = true // Don't require signed requests from the server
 )
 
 // Global values that either can or should not be constants
