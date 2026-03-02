@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -174,9 +176,11 @@ func agentGet(args []string, _ *util.NVPairs) error {
 	c := communications.New(login.Login())
 
 	// Check if argument is a tag
-	if len(args[0]) > 4 && args[0][:4] == "tag=" {
-		tag := args[0][4:]
-		display.ErrorWrapper(display.AnyResp(c.Get(schema.EndpointAgent + "/by-tag/" + tag)))
+	if tag, hasPrefix := strings.CutPrefix(args[0], "tag="); hasPrefix {
+		if tag == "" {
+			return errors.New("tag value cannot be empty")
+		}
+		display.ErrorWrapper(display.AnyResp(c.Get(schema.EndpointAgent + "/by-tag/" + url.PathEscape(tag))))
 		return nil
 	}
 
@@ -248,10 +252,12 @@ func agentAddUsers(args []string) error {
 		return errors.New("agent ID or tag=<tag> and at least one user are required")
 	}
 	c := communications.New(login.Login())
-	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {
-		tag := args[0][4:]
+	if tag, hasPrefix := strings.CutPrefix(args[0], "tag="); hasPrefix {
+		if tag == "" {
+			return errors.New("tag value cannot be empty")
+		}
 		// Query agents by tag
-		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
+		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + url.PathEscape(tag))
 		if err != nil {
 			return fmt.Errorf("failed to query agents by tag: %v", err)
 		}
@@ -286,10 +292,12 @@ func agentRemoveUsers(args []string) error {
 		return errors.New("agent ID or tag=<tag> and at least one user are required")
 	}
 	c := communications.New(login.Login())
-	if len(args) > 0 && len(args[0]) > 4 && args[0][:4] == "tag=" {
-		tag := args[0][4:]
+	if tag, hasPrefix := strings.CutPrefix(args[0], "tag="); hasPrefix {
+		if tag == "" {
+			return errors.New("tag value cannot be empty")
+		}
 		// Query agents by tag
-		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + tag)
+		_, body, err := c.Get(schema.EndpointAgent + "/by-tag/" + url.PathEscape(tag))
 		if err != nil {
 			return fmt.Errorf("failed to query agents by tag: %v", err)
 		}
