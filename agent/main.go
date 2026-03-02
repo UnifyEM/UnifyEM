@@ -98,6 +98,13 @@ func console() int {
 		return 1
 	}
 
+	// Ensure EC keypairs exist so that credential encryption works during install
+	// and other console-mode operations. Non-fatal: SetServiceCredentials will
+	// produce a clear error if the key is still unavailable.
+	if err = ensureECKeys(conf, logger); err != nil {
+		fmt.Printf("Warning: could not ensure EC keypairs: %v\n", err)
+	}
+
 	switch strings.ToLower(os.Args[1]) {
 
 	case "install":
