@@ -48,7 +48,8 @@ func WithFindOrCreate(filenames []string) func(*UConfig) error {
 		for _, filename := range filenames {
 			if _, err := os.Stat(filename); err == nil {
 				if loadErr := c.Load(filename); loadErr != nil {
-					// File exists but is corrupted - overwrite with defaults
+					// File exists but failed to load — rename it as a backup before overwriting
+					_ = os.Rename(filename, filename+".bak")
 					return c.Save(filename)
 				}
 				return nil

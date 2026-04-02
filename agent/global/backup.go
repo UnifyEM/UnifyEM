@@ -56,11 +56,17 @@ func WriteBackup(conf *AgentConfig) error {
 
 	var lastErr error
 	for _, path := range UnixBackupFiles {
-		if writeErr := os.WriteFile(path, data, 0600); writeErr == nil {
-			return nil
-		} else {
+		tmp := path + ".tmp"
+		if writeErr := os.WriteFile(tmp, data, 0600); writeErr != nil {
 			lastErr = writeErr
+			continue
 		}
+		if renameErr := os.Rename(tmp, path); renameErr != nil {
+			_ = os.Remove(tmp)
+			lastErr = renameErr
+			continue
+		}
+		return nil
 	}
 
 	return lastErr
@@ -74,25 +80,26 @@ func ReadBackup() (*schema.BackupConfig, error) {
 		return nil, nil
 	}
 
+	var lastErr error
 	for _, path := range UnixBackupFiles {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			if os.IsNotExist(err) {
-				continue
+			if !os.IsNotExist(err) {
+				lastErr = err
 			}
-			return nil, err
+			continue
 		}
 
 		var backup schema.BackupConfig
 		if err := json.Unmarshal(data, &backup); err != nil {
-			return nil, err
+			lastErr = err
+			continue
 		}
 
 		return &backup, nil
 	}
 
-	// No backup file found — not an error
-	return nil, nil
+	return nil, lastErr
 }
 
 // RestoreFromBackup copies non-empty fields from backup.Agent into conf.AP.

@@ -49,7 +49,9 @@ func Config() (*AgentConfig, error) {
 
 	// If agent identity is missing, attempt recovery from backup
 	if c.AP.Get(ConfigAgentID).String() == "" {
-		if backup, _ := ReadBackup(); backup != nil {
+		if backup, backupErr := ReadBackup(); backupErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: backup file found but unreadable: %v\n", backupErr)
+		} else if backup != nil {
 			RestoreFromBackup(c, backup)
 		}
 	}
