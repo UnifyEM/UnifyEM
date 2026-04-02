@@ -47,7 +47,11 @@ func WithFindOrCreate(filenames []string) func(*UConfig) error {
 		// Iterate through the possible configuration files
 		for _, filename := range filenames {
 			if _, err := os.Stat(filename); err == nil {
-				return c.Load(filename)
+				if loadErr := c.Load(filename); loadErr != nil {
+					// File exists but is corrupted - overwrite with defaults
+					return c.Save(filename)
+				}
+				return nil
 			}
 		}
 
