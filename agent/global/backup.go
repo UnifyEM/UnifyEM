@@ -92,6 +92,8 @@ func ReadBackup() (*schema.BackupConfig, error) {
 
 		var backup schema.BackupConfig
 		if err := json.Unmarshal(data, &backup); err != nil {
+			// Rename corrupt backup so it stops causing warnings on every restart
+			_ = os.Rename(path, path+".bak")
 			lastErr = err
 			continue
 		}
