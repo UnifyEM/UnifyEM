@@ -372,23 +372,16 @@ func startService(optionalArgs ...bool) {
 
 	// Load the configuration and create a logger
 	conf, err = global.Config()
-	logger, logErr = newLogger()
-
-	// Check for a configuration error
 	if err != nil {
-		// Check if logger also failed
-		if logErr != nil {
-			fmt.Printf("Fatal logger error: %s\n", logErr.Error())
-		} else {
-			logger.Fatalf(8001, "unable to load or create config: %s", err.Error())
-		}
+		fmt.Printf("Fatal config error: %s\n", err.Error())
 		exit(1, false)
 	}
 
 	global.Debug = conf.AC.Get(schema.ConfigAgentDebug).Bool()
 
+	logger, logErr = newLogger()
 	if logErr != nil {
-		fmt.Printf("error creating logger: %v\n", err)
+		fmt.Printf("error creating logger: %v\n", logErr)
 		// Continue so that a logging issue doesn't prevent updates, etc.
 	}
 

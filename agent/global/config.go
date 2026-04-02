@@ -47,6 +47,15 @@ func Config() (*AgentConfig, error) {
 	// Set constraints, including default values
 	c.AC, c.AP = setDefaults(c.C)
 
+	// If agent identity is missing, attempt recovery from backup
+	if c.AP.Get(ConfigAgentID).String() == "" {
+		if backup, backupErr := ReadBackup(); backupErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: backup file found but unreadable: %v\n", backupErr)
+		} else if backup != nil {
+			RestoreFromBackup(c, backup)
+		}
+	}
+
 	// Update the global lost flag when the config is loaded
 	Lost = c.AP.Get(ConfigLost).Bool()
 
@@ -99,7 +108,11 @@ func Config() (*AgentConfig, error) {
 }
 
 func (c *AgentConfig) Checkpoint() error {
-	return c.C.Checkpoint()
+	err := c.C.Checkpoint()
+	if err == nil {
+		_ = WriteBackup(c)
+	}
+	return err
 }
 
 // Delete the existing config file
