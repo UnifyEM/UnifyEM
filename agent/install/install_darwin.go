@@ -137,6 +137,22 @@ func (i *Install) installService() error {
 		return err
 	}
 
+	// Create service account and transmit credentials BEFORE starting the daemon
+	// to eliminate a race where the daemon starts syncing before credentials exist
+	if !i.isUpgrade {
+		if i.user == "" || i.pass == "" {
+			err = i.promptCredentials()
+			if err != nil {
+				return err
+			}
+		}
+
+		err = i.ServiceAccount()
+		if err != nil {
+			return err
+		}
+	}
+
 	// Load the Launch Daemon
 	cmd = exec.Command("launchctl", "load", daemonPlistPath)
 	err = cmd.Run()
@@ -149,22 +165,7 @@ func (i *Install) installService() error {
 	// We only need to bootstrap for currently logged-in users
 	bootstrapUserAgents()
 
-	// Skip service account operations during upgrade
-	// The service account already exists with valid credentials stored on the server
-	if i.isUpgrade {
-		return nil
-	}
-
-	// There must be a password
-	if i.user == "" || i.pass == "" {
-		err = i.promptCredentials()
-		if err != nil {
-			return err
-		}
-	}
-
-	// Create or update the service account
-	return i.ServiceAccount()
+	return nil
 }
 
 // Uninstall the service
