@@ -139,13 +139,13 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=true]",
 		Short: "delete a user",
-		Long:  "delete a user from the specified agent and shutdown the device (default shutdown=true, specify shutdown=false to override)",
+		Long:  "delete a user from the specified agent and optionally shutdown the device (default shutdown=false, specify shutdown=true to override)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			wait, _ := cmd.Flags().GetBool("wait")
 			timeout, _ := cmd.Flags().GetInt("timeout")
 			pairs := util.NewNVPairs(args)
 			if _, ok := pairs.Pairs["shutdown"]; !ok {
-				pairs.Pairs["shutdown"] = "true"
+				pairs.Pairs["shutdown"] = "false"
 			}
 			return execute(commands.UserDelete, args, pairs, wait, timeout)
 		},
