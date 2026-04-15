@@ -331,12 +331,12 @@ func usage() {
 	fmt.Printf("  check\n")
 
 	if runtime.GOOS == "darwin" {
-		fmt.Printf("  install <key> <admin-username> <admin-password>\n")
+		fmt.Printf("  install <token> <admin-username> <admin-password>\n")
 	} else {
-		fmt.Printf("  install <key>\n")
+		fmt.Printf("  install <token>\n")
 	}
 
-	fmt.Printf("  rekey <key>\n")
+	fmt.Printf("  rekey <token>\n")
 
 	if runtime.GOOS == "darwin" {
 		fmt.Printf("  service-account <admin-username> <admin-password>\n")
