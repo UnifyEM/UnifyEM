@@ -185,7 +185,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserLock + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=true]",
+		Use:   commands.UserLock + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=false]",
 		Short: "lock user account",
 		Long:  "lock the specified user on the specified agent and shutdown the device (default shutdown=true, specify shutdown=false to override)",
 		RunE: func(cmd *cobra.Command, args []string) error {
