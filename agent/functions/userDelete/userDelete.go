@@ -92,9 +92,9 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete), shutdown in 30 seconds", username)
 			go func() {
 				time.Sleep(30 * time.Second)
-				h.logger.Info(8202, "initiating delayed shutdown after user delete", f)
+				h.logger.Info(8213, "initiating delayed shutdown after user delete", f)
 				if sErr := a.Shutdown(); sErr != nil {
-					h.logger.Error(8203, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+					h.logger.Error(8214, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
 				}
 			}()
 		} else {
@@ -110,9 +110,9 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		response.Response = fmt.Sprintf("successfully deleted user %s, shutdown in 30 seconds", username)
 		go func() {
 			time.Sleep(30 * time.Second)
-			h.logger.Info(8202, "initiating delayed shutdown after user delete", f)
+			h.logger.Info(8213, "initiating delayed shutdown after user delete", f)
 			if sErr := a.Shutdown(); sErr != nil {
-				h.logger.Error(8203, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+				h.logger.Error(8214, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
 			}
 		}()
 	} else {

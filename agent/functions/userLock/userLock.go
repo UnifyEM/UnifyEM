@@ -92,9 +92,9 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		response.Response = fmt.Sprintf("user %s locked successfully, shutdown in 30 seconds", username)
 		go func() {
 			time.Sleep(30 * time.Second)
-			h.logger.Info(8209, "initiating delayed shutdown after user lock", f)
+			h.logger.Info(8215, "initiating delayed shutdown after user lock", f)
 			if sErr := a.Shutdown(); sErr != nil {
-				h.logger.Error(8210, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+				h.logger.Error(8216, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
 			}
 		}()
 	} else {
