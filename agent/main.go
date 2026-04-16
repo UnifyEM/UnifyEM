@@ -590,6 +590,9 @@ func executeRequest(cmd *functions.Command, request schema.AgentRequest) error {
 				}
 			}
 
+			// Allow time for the final sync to complete transmission
+			time.Sleep(5 * time.Second)
+
 			a := osActions.New(logger)
 			if response.ShutdownType == "reboot" {
 				logger.Info(8054, "initiating reboot after pre-shutdown sync", logFields)
