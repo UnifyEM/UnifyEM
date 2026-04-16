@@ -49,9 +49,24 @@ func (d *Data) GetRequestRecords() (schema.AgentRequestRecordList, error) {
 	return d.database.GetAllRequestRecords()
 }
 
+// GetAgentRequestRecords returns all request records for a given agent
+func (d *Data) GetAgentRequestRecords(agentID string) (schema.AgentRequestRecordList, error) {
+	return d.database.GetAgentRequestRecords(agentID)
+}
+
 // DeleteAgentRequest removes a request from the database
 func (d *Data) DeleteAgentRequest(requestKey string) error {
 	return d.database.DeleteAgentRequest(requestKey)
+}
+
+// CancelAgentRequest cancels a pending request by ID
+func (d *Data) CancelAgentRequest(requestKey string) error {
+	return d.database.CancelAgentRequest(requestKey)
+}
+
+// CancelAgentRequests cancels all pending requests for the specified agent
+func (d *Data) CancelAgentRequests(agentID string) error {
+	return d.database.CancelAgentRequests(agentID)
 }
 
 // GetAgentRequests returns a list of requests for an agent

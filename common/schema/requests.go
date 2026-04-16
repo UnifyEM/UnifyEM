@@ -8,11 +8,12 @@ package schema
 import "time"
 
 const (
-	RequestStatusNew      = "new"
-	RequestStatusPending  = "pending"
-	RequestStatusComplete = "complete"
-	RequestStatusFailed   = "failed"
-	RequestStatusInvalid  = "invalid"
+	RequestStatusNew       = "new"
+	RequestStatusPending   = "pending"
+	RequestStatusComplete  = "complete"
+	RequestStatusFailed    = "failed"
+	RequestStatusInvalid   = "invalid"
+	RequestStatusCancelled = "cancelled"
 )
 
 type AgentRequestRecord struct {
