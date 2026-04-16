@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -77,7 +78,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	)
 
 	a := osActions.New(h.logger)
-	err = a.DeleteUser(userInfo, shutdown)
+	err = a.DeleteUser(userInfo, false)
 	if err != nil {
 		h.logger.Error(8201, "failed to delete user", f)
 		response.Response = fmt.Sprintf("failed to delete user %s: %s", username, err.Error())
@@ -87,11 +88,36 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	if runtime.GOOS == "darwin" {
 		h.logger.Info(8200, "user locked (macOS limitation)", f)
 		response.Success = true
-		response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete)", username)
+		if shutdown {
+			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete), shutdown in 30 seconds", username)
+			go func() {
+				time.Sleep(30 * time.Second)
+				h.logger.Info(8202, "initiating delayed shutdown after user delete", f)
+				if sErr := a.Shutdown(); sErr != nil {
+					h.logger.Error(8203, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+				}
+			}()
+		} else {
+			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete)", username)
+		}
 		return response, nil
 	}
+
 	h.logger.Info(8200, "user deleted", f)
 	response.Success = true
-	response.Response = fmt.Sprintf("successfully deleted user %s", username)
+
+	if shutdown {
+		response.Response = fmt.Sprintf("successfully deleted user %s, shutdown in 30 seconds", username)
+		go func() {
+			time.Sleep(30 * time.Second)
+			h.logger.Info(8202, "initiating delayed shutdown after user delete", f)
+			if sErr := a.Shutdown(); sErr != nil {
+				h.logger.Error(8203, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+			}
+		}()
+	} else {
+		response.Response = fmt.Sprintf("successfully deleted user %s", username)
+	}
+
 	return response, nil
 }

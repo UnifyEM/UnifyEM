@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -77,7 +78,7 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	}
 
 	a := osActions.New(h.logger)
-	err = a.LockUser(userInfo, shutdown)
+	err = a.LockUser(userInfo, false)
 	if err != nil {
 		h.logger.Error(8208, "failed to lock user", f)
 		response.Response = err.Error()
@@ -86,6 +87,19 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 
 	h.logger.Info(8207, "user locked", f)
 	response.Success = true
-	response.Response = fmt.Sprintf("user %s locked successfully", username)
+
+	if shutdown {
+		response.Response = fmt.Sprintf("user %s locked successfully, shutdown in 30 seconds", username)
+		go func() {
+			time.Sleep(30 * time.Second)
+			h.logger.Info(8209, "initiating delayed shutdown after user lock", f)
+			if sErr := a.Shutdown(); sErr != nil {
+				h.logger.Error(8210, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
+			}
+		}()
+	} else {
+		response.Response = fmt.Sprintf("user %s locked successfully", username)
+	}
+
 	return response, nil
 }

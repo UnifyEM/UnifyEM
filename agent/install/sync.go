@@ -25,23 +25,20 @@ const (
 
 // syncWithRetry attempts to sync with the server with retry logic
 // Retries up to 5 minutes with 5 second delay between attempts
-func (i *Install) syncWithRetry(comms *communications.Communications, purpose string) error {
+// For non-registration syncs, responseQueue is checked to verify delivery
+func (i *Install) syncWithRetry(comms *communications.Communications, purpose string, responseQueue *queues.ResponseQueue) error {
 	startTime := time.Now()
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		// Check if we've exceeded total retry time
 		if time.Since(startTime) > maxRetryTotal {
 			return fmt.Errorf("sync for %s exceeded maximum retry time of 5 minutes", purpose)
 		}
 
 		i.logger.Infof(8130, "attempting sync for %s (attempt %d/%d)", purpose, attempt, maxRetries)
 
-		// Attempt sync
 		comms.Sync()
 
-		// Check if sync was successful by verifying expected results
 		if purpose == "registration" {
-			// For registration, verify we have server public key and agent ID
 			serverPublicEnc := i.config.AP.Get(global.ConfigServerPublicEnc).String()
 			agentID := i.config.AP.Get(global.ConfigAgentID).String()
 
@@ -53,14 +50,17 @@ func (i *Install) syncWithRetry(comms *communications.Communications, purpose st
 			i.logger.Warningf(8132, "sync for %s failed on attempt %d (missing server public key or agent ID), retrying in %v",
 				purpose, attempt, retryDelay)
 		} else {
-			// For sending credentials, verify the response queue is empty (responses were sent)
-			// We can't directly check this from install, so we'll assume success after sync
-			// The communications layer handles re-queuing on failure
-			i.logger.Infof(8131, "sync for %s completed on attempt %d", purpose, attempt)
-			return nil
+			// Verify the response queue is empty, confirming the server received our responses.
+			// On failure, Sync() re-queues responses, so a non-empty queue means delivery failed.
+			if !responseQueue.Pending() {
+				i.logger.Infof(8131, "sync for %s successful on attempt %d (response queue empty)", purpose, attempt)
+				return nil
+			}
+
+			i.logger.Warningf(8132, "sync for %s failed on attempt %d (responses still pending), retrying in %v",
+				purpose, attempt, retryDelay)
 		}
 
-		// Wait before retrying
 		if attempt < maxRetries {
 			time.Sleep(retryDelay)
 		}
@@ -104,7 +104,7 @@ func (i *Install) sendServiceCredentialsToServer() error {
 
 	// First sync: register with server and get server public key
 	i.logger.Info(8420, "syncing with server to complete registration", nil)
-	err = i.syncWithRetry(comms, "registration")
+	err = i.syncWithRetry(comms, "registration", responseQueue)
 	if err != nil {
 		return fmt.Errorf("failed to complete registration sync: %w", err)
 	}
@@ -146,7 +146,7 @@ func (i *Install) sendServiceCredentialsToServer() error {
 
 	// Second sync: send the queued credentials to the server
 	i.logger.Info(8421, "sending encrypted credentials to server", nil)
-	err = i.syncWithRetry(comms, "credential transmission")
+	err = i.syncWithRetry(comms, "credential transmission", responseQueue)
 	if err != nil {
 		return fmt.Errorf("failed to send credentials to server: %w", err)
 	}

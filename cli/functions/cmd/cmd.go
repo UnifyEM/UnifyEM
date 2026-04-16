@@ -137,13 +137,17 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=false]",
+		Use:   commands.UserDelete + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=true]",
 		Short: "delete a user",
-		Long:  "delete a user from the specified agent",
+		Long:  "delete a user from the specified agent and optionally shutdown the device (default shutdown=false, specify shutdown=true to override)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			wait, _ := cmd.Flags().GetBool("wait")
 			timeout, _ := cmd.Flags().GetInt("timeout")
-			return execute(commands.UserDelete, args, util.NewNVPairs(args), wait, timeout)
+			pairs := util.NewNVPairs(args)
+			if _, ok := pairs.Pairs["shutdown"]; !ok {
+				pairs.Pairs["shutdown"] = "false"
+			}
+			return execute(commands.UserDelete, args, pairs, wait, timeout)
 		},
 	})
 
@@ -183,11 +187,15 @@ func Register() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   commands.UserLock + " agent_id=<agent ID> | tag=<tag> user=<username> [shutdown=false]",
 		Short: "lock user account",
-		Long:  "lock the specified user on the specified agent and optionally shutdown the device",
+		Long:  "lock the specified user on the specified agent and shutdown the device (default shutdown=true, specify shutdown=false to override)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			wait, _ := cmd.Flags().GetBool("wait")
 			timeout, _ := cmd.Flags().GetInt("timeout")
-			return execute(commands.UserLock, args, util.NewNVPairs(args), wait, timeout)
+			pairs := util.NewNVPairs(args)
+			if _, ok := pairs.Pairs["shutdown"]; !ok {
+				pairs.Pairs["shutdown"] = "true"
+			}
+			return execute(commands.UserLock, args, pairs, wait, timeout)
 		},
 	})
 
