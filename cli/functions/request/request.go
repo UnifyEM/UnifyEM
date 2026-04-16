@@ -23,7 +23,7 @@ func Register() *cobra.Command {
 		Use:     "request",
 		Aliases: []string{"requests"},
 		Short:   "request functions",
-		Long:    "query and delete agent requests",
+		Long:    "query, delete, and cancel agent requests",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("A subcommand is required\n")
@@ -33,9 +33,9 @@ func Register() *cobra.Command {
 	}
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   "list",
+		Use:   "list [agent_id]",
 		Short: "list requests",
-		Long:  "request a list of requests",
+		Long:  "list all requests, or all requests for a specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return requestList(args, util.NewNVPairs(args))
 		},
@@ -59,12 +59,34 @@ func Register() *cobra.Command {
 		},
 	})
 
+	cmd.AddCommand(&cobra.Command{
+		Use:   "cancel <request_id>",
+		Short: "cancel request",
+		Long:  "cancel the specified request",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return requestCancel(args, util.NewNVPairs(args))
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "cancel-agent <agent_id>",
+		Short: "cancel agent requests",
+		Long:  "cancel all requests for the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return requestCancelAgent(args, util.NewNVPairs(args))
+		},
+	})
+
 	return cmd
 }
 
-func requestList(_ []string, _ *util.NVPairs) error {
+func requestList(args []string, _ *util.NVPairs) error {
 	c := communications.New(login.Login())
-	display.ErrorWrapper(display.RequestList(c.Get(schema.EndpointRequest)))
+	if len(args) > 0 {
+		display.ErrorWrapper(display.RequestList(c.Get(schema.EndpointAgent + "/" + args[0] + "/requests")))
+	} else {
+		display.ErrorWrapper(display.RequestList(c.Get(schema.EndpointRequest)))
+	}
 	return nil
 }
 
@@ -85,5 +107,25 @@ func requestDelete(args []string, _ *util.NVPairs) error {
 
 	c := communications.New(login.Login())
 	display.ErrorWrapper(display.GenericResp(c.Delete(schema.EndpointRequest + "/" + args[0])))
+	return nil
+}
+
+func requestCancel(args []string, _ *util.NVPairs) error {
+	if len(args) == 0 {
+		return errors.New("Request ID is required\n")
+	}
+
+	c := communications.New(login.Login())
+	display.ErrorWrapper(display.GenericResp(c.Post(schema.EndpointRequest+"/"+args[0]+"/cancel", nil)))
+	return nil
+}
+
+func requestCancelAgent(args []string, _ *util.NVPairs) error {
+	if len(args) == 0 {
+		return errors.New("Agent ID is required\n")
+	}
+
+	c := communications.New(login.Login())
+	display.ErrorWrapper(display.GenericResp(c.Post(schema.EndpointAgent+"/"+args[0]+"/cancel-requests", nil)))
 	return nil
 }
