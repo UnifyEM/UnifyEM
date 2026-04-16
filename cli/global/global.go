@@ -14,7 +14,7 @@ const (
 	Name            = "UEMCLI"
 	Description     = "UnifyEM CLI"
 	LongDescription = "UnifyEM command line interface"
-	Copyright       = "Copyright (c) 2024-2025 Tenebris Technologies Inc."
+	Copyright       = "Copyright (c) 2024-2026 Tenebris Technologies Inc."
 )
 
 var ServerURL string
