@@ -14,12 +14,13 @@ import (
 )
 
 type Communications struct {
-	retryRequired bool
-	logger        interfaces.Logger
-	conf          *global.AgentConfig
-	requests      *queues.RequestQueue
-	responses     *queues.ResponseQueue
-	jwt           string
+	retryRequired       bool
+	logger              interfaces.Logger
+	conf                *global.AgentConfig
+	requests            *queues.RequestQueue
+	responses           *queues.ResponseQueue
+	jwt                 string
+	pendingRecoveryInfo string
 }
 
 func New(options ...func(*Communications) error) (*Communications, error) {
@@ -94,4 +95,16 @@ func (c *Communications) RetryRequired() bool {
 		return true
 	}
 	return false
+}
+
+// SetPendingRecoveryInfo stores encrypted recovery info to be included in the next sync
+func (c *Communications) SetPendingRecoveryInfo(info string) {
+	c.pendingRecoveryInfo = info
+}
+
+// takePendingRecoveryInfo returns and clears any pending recovery info
+func (c *Communications) takePendingRecoveryInfo() string {
+	info := c.pendingRecoveryInfo
+	c.pendingRecoveryInfo = ""
+	return info
 }

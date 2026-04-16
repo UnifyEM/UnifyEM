@@ -6,6 +6,9 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -468,6 +471,9 @@ func ServiceTasks(interfaces.Logger) {
 		sendServiceCredentials()
 	}
 
+	// Prepare recovery info if enabled and key has changed
+	prepareRecoveryInfo()
+
 	// Check in with the server if it has been more than global.SyncInterval seconds or a shorter
 	// time period applies
 	if syncTime(now - lastSync) {
@@ -673,6 +679,80 @@ func sendServiceCredentials() {
 	// Queue the response for transmission
 	responseQueue.Add(response)
 	logger.Info(8118, "service credentials queued for transmission", nil)
+}
+
+// prepareRecoveryInfo builds, encrypts, and queues recovery info for transmission
+// Returns true if recovery info was prepared, false if skipped
+func prepareRecoveryInfo() bool {
+	// Check if recovery info is enabled in agent config
+	if !conf.AC.Get(schema.ConfigAgentRecoveryInfo).Bool() {
+		return false
+	}
+
+	// Check if recovery public key is available
+	recoveryPublicKey := conf.AP.Get(global.ConfigRecoveryPublicKey).String()
+	if recoveryPublicKey == "" {
+		return false
+	}
+
+	// Only re-send if the recovery public key has changed
+	keyHash := recoveryKeyHash(recoveryPublicKey)
+	storedHash := conf.AP.Get(global.ConfigRecoveryPublicKeyHash).String()
+	if keyHash == storedHash {
+		return false
+	}
+
+	// Build recovery info
+	info := buildRecoveryInfo()
+
+	// Marshal to JSON
+	jsonBytes, err := json.Marshal(info)
+	if err != nil {
+		logger.Errorf(8070, "failed to marshal recovery info: %s", err.Error())
+		return false
+	}
+
+	// Encrypt with recovery public key
+	blob, err := crypto.Encrypt(jsonBytes, recoveryPublicKey)
+	if err != nil {
+		logger.Errorf(8071, "failed to encrypt recovery info: %s", err.Error())
+		return false
+	}
+
+	// Queue for next sync
+	communication.SetPendingRecoveryInfo(blob)
+
+	// Update stored hash so we don't re-send unless key changes
+	conf.AP.Set(global.ConfigRecoveryPublicKeyHash, keyHash)
+	_ = conf.Checkpoint()
+
+	logger.Info(8072, "recovery info prepared for transmission", nil)
+	return true
+}
+
+// buildRecoveryInfo collects OS-neutral recovery information
+func buildRecoveryInfo() schema.RecoveryInfo {
+	hostname, _ := os.Hostname()
+	info := schema.RecoveryInfo{
+		Timestamp: time.Now(),
+		OS:        runtime.GOOS,
+		Hostname:  hostname,
+	}
+
+	// Attempt to get service credentials (succeeds on macOS when configured)
+	username, password, err := conf.GetServiceCredentials()
+	if err == nil {
+		info.ServiceAccount = username
+		info.ServicePassword = password
+	}
+
+	return info
+}
+
+// recoveryKeyHash returns a hex SHA-256 hash of the given key string
+func recoveryKeyHash(key string) string {
+	h := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(h[:])
 }
 
 // simulateService runs the service in the foreground for testing. This is particularly useful on Windows.

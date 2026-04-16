@@ -258,6 +258,20 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "recovery-key",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointRecovery + "/key",
+		JHandler: a.postRecoveryKey,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-recovery",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/{id}/recovery",
+		JHandler: a.getAgentRecovery,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "regToken",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointRegToken,

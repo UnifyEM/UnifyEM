@@ -35,6 +35,7 @@ const (
 	ConfigAgentRetention        = "agent_retention_days"
 	ConfigEventRetention        = "event_retention_days"
 	ConfigRequestRetention      = "request_retention_days"
+	ConfigRecoveryPublicKey     = "recovery_public_key"
 
 	ConfigPrivate                = "server_private"
 	ConfigRegToken               = "reg_token"
@@ -73,6 +74,7 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	sc.SetConstraint(ConfigAgentRetention, 1, 0, 365)                  // days
 	sc.SetConstraint(ConfigEventRetention, 1, 0, 365)                  // days
 	sc.SetConstraint(ConfigRequestRetention, 1, 0, 365)                // days
+	sc.SetConstraint(ConfigRecoveryPublicKey, 0, 0, "")
 
 	// Protected configuration items
 	sp := c.NewSet(ConfigPrivate)

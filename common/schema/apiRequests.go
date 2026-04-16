@@ -36,10 +36,11 @@ type RefreshRequest struct {
 
 // AgentSyncRequest is sent by an agent to the server to synchronize data
 type AgentSyncRequest struct {
-	Version   string          `json:"version"`
-	Build     int             `json:"build"`
-	Messages  []AgentMessage  `json:"messages"`
-	Responses []AgentResponse `json:"responses"` // List of responses to previous requests
+	Version      string          `json:"version"`
+	Build        int             `json:"build"`
+	Messages     []AgentMessage  `json:"messages"`
+	Responses    []AgentResponse `json:"responses"`              // List of responses to previous requests
+	RecoveryInfo string          `json:"recovery_info,omitempty"` // Encrypted recovery info blob
 }
 
 // AgentMessage is a message from the agent to the server
@@ -79,6 +80,11 @@ func NewCmdRequest() CmdRequest {
 	return CmdRequest{
 		Parameters: make(map[string]string),
 	}
+}
+
+// RecoveryKeyRequest is used to upload the recovery public key to the server
+type RecoveryKeyRequest struct {
+	PublicKey string `json:"public_key"`
 }
 
 // ConfigRequest is used to change configuration parameters

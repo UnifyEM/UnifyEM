@@ -16,6 +16,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/common/userver"
 	"github.com/UnifyEM/UnifyEM/server/data"
+	"github.com/UnifyEM/UnifyEM/server/global"
 	"github.com/UnifyEM/UnifyEM/server/queue"
 )
 
@@ -111,10 +112,14 @@ func (a *API) postSync(req *http.Request) userver.JResponse {
 			RequestCount:  len(requests),
 			ResponseCount: len(syncRequest.Responses),
 			Responses:     syncRequest.Responses,
+			RecoveryInfo:  syncRequest.RecoveryInfo,
 		})
 
 	// Get service credentials for this agent (encrypted with agent's public key)
 	serviceCredentials := a.data.GetServiceCredentials(authDetails.ID)
+
+	// Get the recovery public key from server config
+	recoveryPublicKey := a.conf.SC.Get(global.ConfigRecoveryPublicKey).String()
 
 	// Return the response
 	return userver.JResponse{
@@ -126,5 +131,6 @@ func (a *API) postSync(req *http.Request) userver.JResponse {
 			Triggers:           triggers,
 			Details:            "ok",
 			Requests:           requests,
-			ServiceCredentials: serviceCredentials}}
+			ServiceCredentials: serviceCredentials,
+			RecoveryPublicKey:  recoveryPublicKey}}
 }

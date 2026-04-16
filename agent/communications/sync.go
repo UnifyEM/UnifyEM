@@ -51,9 +51,10 @@ func (c *Communications) Sync() {
 
 	// Create a sync request to send to the server and include any queued responses
 	request := schema.AgentSyncRequest{
-		Version:   global.Version,
-		Build:     global.Build,
-		Responses: responses,
+		Version:      global.Version,
+		Build:        global.Build,
+		Responses:    responses,
+		RecoveryInfo: c.takePendingRecoveryInfo(),
 	}
 
 	// If lost mode is set, send an alert message
@@ -118,6 +119,12 @@ func (c *Communications) Sync() {
 			c.conf.SetServiceCredentialsEncrypted(serverResponse.ServiceCredentials)
 			c.logger.Info(8031, "received service account credentials from server", nil)
 		}
+	}
+
+	// Store recovery public key if provided
+	if serverResponse.RecoveryPublicKey != "" {
+		c.conf.AP.Set(global.ConfigRecoveryPublicKey, serverResponse.RecoveryPublicKey)
+		c.logger.Info(8032, "received recovery public key from server", nil)
 	}
 
 	// Checkpoint the configuration

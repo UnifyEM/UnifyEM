@@ -28,6 +28,7 @@ const (
 	ConfigAgentPinCA            = "pin_ca"
 	ConfigAgentVerification     = "verification"
 	configAgentVerificationKey  = "verification_key"
+	ConfigAgentRecoveryInfo     = "recovery_info"
 )
 
 func SetAgentDefaults(c interfaces.Config) interfaces.Parameters {
@@ -47,5 +48,6 @@ func SetAgentDefaults(c interfaces.Config) interfaces.Parameters {
 	s.SetConstraint(ConfigAgentPinCA, 0, 0, false)
 	s.SetConstraint(ConfigAgentVerification, 0, 0, false)
 	s.SetConstraint(configAgentVerificationKey, 0, 0, "")
+	s.SetConstraint(ConfigAgentRecoveryInfo, 0, 0, false)
 	return s
 }
