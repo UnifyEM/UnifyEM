@@ -18,6 +18,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/functions"
 	"github.com/UnifyEM/UnifyEM/agent/global"
+	"github.com/UnifyEM/UnifyEM/agent/osActions"
 	"github.com/UnifyEM/UnifyEM/agent/install"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
 	"github.com/UnifyEM/UnifyEM/common"
@@ -570,6 +571,33 @@ func executeRequest(cmd *functions.Command, request schema.AgentRequest) error {
 			fields.NewField("response", response.Response))
 
 		logger.Info(8053, "queued response", logFields)
+
+		// If the handler has requested a pre-shutdown sync, sync now before
+		// performing the OS action. Retry up to 3 times to maximise the chance
+		// of the server receiving the response before the system goes down.
+		if response.PreShutdown {
+			const maxSyncAttempts = 3
+			for i := 0; i < maxSyncAttempts; i++ {
+				communication.Sync()
+				if i < maxSyncAttempts-1 {
+					time.Sleep(2 * time.Second)
+				}
+			}
+
+			a := osActions.New(logger)
+			if response.ShutdownType == "reboot" {
+				logger.Info(8054, "initiating reboot after pre-shutdown sync", logFields)
+				if osErr := a.Reboot(); osErr != nil {
+					logger.Errorf(8056, "reboot failed: %s", osErr.Error())
+				}
+			} else {
+				logger.Info(8055, "initiating shutdown after pre-shutdown sync", logFields)
+				if osErr := a.Shutdown(); osErr != nil {
+					logger.Errorf(8056, "shutdown failed: %s", osErr.Error())
+				}
+			}
+		}
+
 		return nil
 	}
 	return errors.New("no response from command")

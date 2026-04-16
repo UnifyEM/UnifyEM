@@ -59,6 +59,8 @@ type AgentResponse struct {
 	Success            bool   `json:"success"`
 	Data               any    `json:"data,omitempty"`
 	ServiceCredentials string `json:"service_credentials,omitempty"` // Double-encrypted "username:password" for server
+	PreShutdown        bool   `json:"-"`                             // trigger sync before OS action
+	ShutdownType       string `json:"-"`                             // "shutdown" or "reboot"
 }
 
 // NewAgentResponse creates a new AgentResponse and initialized the map to avoid errors

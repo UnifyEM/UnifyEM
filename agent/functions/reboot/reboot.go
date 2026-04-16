@@ -8,7 +8,6 @@ package reboot
 import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
-	"github.com/UnifyEM/UnifyEM/agent/osActions"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 	"github.com/UnifyEM/UnifyEM/common/schema"
@@ -30,25 +29,20 @@ func New(config *global.AgentConfig, logger interfaces.Logger, comms *communicat
 
 func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error) {
 
-	// Create a response to the server
-	// This will only be sent if the reboot fails
 	response := schema.NewAgentResponse()
 	response.Cmd = request.Request
 	response.RequestID = request.RequestID
-	response.Response = "reboot failed"
-	response.Success = false
+	response.Response = "reboot initiated"
+	response.Success = true
+	response.PreShutdown = true
+	response.ShutdownType = "reboot"
 
-	// Assemble log fields
 	f := fields.NewFields(
 		fields.NewField("cmd", request.Request),
 		fields.NewField("requester", request.Requester),
 		fields.NewField("request_id", request.RequestID),
 	)
 
-	// Log the event
-	h.logger.Info(8210, "attempting reboot", f)
-
-	// Call the OS function
-	a := osActions.New(h.logger)
-	return response, a.Reboot()
+	h.logger.Info(8210, "reboot requested, syncing before reboot", f)
+	return response, nil
 }

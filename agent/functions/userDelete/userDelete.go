@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -89,14 +88,10 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 		h.logger.Info(8200, "user locked (macOS limitation)", f)
 		response.Success = true
 		if shutdown {
-			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete), shutdown in 30 seconds", username)
-			go func() {
-				time.Sleep(30 * time.Second)
-				h.logger.Info(8213, "initiating delayed shutdown after user delete", f)
-				if sErr := a.Shutdown(); sErr != nil {
-					h.logger.Error(8214, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
-				}
-			}()
+			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete), initiating shutdown", username)
+			response.PreShutdown = true
+			response.ShutdownType = "shutdown"
+			h.logger.Info(8213, "shutdown requested after user delete, syncing before shutdown", f)
 		} else {
 			response.Response = fmt.Sprintf("successfully locked user %s (macOS does not support delete)", username)
 		}
@@ -107,14 +102,10 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.Success = true
 
 	if shutdown {
-		response.Response = fmt.Sprintf("successfully deleted user %s, shutdown in 30 seconds", username)
-		go func() {
-			time.Sleep(30 * time.Second)
-			h.logger.Info(8213, "initiating delayed shutdown after user delete", f)
-			if sErr := a.Shutdown(); sErr != nil {
-				h.logger.Error(8214, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
-			}
-		}()
+		response.Response = fmt.Sprintf("successfully deleted user %s, initiating shutdown", username)
+		response.PreShutdown = true
+		response.ShutdownType = "shutdown"
+		h.logger.Info(8213, "shutdown requested after user delete, syncing before shutdown", f)
 	} else {
 		response.Response = fmt.Sprintf("successfully deleted user %s", username)
 	}
