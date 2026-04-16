@@ -36,6 +36,7 @@ func Register() *cobra.Command {
 		Use:   "list [agent_id]",
 		Short: "list requests",
 		Long:  "list all requests, or all requests for a specified agent",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return requestList(args, util.NewNVPairs(args))
 		},
@@ -70,7 +71,7 @@ func Register() *cobra.Command {
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "cancel-agent <agent_id>",
-		Short: "cancel agent requests",
+		Short: "cancel all requests for agent",
 		Long:  "cancel all requests for the specified agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return requestCancelAgent(args, util.NewNVPairs(args))
