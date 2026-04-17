@@ -124,17 +124,32 @@ func console() int {
 			install.WithToken(os.Args[2]),
 		}
 
-		switch len(os.Args) {
-		case 4:
-			// friendly name only
-			ops = append(ops, install.WithFriendlyName(os.Args[3]))
-		case 5:
-			// credentials only
-			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
-		case 6:
-			// credentials + friendly name
-			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
-			ops = append(ops, install.WithFriendlyName(os.Args[5]))
+		if runtime.GOOS == "darwin" {
+			// macOS requires admin credentials to create the service account
+			switch len(os.Args) {
+			case 4:
+				fmt.Println("Usage: install <token> [<admin-username> <admin-password> [<friendly-name>]]")
+				return 1
+			case 5:
+				// credentials only
+				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+			case 6:
+				// credentials + friendly name
+				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+				ops = append(ops, install.WithFriendlyName(os.Args[5]))
+			}
+		} else {
+			// Linux/Windows: no credentials required
+			switch len(os.Args) {
+			case 4:
+				// friendly name only
+				ops = append(ops, install.WithFriendlyName(os.Args[3]))
+			default:
+				if len(os.Args) > 4 {
+					fmt.Println("Usage: install <token> [<friendly-name>]")
+					return 1
+				}
+			}
 		}
 
 		// Instantiate installer
