@@ -81,21 +81,117 @@ func IsTrusted(host, fingerprint string) (bool, error) {
 }
 
 // Store appends a host and fingerprint entry to ~/.uemcert.
+// It uses atomic write (temp file + rename) to avoid corruption from concurrent access.
 func Store(host, fingerprint string) error {
 	path, err := certFilePath()
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	// Read existing content
+	existing, err := readLines(path)
 	if err != nil {
-		return fmt.Errorf("unable to open %s for writing: %w", path, err)
+		return err
+	}
+
+	// Append the new entry
+	existing = append(existing, fmt.Sprintf("%s %s", host, fingerprint))
+
+	return atomicWriteLines(path, existing)
+}
+
+// Remove deletes all entries for the given host from ~/.uemcert.
+// Returns true if any entries were removed.
+func Remove(host string) (bool, error) {
+	path, err := certFilePath()
+	if err != nil {
+		return false, err
+	}
+
+	lines, err := readLines(path)
+	if err != nil {
+		return false, err
+	}
+
+	var kept []string
+	removed := false
+	for _, line := range lines {
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) == 2 && parts[0] == host {
+			removed = true
+			continue
+		}
+		kept = append(kept, line)
+	}
+
+	if !removed {
+		return false, nil
+	}
+
+	return true, atomicWriteLines(path, kept)
+}
+
+// readLines reads non-empty, non-comment lines from the cert file.
+// Returns nil (not an error) if the file does not exist.
+func readLines(path string) ([]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("unable to open %s: %w", path, err)
 	}
 	defer f.Close()
 
-	_, err = fmt.Fprintf(f, "%s %s\n", host, fingerprint)
-	if err != nil {
-		return fmt.Errorf("unable to write to %s: %w", path, err)
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		lines = append(lines, line)
 	}
+	return lines, scanner.Err()
+}
+
+// atomicWriteLines writes lines to a temp file and renames it into place.
+func atomicWriteLines(path string, lines []string) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".uemcert-tmp-*")
+	if err != nil {
+		return fmt.Errorf("unable to create temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+
+	// Ensure cleanup on failure
+	success := false
+	defer func() {
+		if !success {
+			_ = os.Remove(tmpName)
+		}
+	}()
+
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("unable to set permissions on temp file: %w", err)
+	}
+
+	for _, line := range lines {
+		if _, err := fmt.Fprintln(tmp, line); err != nil {
+			_ = tmp.Close()
+			return fmt.Errorf("unable to write to temp file: %w", err)
+		}
+	}
+
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("unable to close temp file: %w", err)
+	}
+
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("unable to rename temp file: %w", err)
+	}
+
+	success = true
 	return nil
 }

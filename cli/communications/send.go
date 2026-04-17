@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/UnifyEM/UnifyEM/cli/certstore"
 	"github.com/UnifyEM/UnifyEM/cli/global"
@@ -154,6 +155,12 @@ func (c *Communications) buildHTTPClient(host string) *http.Client {
 				return fmt.Errorf("failed to check certificate store: %w", err)
 			}
 			if trusted {
+				if time.Now().After(cert.NotAfter) {
+					// Pinned cert has expired — treat as untrusted so user is prompted to re-accept
+					fmt.Printf("\nWARNING: The pinned certificate for %s has expired (expired %s).\n",
+						host, cert.NotAfter.Format(time.RFC3339))
+					return &UntrustedCertError{Cert: cert, Host: host}
+				}
 				return nil
 			}
 

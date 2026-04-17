@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/UnifyEM/UnifyEM/cli/functions/agent"
+	"github.com/UnifyEM/UnifyEM/cli/functions/cert"
 	"github.com/UnifyEM/UnifyEM/cli/functions/cmd"
 	"github.com/UnifyEM/UnifyEM/cli/functions/events"
 	"github.com/UnifyEM/UnifyEM/cli/functions/files"
@@ -50,6 +51,7 @@ func main() {
 
 	// Add the functions
 	rootCmd.AddCommand(agent.Register())
+	rootCmd.AddCommand(cert.Register())
 	rootCmd.AddCommand(cmd.Register())
 	rootCmd.AddCommand(configCmd.Register())
 	rootCmd.AddCommand(events.Register())

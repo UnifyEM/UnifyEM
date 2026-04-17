@@ -157,6 +157,103 @@ func TestIsTrustedMissingFile(t *testing.T) {
 	}
 }
 
+func TestRemove(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	host := "server.example.com:443"
+	fp := "AABBCCDD0011223344556677889900AABBCCDD0011223344556677889900AABB"
+
+	// Remove from non-existent file should return false
+	removed, err := Remove(host)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if removed {
+		t.Fatal("should not report removal when file does not exist")
+	}
+
+	// Store and then remove
+	if err := Store(host, fp); err != nil {
+		t.Fatalf("unexpected error storing: %v", err)
+	}
+	removed, err = Remove(host)
+	if err != nil {
+		t.Fatalf("unexpected error removing: %v", err)
+	}
+	if !removed {
+		t.Fatal("should report removal")
+	}
+
+	// Should no longer be trusted
+	trusted, err := IsTrusted(host, fp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if trusted {
+		t.Fatal("should not be trusted after removal")
+	}
+
+	// Remove again should return false
+	removed, err = Remove(host)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if removed {
+		t.Fatal("should not report removal when already removed")
+	}
+}
+
+func TestRemovePreservesOtherEntries(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	if err := Store("host1:443", "FP1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := Store("host2:443", "FP2"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := Store("host3:443", "FP3"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Remove host2
+	removed, err := Remove("host2:443")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !removed {
+		t.Fatal("should report removal")
+	}
+
+	// host1 and host3 should still be trusted
+	for _, tc := range []struct {
+		host string
+		fp   string
+	}{
+		{"host1:443", "FP1"},
+		{"host3:443", "FP3"},
+	} {
+		trusted, err := IsTrusted(tc.host, tc.fp)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !trusted {
+			t.Fatalf("%s should still be trusted", tc.host)
+		}
+	}
+
+	// host2 should not be trusted
+	trusted, err := IsTrusted("host2:443", "FP2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if trusted {
+		t.Fatal("host2 should not be trusted after removal")
+	}
+}
+
 func TestStoreMultiple(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
