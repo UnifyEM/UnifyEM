@@ -366,6 +366,31 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
 	}
 
+	// Remove old password protectors
+	_, delErr := a.runner.Combined("manage-bde", "-protectors", "-delete", "C:", "-Type", "Password")
+	if delErr != nil {
+		a.logger.Warningf(8605, "failed to remove old BitLocker password protectors: %s", delErr.Error())
+		// Continue anyway
+	}
+
+	// Add new password protector
+	escapedPW := escapePowerShellString(newPassword)
+	_, addErr := a.runner.Combined(
+		"powershell", "-Command",
+		fmt.Sprintf(
+			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
+			escapedPW,
+		),
+	)
+	if addErr != nil {
+		if strings.Contains(addErr.Error(), "BitLocker is not enabled") {
+			a.logger.Warningf(8606, "BitLocker is not enabled, skipping protector update for %s", userInfo.Username)
+		} else {
+			a.logger.Warningf(8607, "failed to update BitLocker password protector: %s", addErr.Error())
+		}
+		// Continue anyway
+	}
+
 	return newPassword, nil
 }
 
