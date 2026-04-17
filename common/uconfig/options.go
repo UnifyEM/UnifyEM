@@ -50,9 +50,9 @@ func WithFindOrCreate(filenames []string) func(*UConfig) error {
 				if loadErr := c.Load(filename); loadErr != nil {
 					// File exists but failed to load — rename it as a backup before overwriting
 					if renameErr := os.Rename(filename, filename+".bak"); renameErr != nil {
-					return fmt.Errorf("config appears corrupt but cannot be renamed for backup: %w", renameErr)
-				}
-				return c.Save(filename)
+						return fmt.Errorf("config appears corrupt but cannot be renamed for backup: %w", renameErr)
+					}
+					return c.Save(filename)
 				}
 				return nil
 			}

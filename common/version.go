@@ -7,5 +7,5 @@ package common
 
 const (
 	Version = "0.0.54"
-	Build   = 100 
+	Build   = 100
 )
