@@ -742,6 +742,8 @@ func buildRecoveryInfo() schema.RecoveryInfo {
 		Hostname:  hostname,
 	}
 
+	info.BitLockerInfo = getBitLockerInfo()
+
 	// Attempt to get service credentials (succeeds on macOS when configured)
 	username, password, err := conf.GetServiceCredentials()
 	if err == nil {

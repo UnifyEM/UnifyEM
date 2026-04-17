@@ -31,3 +31,7 @@ func cleanupUserDataListener(log interfaces.Logger) {
 func getUserDataSource() *userdata.UserDataListener {
 	return nil
 }
+
+func getBitLockerInfo() string {
+	return ""
+}

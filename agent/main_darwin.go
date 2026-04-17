@@ -122,3 +122,7 @@ func getCurrentUsername() string {
 	}
 	return u.Username
 }
+
+func getBitLockerInfo() string {
+	return ""
+}

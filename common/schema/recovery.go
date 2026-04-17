@@ -14,4 +14,5 @@ type RecoveryInfo struct {
 	Hostname        string    `json:"hostname"`
 	ServiceAccount  string    `json:"service_account,omitempty"`
 	ServicePassword string    `json:"service_password,omitempty"`
+	BitLockerInfo   string    `json:"bitlocker_info,omitempty"`
 }

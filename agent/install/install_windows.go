@@ -86,6 +86,12 @@ func (i *Install) installService() error {
 	}
 	fmt.Printf("Binary copied to %s\n", targetPath)
 
+	// Create service account before starting the service
+	err = i.ServiceAccount()
+	if err != nil {
+		return fmt.Errorf("failed to create service account: %w", err)
+	}
+
 	// Install the service
 	m, err := mgr.Connect()
 	if err != nil {

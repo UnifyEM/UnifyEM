@@ -135,7 +135,11 @@ func recoveryGet(args []string, _ *util.NVPairs) error {
 	// Try to load the private key without passphrase first
 	privateKey, err := crypto.LoadPrivateKeyPEM(keyPath, "")
 	if err != nil {
-		// Key may be encrypted — prompt for passphrase
+		// Only prompt for a passphrase if the key file exists but is encrypted;
+		// any other error (e.g. file not found) is returned immediately.
+		if !strings.Contains(err.Error(), "encrypted") {
+			return fmt.Errorf("failed to load private key: %w", err)
+		}
 		passphrase, pErr := promptPassphrase("Enter passphrase for private key: ")
 		if pErr != nil {
 			return fmt.Errorf("failed to read passphrase: %w", pErr)

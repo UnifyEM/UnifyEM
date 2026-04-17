@@ -8,6 +8,9 @@
 package main
 
 import (
+	"os/exec"
+	"strings"
+
 	"github.com/UnifyEM/UnifyEM/agent/userdata"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
@@ -30,4 +33,12 @@ func cleanupUserDataListener(_ interfaces.Logger) {
 // getUserDataSource returns nil on Windows
 func getUserDataSource() *userdata.UserDataListener {
 	return nil
+}
+
+func getBitLockerInfo() string {
+	out, err := exec.Command("manage-bde", "-protectors", "-get", "C:").CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
