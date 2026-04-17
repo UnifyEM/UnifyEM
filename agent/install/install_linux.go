@@ -91,6 +91,12 @@ func (i *Install) installService() error {
 		return err
 	}
 
+	// Create service account before starting the service
+	err = i.ServiceAccount()
+	if err != nil {
+		return fmt.Errorf("failed to create service account: %w", err)
+	}
+
 	// Start the service
 	err = i.startService()
 	if err != nil {
