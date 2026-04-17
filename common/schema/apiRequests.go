@@ -14,6 +14,7 @@ type AgentRegisterRequest struct {
 	Build           int    `json:"build"`
 	ClientPublicSig string `json:"client_public_sig,omitempty"`
 	ClientPublicEnc string `json:"client_public_enc,omitempty"`
+	FriendlyName    string `json:"friendly_name,omitempty"`
 }
 
 // LoginRequest is sent to the server by a user (administrator) to obtain a token

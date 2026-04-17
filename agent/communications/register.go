@@ -46,12 +46,16 @@ func (c *Communications) register() (string, error) {
 	clientPublicSig := c.conf.AP.Get(global.ConfigAgentECPublicSig).String()
 	clientPublicEnc := c.conf.AP.Get(global.ConfigAgentECPublicEnc).String()
 
+	// Get the friendly name set at install time (cleared after successful registration)
+	friendlyName := c.conf.AP.Get(global.ConfigFriendlyName).String()
+
 	req := schema.AgentRegisterRequest{
 		Token:           regToken,
 		Version:         global.Version,
 		Build:           global.Build,
 		ClientPublicSig: clientPublicSig,
 		ClientPublicEnc: clientPublicEnc,
+		FriendlyName:    friendlyName,
 	}
 
 	// Send the registration request
@@ -99,6 +103,13 @@ func (c *Communications) register() (string, error) {
 	if err != nil {
 		c.logger.Errorf(8017, "error checkpointing configuration: %s", err.Error())
 	}
+
+	// Clear the friendly name after successful registration (one-time use)
+	if friendlyName != "" {
+		c.conf.AP.Set(global.ConfigFriendlyName, "")
+		_ = c.conf.Checkpoint()
+	}
+
 	return c.jwt, nil
 }
 

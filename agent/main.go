@@ -124,8 +124,17 @@ func console() int {
 			install.WithToken(os.Args[2]),
 		}
 
-		if len(os.Args) >= 5 {
+		switch len(os.Args) {
+		case 4:
+			// friendly name only (non-macOS platforms)
+			ops = append(ops, install.WithFriendlyName(os.Args[3]))
+		case 5:
+			// credentials only (macOS)
 			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+		case 6:
+			// credentials + friendly name (macOS)
+			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+			ops = append(ops, install.WithFriendlyName(os.Args[5]))
 		}
 
 		// Instantiate installer
@@ -335,9 +344,9 @@ func usage() {
 	fmt.Printf("  check\n")
 
 	if runtime.GOOS == "darwin" {
-		fmt.Printf("  install <token> <admin-username> <admin-password>\n")
+		fmt.Printf("  install <token> [<admin-username> <admin-password> [<friendly-name>]]\n")
 	} else {
-		fmt.Printf("  install <token>\n")
+		fmt.Printf("  install <token> [<friendly-name>]\n")
 	}
 
 	fmt.Printf("  rekey <token>\n")

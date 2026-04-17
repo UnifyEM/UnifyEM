@@ -19,12 +19,13 @@ import (
 )
 
 type Install struct {
-	config    *global.AgentConfig
-	logger    interfaces.Logger
-	token     string
-	user      string
-	pass      string
-	isUpgrade bool
+	config       *global.AgentConfig
+	logger       interfaces.Logger
+	token        string
+	user         string
+	pass         string
+	friendlyName string
+	isUpgrade    bool
 }
 
 // Option is a functional option for configuring Install
@@ -56,6 +57,13 @@ func WithCredentials(user, pass string) Option {
 func WithToken(token string) Option {
 	return func(i *Install) {
 		i.token = token
+	}
+}
+
+// WithFriendlyName sets the friendly name for the agent (optional, one-time at install)
+func WithFriendlyName(name string) Option {
+	return func(i *Install) {
+		i.friendlyName = name
 	}
 }
 
@@ -137,6 +145,12 @@ func (i *Install) Install() error {
 	err = i.config.Checkpoint()
 	if err != nil {
 		return err
+	}
+
+	// Store friendly name if provided; cleared after successful registration
+	if i.friendlyName != "" {
+		i.config.AP.Set(global.ConfigFriendlyName, i.friendlyName)
+		_ = i.config.Checkpoint()
 	}
 
 	// Call the private function for os specific install

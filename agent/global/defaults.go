@@ -32,6 +32,7 @@ const (
 	ConfigRecoveryPublicKey     = "recovery_public_key"
 	ConfigRecoveryPublicKeyHash = "recovery_public_key_hash"
 	ConfigRecoveryInfoPending   = "recovery_info_pending"
+	ConfigFriendlyName          = "install_friendly_name"
 )
 
 // setDefaults makes sure the sets exist, sets default values, and constraints
@@ -57,6 +58,7 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	ap.SetConstraint(ConfigRecoveryPublicKey, 0, 0, "")
 	ap.SetConstraint(ConfigRecoveryPublicKeyHash, 0, 0, "")
 	ap.SetConstraint(ConfigRecoveryInfoPending, 0, 0, false)
+	ap.SetConstraint(ConfigFriendlyName, 0, 0, "")
 
 	// Return the sets
 	return ac, ap
