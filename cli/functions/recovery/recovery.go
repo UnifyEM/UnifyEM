@@ -67,7 +67,7 @@ func Register() *cobra.Command {
 	})
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   "list",
+		Use:   "status",
 		Short: "list recovery info status for all agents",
 		Long:  "list all agents with their friendly name, agent ID, and recovery info status",
 		RunE: func(cmd *cobra.Command, args []string) error {
