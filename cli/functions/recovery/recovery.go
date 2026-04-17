@@ -233,8 +233,6 @@ func recoveryList(_ []string, _ *util.NVPairs) error {
 		return nil
 	}
 
-	fmt.Printf("\n%-30s %-36s %s\n", "Friendly Name", "Agent ID", "Recovery Info")
-	fmt.Printf("%s\n", strings.Repeat("-", 75))
 	for _, agent := range resp.Data.Agents {
 		recoveryStatus := "No"
 		if agent.RecoveryInfo != "" {
