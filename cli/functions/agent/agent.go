@@ -195,7 +195,7 @@ func agentStatus(_ []string, _ *util.NVPairs) error {
 	} else {
 		for _, agent := range resp.Data.Agents {
 			days := int(time.Since(agent.LastSeen).Hours() / 24)
-			fmt.Printf("%-30s %-36s %d\n", agent.FriendlyName, agent.AgentID, days)
+			fmt.Printf("%-30s %-36s %3d %s-%03d\n", agent.FriendlyName, agent.AgentID, days, agent.Version, agent.Build)
 		}
 	}
 
