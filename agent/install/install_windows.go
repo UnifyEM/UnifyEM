@@ -103,8 +103,8 @@ func (i *Install) installService() error {
 
 	service, err := m.OpenService(global.Name)
 	if err == nil {
+		defer func(s *mgr.Service) { _ = s.Close() }(service)
 		status, qErr := service.Query()
-		_ = service.Close()
 		if qErr != nil {
 			return fmt.Errorf("service %s already exists", global.Name)
 		}
@@ -112,12 +112,7 @@ func (i *Install) installService() error {
 			return fmt.Errorf("service %s is already running", global.Name)
 		}
 		// Service exists but is stopped — start it and return
-		startSvc, openErr := m.OpenService(global.Name)
-		if openErr != nil {
-			return fmt.Errorf("failed to reopen service %s: %w", global.Name, openErr)
-		}
-		defer func(s *mgr.Service) { _ = s.Close() }(startSvc)
-		if startErr := startSvc.Start(); startErr != nil {
+		if startErr := service.Start(); startErr != nil {
 			return fmt.Errorf("failed to start existing service %s: %w", global.Name, startErr)
 		}
 		fmt.Println("Windows service started")

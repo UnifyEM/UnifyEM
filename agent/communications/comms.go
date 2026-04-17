@@ -7,6 +7,7 @@ package communications
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/UnifyEM/UnifyEM/agent/global"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
@@ -20,6 +21,7 @@ type Communications struct {
 	requests            *queues.RequestQueue
 	responses           *queues.ResponseQueue
 	jwt                 string
+	recoveryMu          sync.Mutex
 	pendingRecoveryInfo string
 }
 
@@ -99,11 +101,15 @@ func (c *Communications) RetryRequired() bool {
 
 // SetPendingRecoveryInfo stores encrypted recovery info to be included in the next sync
 func (c *Communications) SetPendingRecoveryInfo(info string) {
+	c.recoveryMu.Lock()
+	defer c.recoveryMu.Unlock()
 	c.pendingRecoveryInfo = info
 }
 
 // takePendingRecoveryInfo returns and clears any pending recovery info
 func (c *Communications) takePendingRecoveryInfo() string {
+	c.recoveryMu.Lock()
+	defer c.recoveryMu.Unlock()
 	info := c.pendingRecoveryInfo
 	c.pendingRecoveryInfo = ""
 	return info

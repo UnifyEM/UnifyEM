@@ -12,12 +12,16 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"golang.org/x/crypto/scrypt"
 )
+
+// ErrKeyEncrypted is returned when a PEM key is encrypted but no passphrase was provided
+var ErrKeyEncrypted = errors.New("key is encrypted but no passphrase provided")
 
 const (
 	pemTypeEC          = "EC PRIVATE KEY"
@@ -122,7 +126,7 @@ func LoadPrivateKeyPEM(path string, passphrase string) (string, error) {
 
 	case pemTypeEncryptedEC:
 		if passphrase == "" {
-			return "", fmt.Errorf("key is encrypted but no passphrase provided")
+			return "", ErrKeyEncrypted
 		}
 		if len(block.Bytes) < saltLen {
 			return "", fmt.Errorf("invalid encrypted key data")

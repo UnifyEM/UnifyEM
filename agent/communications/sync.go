@@ -49,12 +49,15 @@ func (c *Communications) Sync() {
 	// Get a list of responses waiting to be sent to the server
 	responses := c.responses.ReadAll()
 
+	// Take any pending recovery info before sending — saved so it can be requeued on failure
+	recoveryInfo := c.takePendingRecoveryInfo()
+
 	// Create a sync request to send to the server and include any queued responses
 	request := schema.AgentSyncRequest{
 		Version:      global.Version,
 		Build:        global.Build,
 		Responses:    responses,
-		RecoveryInfo: c.takePendingRecoveryInfo(),
+		RecoveryInfo: recoveryInfo,
 	}
 
 	// If lost mode is set, send an alert message
@@ -73,6 +76,7 @@ func (c *Communications) Sync() {
 	if err != nil {
 		c.logger.Errorf(8024, "error sending sync request: %s", err.Error())
 		c.responses.ReQueue(responses)
+		c.SetPendingRecoveryInfo(recoveryInfo)
 		return
 	}
 
@@ -82,12 +86,14 @@ func (c *Communications) Sync() {
 	if err != nil {
 		c.logger.Errorf(8025, "error unmarshalling sync response: %s", err.Error())
 		c.responses.ReQueue(responses)
+		c.SetPendingRecoveryInfo(recoveryInfo)
 		return
 	}
 
 	if serverResponse.Code != 200 {
 		c.logger.Errorf(8026, "sync failed with code %d: %s", serverResponse.Code, serverResponse.Details)
 		c.responses.ReQueue(responses)
+		c.SetPendingRecoveryInfo(recoveryInfo)
 		return
 	}
 

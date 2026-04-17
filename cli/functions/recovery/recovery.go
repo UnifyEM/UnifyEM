@@ -6,14 +6,13 @@
 package recovery
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/UnifyEM/UnifyEM/cli/communications"
 	"github.com/UnifyEM/UnifyEM/cli/display"
@@ -122,7 +121,7 @@ func recoveryKeygen(args []string, _ *util.NVPairs) error {
 
 func recoveryGet(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("agent ID is required\n")
+		return errors.New("agent ID is required")
 	}
 
 	agentID := args[0]
@@ -155,7 +154,7 @@ func recoveryGet(args []string, _ *util.NVPairs) error {
 	if err != nil {
 		// Only prompt for a passphrase if the key file exists but is encrypted;
 		// any other error (e.g. file not found) is returned immediately.
-		if !strings.Contains(err.Error(), "encrypted") {
+		if !errors.Is(err, crypto.ErrKeyEncrypted) {
 			return fmt.Errorf("failed to load private key: %w", err)
 		}
 		passphrase, pErr := promptPassphrase("Enter passphrase for private key: ")
@@ -187,7 +186,7 @@ func recoveryGet(args []string, _ *util.NVPairs) error {
 
 func recoveryCheck(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("agent ID is required\n")
+		return errors.New("agent ID is required")
 	}
 
 	agentID := args[0]
@@ -244,13 +243,13 @@ func recoveryList(_ []string, _ *util.NVPairs) error {
 	return nil
 }
 
-// promptPassphrase reads a line from stdin (passphrase will be visible)
+// promptPassphrase reads a passphrase from stdin with echo suppressed
 func promptPassphrase(prompt string) (string, error) {
 	fmt.Print(prompt)
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
+	b, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimRight(line, "\r\n"), nil
+	return string(b), nil
 }

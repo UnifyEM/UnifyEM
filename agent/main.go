@@ -611,7 +611,7 @@ func executeRequest(cmd *functions.Command, request schema.AgentRequest) error {
 			} else {
 				logger.Info(8055, "initiating shutdown after pre-shutdown sync", logFields)
 				if osErr := a.Shutdown(); osErr != nil {
-					logger.Errorf(8056, "shutdown failed: %s", osErr.Error())
+					logger.Errorf(8073, "shutdown failed: %s", osErr.Error())
 				}
 			}
 		}

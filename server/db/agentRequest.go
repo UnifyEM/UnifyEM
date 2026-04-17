@@ -118,7 +118,7 @@ func (d *DB) CancelAgentRequest(requestKey string) error {
 	return nil
 }
 
-// CancelAgentRequests deletes all requests for the specified agent
+// CancelAgentRequests sets status to cancelled for all pending requests for the specified agent
 func (d *DB) CancelAgentRequests(agentID string) error {
 	//prefix := validateKey(agentID) + ":"
 

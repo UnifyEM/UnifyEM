@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/UnifyEM/UnifyEM/common/crypto"
 	"github.com/UnifyEM/UnifyEM/common/fields"
 	"github.com/UnifyEM/UnifyEM/common/schema"
 	"github.com/UnifyEM/UnifyEM/common/userver"
@@ -60,6 +61,13 @@ func (a *API) postRecoveryKey(req *http.Request) userver.JResponse {
 		return userver.JResponse{
 			HTTPCode: http.StatusBadRequest,
 			JSONData: schema.API400{Details: "public_key is required", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
+	}
+
+	if err = crypto.ValidatePublicKey(keyReq.PublicKey); err != nil {
+		a.logger.Error(2918, fmt.Sprintf("invalid recovery public key: %s", err.Error()), logFields)
+		return userver.JResponse{
+			HTTPCode: http.StatusBadRequest,
+			JSONData: schema.API400{Details: "invalid public key format", Status: schema.APIStatusError, Code: http.StatusBadRequest}}
 	}
 
 	a.conf.SC.Set(global.ConfigRecoveryPublicKey, keyReq.PublicKey)
@@ -113,8 +121,10 @@ func (a *API) getAgentRecovery(req *http.Request) userver.JResponse {
 	if info == "" {
 		a.logger.Info(2916, "no recovery info available for agent", logFields)
 		return userver.JResponse{
-			HTTPCode: http.StatusNotFound,
-			JSONData: schema.API404{Details: "no recovery info available", Status: schema.APIStatusError, Code: http.StatusNotFound}}
+			HTTPCode: http.StatusOK,
+			JSONData: schema.APIRecoveryResponse{
+				Status: schema.APIStatusOK,
+				Code:   http.StatusOK}}
 	}
 
 	a.logger.Info(2917, "recovery info retrieved", logFields)
