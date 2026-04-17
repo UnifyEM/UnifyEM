@@ -66,6 +66,12 @@ func (c *Communications) sendRequest(method, endpoint string, payload []byte) (i
 				return 0, nil, fmt.Errorf("failed to store certificate: %w", storeErr)
 			}
 
+			// Mark as freshly accepted so the retry skips the expiry check
+			if c.freshlyAccepted == nil {
+				c.freshlyAccepted = make(map[string]bool)
+			}
+			c.freshlyAccepted[host] = true
+
 			// Retry with the now-trusted certificate
 			client = c.buildHTTPClient(host)
 			return c.doRequest(client, method, reqURL, payload)
@@ -155,7 +161,17 @@ func (c *Communications) buildHTTPClient(host string) *http.Client {
 				return fmt.Errorf("failed to check certificate store: %w", err)
 			}
 			if trusted {
-				if time.Now().After(cert.NotAfter) {
+				// Skip time validity checks if the user just explicitly accepted this cert
+				if c.freshlyAccepted[host] {
+					return nil
+				}
+				now := time.Now()
+				if now.Before(cert.NotBefore) {
+					fmt.Printf("\nWARNING: The pinned certificate for %s is not yet valid (valid from %s).\n",
+						host, cert.NotBefore.Format(time.RFC3339))
+					return &UntrustedCertError{Cert: cert, Host: host}
+				}
+				if now.After(cert.NotAfter) {
 					// Pinned cert has expired — treat as untrusted so user is prompted to re-accept
 					fmt.Printf("\nWARNING: The pinned certificate for %s has expired (expired %s).\n",
 						host, cert.NotAfter.Format(time.RFC3339))

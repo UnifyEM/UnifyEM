@@ -11,7 +11,8 @@ import "github.com/UnifyEM/UnifyEM/cli/global"
 var _ global.Comms = &Communications{}
 
 type Communications struct {
-	token string
+	token           string
+	freshlyAccepted map[string]bool // hosts whose certs were accepted this session
 }
 
 // New returns a new Communications object and optionally accepts a token

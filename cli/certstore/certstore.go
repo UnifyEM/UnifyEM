@@ -80,7 +80,8 @@ func IsTrusted(host, fingerprint string) (bool, error) {
 	return false, scanner.Err()
 }
 
-// Store appends a host and fingerprint entry to ~/.uemcert.
+// Store upserts a host and fingerprint entry in ~/.uemcert.
+// If the host already has an entry, it is replaced. Otherwise, a new entry is appended.
 // It uses atomic write (temp file + rename) to avoid corruption from concurrent access.
 func Store(host, fingerprint string) error {
 	path, err := certFilePath()
@@ -94,10 +95,20 @@ func Store(host, fingerprint string) error {
 		return err
 	}
 
-	// Append the new entry
-	existing = append(existing, fmt.Sprintf("%s %s", host, fingerprint))
+	// Remove any existing entry for this host
+	var kept []string
+	for _, line := range existing {
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) == 2 && parts[0] == host {
+			continue
+		}
+		kept = append(kept, line)
+	}
 
-	return atomicWriteLines(path, existing)
+	// Append the new entry
+	kept = append(kept, fmt.Sprintf("%s %s", host, fingerprint))
+
+	return atomicWriteLines(path, kept)
 }
 
 // Remove deletes all entries for the given host from ~/.uemcert.
@@ -129,6 +140,35 @@ func Remove(host string) (bool, error) {
 	}
 
 	return true, atomicWriteLines(path, kept)
+}
+
+// Entry represents a single pinned certificate entry.
+type Entry struct {
+	Host        string
+	Fingerprint string
+}
+
+// List returns all pinned certificate entries from ~/.uemcert.
+func List() ([]Entry, error) {
+	path, err := certFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	lines, err := readLines(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []Entry
+	for _, line := range lines {
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		entries = append(entries, Entry{Host: parts[0], Fingerprint: parts[1]})
+	}
+	return entries, nil
 }
 
 // readLines reads non-empty, non-comment lines from the cert file.

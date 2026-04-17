@@ -254,6 +254,60 @@ func TestRemovePreservesOtherEntries(t *testing.T) {
 	}
 }
 
+func TestStoreDeduplicates(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	host := "server.example.com:443"
+	fp1 := "FINGERPRINT_ONE"
+	fp2 := "FINGERPRINT_TWO"
+
+	// Store initial entry
+	if err := Store(host, fp1); err != nil {
+		t.Fatalf("unexpected error storing: %v", err)
+	}
+
+	// Store again with different fingerprint (simulates cert rotation)
+	if err := Store(host, fp2); err != nil {
+		t.Fatalf("unexpected error storing: %v", err)
+	}
+
+	// Old fingerprint should NOT be trusted
+	trusted, err := IsTrusted(host, fp1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if trusted {
+		t.Fatal("old fingerprint should not be trusted after upsert")
+	}
+
+	// New fingerprint should be trusted
+	trusted, err = IsTrusted(host, fp2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !trusted {
+		t.Fatal("new fingerprint should be trusted after upsert")
+	}
+
+	// Verify only one entry exists for this host
+	path := filepath.Join(tmpDir, certFile)
+	lines, err := readLines(path)
+	if err != nil {
+		t.Fatalf("unexpected error reading lines: %v", err)
+	}
+	count := 0
+	for _, line := range lines {
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) == 2 && parts[0] == host {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly 1 entry for host, got %d", count)
+	}
+}
+
 func TestStoreMultiple(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
