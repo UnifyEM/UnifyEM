@@ -127,7 +127,10 @@ func (c *Communications) buildHTTPClient(host string) *http.Client {
 			// First, try standard system root verification
 			roots, err := x509.SystemCertPool()
 			if err == nil && roots != nil {
+				// Extract hostname without port for DNSName verification
+				dnsName, _, _ := strings.Cut(host, ":")
 				opts := x509.VerifyOptions{
+					DNSName:       dnsName,
 					Roots:         roots,
 					Intermediates: x509.NewCertPool(),
 				}
