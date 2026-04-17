@@ -31,6 +31,7 @@ const (
 	ConfigAgentECPublicEnc      = "ec_public_enc"
 	ConfigRecoveryPublicKey     = "recovery_public_key"
 	ConfigRecoveryPublicKeyHash = "recovery_public_key_hash"
+	ConfigRecoveryInfoPending   = "recovery_info_pending"
 )
 
 // setDefaults makes sure the sets exist, sets default values, and constraints
@@ -55,6 +56,7 @@ func setDefaults(c interfaces.Config) (interfaces.Parameters, interfaces.Paramet
 	ap.SetConstraint(ConfigAgentECPublicEnc, 0, 0, "")
 	ap.SetConstraint(ConfigRecoveryPublicKey, 0, 0, "")
 	ap.SetConstraint(ConfigRecoveryPublicKeyHash, 0, 0, "")
+	ap.SetConstraint(ConfigRecoveryInfoPending, 0, 0, false)
 
 	// Return the sets
 	return ac, ap

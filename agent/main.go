@@ -698,10 +698,10 @@ func prepareRecoveryInfo() bool {
 		return false
 	}
 
-	// Only re-send if the recovery public key has changed
+	// Re-send if recovery public key has changed OR a resend is pending (e.g. credentials updated)
 	keyHash := recoveryKeyHash(recoveryPublicKey)
 	storedHash := conf.AP.Get(global.ConfigRecoveryPublicKeyHash).String()
-	if keyHash == storedHash {
+	if keyHash == storedHash && !conf.RecoveryInfoPending() {
 		return false
 	}
 
@@ -725,8 +725,9 @@ func prepareRecoveryInfo() bool {
 	// Queue for next sync
 	communication.SetPendingRecoveryInfo(blob)
 
-	// Update stored hash so we don't re-send unless key changes
+	// Update stored hash and clear pending flag so we don't re-send unless key changes or flag is set again
 	conf.AP.Set(global.ConfigRecoveryPublicKeyHash, keyHash)
+	conf.SetRecoveryInfoPending(false)
 	_ = conf.Checkpoint()
 
 	logger.Info(8072, "recovery info prepared for transmission", nil)

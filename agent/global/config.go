@@ -148,6 +148,8 @@ func (c *AgentConfig) SetServiceCredentials(username, password string) error {
 	// Store encrypted credentials
 	c.serviceCredentialsEncrypted = encrypted
 	c.credentialsPendingSend = true
+	c.AP.Set(ConfigRecoveryInfoPending, true)
+	_ = c.Checkpoint()
 
 	return nil
 }
@@ -222,4 +224,14 @@ func (c *AgentConfig) GetServiceCredentialsForServer() (string, error) {
 // CredentialsPendingSend returns true if credentials need to be sent to server
 func (c *AgentConfig) CredentialsPendingSend() bool {
 	return c.credentialsPendingSend && c.serviceCredentialsEncrypted != ""
+}
+
+// RecoveryInfoPending returns true if recovery info must be re-sent regardless of key hash
+func (c *AgentConfig) RecoveryInfoPending() bool {
+	return c.AP.Get(ConfigRecoveryInfoPending).Bool()
+}
+
+// SetRecoveryInfoPending sets the persistent flag controlling recovery info resend
+func (c *AgentConfig) SetRecoveryInfoPending(pending bool) {
+	c.AP.Set(ConfigRecoveryInfoPending, pending)
 }
