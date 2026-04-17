@@ -237,6 +237,41 @@ func (a *API) startAPI() error {
 		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
 
 	s.AddRoute(userver.Route{
+		Name:     "request-cancel",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointRequest + "/{id}/cancel",
+		JHandler: a.cancelRequest,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-requests",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/{id}/requests",
+		JHandler: a.getAgentRequests,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-cancel-requests",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointAgent + "/{id}/cancel-requests",
+		JHandler: a.cancelAgentRequests,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "recovery-key",
+		Methods:  []string{"POST"},
+		Pattern:  schema.EndpointRecovery + "/key",
+		JHandler: a.postRecoveryKey,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
+		Name:     "agent-recovery",
+		Methods:  []string{"GET"},
+		Pattern:  schema.EndpointAgent + "/{id}/recovery",
+		JHandler: a.getAgentRecovery,
+		AuthFunc: a.NewAuthFunc(a.AuthAdmins())})
+
+	s.AddRoute(userver.Route{
 		Name:     "regToken",
 		Methods:  []string{"GET"},
 		Pattern:  schema.EndpointRegToken,

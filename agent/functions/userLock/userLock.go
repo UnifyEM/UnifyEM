@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/global"
@@ -89,14 +88,10 @@ func (h *Handler) Cmd(request schema.AgentRequest) (schema.AgentResponse, error)
 	response.Success = true
 
 	if shutdown {
-		response.Response = fmt.Sprintf("user %s locked successfully, shutdown in 30 seconds", username)
-		go func() {
-			time.Sleep(30 * time.Second)
-			h.logger.Info(8209, "initiating delayed shutdown after user lock", f)
-			if sErr := a.Shutdown(); sErr != nil {
-				h.logger.Error(8210, fmt.Sprintf("delayed shutdown failed: %s", sErr.Error()), f)
-			}
-		}()
+		response.Response = fmt.Sprintf("user %s locked successfully, initiating shutdown", username)
+		response.PreShutdown = true
+		response.ShutdownType = "shutdown"
+		h.logger.Info(8215, "shutdown requested after user lock, syncing before shutdown", f)
 	} else {
 		response.Response = fmt.Sprintf("user %s locked successfully", username)
 	}

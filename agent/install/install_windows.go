@@ -86,6 +86,12 @@ func (i *Install) installService() error {
 	}
 	fmt.Printf("Binary copied to %s\n", targetPath)
 
+	// Create service account before starting the service
+	err = i.ServiceAccount()
+	if err != nil {
+		return fmt.Errorf("failed to create service account: %w", err)
+	}
+
 	// Install the service
 	m, err := mgr.Connect()
 	if err != nil {
@@ -97,8 +103,20 @@ func (i *Install) installService() error {
 
 	service, err := m.OpenService(global.Name)
 	if err == nil {
-		_ = service.Close()
-		return fmt.Errorf("service %s already exists", global.Name)
+		defer func(s *mgr.Service) { _ = s.Close() }(service)
+		status, qErr := service.Query()
+		if qErr != nil {
+			return fmt.Errorf("service %s already exists", global.Name)
+		}
+		if status.State == svc.Running {
+			return fmt.Errorf("service %s is already running", global.Name)
+		}
+		// Service exists but is stopped — start it and return
+		if startErr := service.Start(); startErr != nil {
+			return fmt.Errorf("failed to start existing service %s: %w", global.Name, startErr)
+		}
+		fmt.Println("Windows service started")
+		return nil
 	}
 
 	service, err = m.CreateService(global.Name, targetPath, mgr.Config{

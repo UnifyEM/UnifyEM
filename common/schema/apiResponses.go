@@ -110,13 +110,14 @@ type APIConfigResponse struct {
 
 // APISyncResponse is sent to the agent by the server in response to an agent sync request
 type APISyncResponse struct {
-	Status             string            `json:"status"`
-	Code               int               `json:"code"`
-	Conf               map[string]string `json:"conf"`
-	Triggers           AgentTriggers     `json:"triggers"`
-	Details            string            `json:"details,omitempty"`
-	Requests           []AgentRequest    `json:"requests"`                      // Requests for the agent to process and respond to
-	ServiceCredentials string            `json:"service_credentials,omitempty"` // Encrypted "username:password" with agent's public key
+	Status              string            `json:"status"`
+	Code                int               `json:"code"`
+	Conf                map[string]string `json:"conf"`
+	Triggers            AgentTriggers     `json:"triggers"`
+	Details             string            `json:"details,omitempty"`
+	Requests            []AgentRequest    `json:"requests"`                        // Requests for the agent to process and respond to
+	ServiceCredentials  string            `json:"service_credentials,omitempty"`   // Encrypted "username:password" with agent's public key
+	RecoveryPublicKey   string            `json:"recovery_public_key,omitempty"`   // Recovery public key to distribute to agents
 }
 
 // AgentRequest contains a single command (request) from the server to the agent
@@ -163,6 +164,14 @@ type APIRegisterResponse struct {
 	RefreshToken    string `json:"refresh_token"`
 	ServerPublicSig string `json:"server_public_sig,omitempty"`
 	ServerPublicEnc string `json:"server_public_enc,omitempty"`
+}
+
+// APIRecoveryResponse is used to return an agent's encrypted recovery blob
+type APIRecoveryResponse struct {
+	Status       string `json:"status"`
+	Code         int    `json:"code"`
+	Details      string `json:"details,omitempty"`
+	RecoveryInfo string `json:"recovery_info,omitempty"`
 }
 
 // APICmdResponse is used by the API to respond to a command request

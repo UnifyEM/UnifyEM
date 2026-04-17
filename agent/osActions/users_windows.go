@@ -157,7 +157,14 @@ func (a *Actions) setPassword(userInfo UserInfo) error {
 		return fmt.Errorf("username and password are required")
 	}
 
-	_, err := a.runner.Combined("net", "user", userInfo.Username, userInfo.Password)
+	escapedPW := escapePowerShellString(userInfo.Password)
+	_, err := a.runner.Combined(
+		"powershell", "-Command",
+		fmt.Sprintf(
+			"Set-LocalUser -Name '%s' -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
+			userInfo.Username, escapedPW,
+		),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to set password for user %s: %w", userInfo.Username, err)
 	}
@@ -172,20 +179,26 @@ func (a *Actions) addUser(userInfo UserInfo) error {
 	}
 
 	// Create the user and set the password
-	_, err := a.runner.Combined("net", "user", userInfo.Username, userInfo.Password, "/ADD")
+	escapedPW := escapePowerShellString(userInfo.Password)
+	_, err := a.runner.Combined(
+		"powershell", "-Command",
+		fmt.Sprintf(
+			"New-LocalUser -Name '%s' -Password (ConvertTo-SecureString '%s' -AsPlainText -Force) -PasswordNeverExpires -AccountNeverExpires",
+			userInfo.Username, escapedPW,
+		),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create user %s: %w", userInfo.Username, err)
 	}
 
 	// Add the user's password to allow boot drive bitlocker access
-	// Escape PowerShell special characters: single quotes, backticks, dollar signs
-	escapedPW := escapePowerShellString(userInfo.Password)
+	escapedPWBL := escapePowerShellString(userInfo.Password)
 	_, err = a.runner.Combined(
 		"powershell",
 		"-Command",
 		fmt.Sprintf(
 			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
-			escapedPW,
+			escapedPWBL,
 		),
 	)
 	if err != nil {
@@ -360,10 +373,42 @@ func (a *Actions) refreshServiceAccount(userInfo UserInfo) (string, error) {
 	// Generate a new random password
 	newPassword := crypto.RandomPassword()
 
-	// Set the new password using net user (runs as SYSTEM, no old password needed)
-	_, err = a.runner.Combined("net", "user", userInfo.Username, newPassword)
+	// Set the new password using PowerShell (no interactive prompt, no 14-char limit)
+	escapedPW := escapePowerShellString(newPassword)
+	_, err = a.runner.Combined(
+		"powershell", "-Command",
+		fmt.Sprintf(
+			"Set-LocalUser -Name '%s' -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
+			userInfo.Username, escapedPW,
+		),
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to change password for user %s: %w", userInfo.Username, err)
+	}
+
+	// Remove old password protectors
+	_, delErr := a.runner.Combined("manage-bde", "-protectors", "-delete", "C:", "-Type", "Password")
+	if delErr != nil {
+		a.logger.Warningf(8605, "failed to remove old BitLocker password protectors: %s", delErr.Error())
+		// Continue anyway
+	}
+
+	// Add new password protector
+	escapedPWBL := escapePowerShellString(newPassword)
+	_, addErr := a.runner.Combined(
+		"powershell", "-Command",
+		fmt.Sprintf(
+			"Add-BitLockerKeyProtector -MountPoint 'C:' -PasswordProtector -Password (ConvertTo-SecureString '%s' -AsPlainText -Force)",
+			escapedPWBL,
+		),
+	)
+	if addErr != nil {
+		if strings.Contains(addErr.Error(), "BitLocker is not enabled") {
+			a.logger.Warningf(8606, "BitLocker is not enabled, skipping protector update for %s", userInfo.Username)
+		} else {
+			a.logger.Warningf(8607, "failed to update BitLocker password protector: %s", addErr.Error())
+		}
+		// Continue anyway
 	}
 
 	return newPassword, nil

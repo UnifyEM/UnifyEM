@@ -6,6 +6,9 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +21,7 @@ import (
 	"github.com/UnifyEM/UnifyEM/agent/communications"
 	"github.com/UnifyEM/UnifyEM/agent/functions"
 	"github.com/UnifyEM/UnifyEM/agent/global"
+	"github.com/UnifyEM/UnifyEM/agent/osActions"
 	"github.com/UnifyEM/UnifyEM/agent/install"
 	"github.com/UnifyEM/UnifyEM/agent/queues"
 	"github.com/UnifyEM/UnifyEM/common"
@@ -120,8 +124,38 @@ func console() int {
 			install.WithToken(os.Args[2]),
 		}
 
-		if len(os.Args) >= 5 {
-			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+		if runtime.GOOS == "darwin" {
+			// macOS: credentials are optional on the command line; if omitted the
+			// installer will prompt interactively. Friendly name is always optional.
+			switch len(os.Args) {
+			case 4:
+				// friendly name only; credentials will be prompted
+				ops = append(ops, install.WithFriendlyName(os.Args[3]))
+			case 5:
+				// credentials only
+				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+			case 6:
+				// credentials + friendly name
+				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
+				ops = append(ops, install.WithFriendlyName(os.Args[5]))
+			default:
+				if len(os.Args) > 6 {
+					fmt.Println("Usage: install <token> [<admin-username> <admin-password> [<friendly-name>]]")
+					return 1
+				}
+			}
+		} else {
+			// Linux/Windows: no credentials required or accepted
+			switch len(os.Args) {
+			case 4:
+				// friendly name only
+				ops = append(ops, install.WithFriendlyName(os.Args[3]))
+			default:
+				if len(os.Args) > 4 {
+					fmt.Println("Usage: install <token> [<friendly-name>]")
+					return 1
+				}
+			}
 		}
 
 		// Instantiate installer
@@ -331,9 +365,9 @@ func usage() {
 	fmt.Printf("  check\n")
 
 	if runtime.GOOS == "darwin" {
-		fmt.Printf("  install <token> <admin-username> <admin-password>\n")
+		fmt.Printf("  install <token> [<admin-username> <admin-password> [<friendly-name>]]\n")
 	} else {
-		fmt.Printf("  install <token>\n")
+		fmt.Printf("  install <token> [<friendly-name>]\n")
 	}
 
 	fmt.Printf("  rekey <token>\n")
@@ -467,6 +501,9 @@ func ServiceTasks(interfaces.Logger) {
 		sendServiceCredentials()
 	}
 
+	// Prepare recovery info if enabled and key has changed
+	prepareRecoveryInfo()
+
 	// Check in with the server if it has been more than global.SyncInterval seconds or a shorter
 	// time period applies
 	if syncTime(now - lastSync) {
@@ -570,6 +607,36 @@ func executeRequest(cmd *functions.Command, request schema.AgentRequest) error {
 			fields.NewField("response", response.Response))
 
 		logger.Info(8053, "queued response", logFields)
+
+		// If the handler has requested a pre-shutdown sync, sync now before
+		// performing the OS action. Retry up to 3 times to maximise the chance
+		// of the server receiving the response before the system goes down.
+		if response.PreShutdown {
+			const maxSyncAttempts = 3
+			for i := 0; i < maxSyncAttempts; i++ {
+				communication.Sync()
+				if i < maxSyncAttempts-1 {
+					time.Sleep(2 * time.Second)
+				}
+			}
+
+			// Allow time for the final sync to complete transmission
+			time.Sleep(5 * time.Second)
+
+			a := osActions.New(logger)
+			if response.ShutdownType == "reboot" {
+				logger.Info(8054, "initiating reboot after pre-shutdown sync", logFields)
+				if osErr := a.Reboot(); osErr != nil {
+					logger.Errorf(8056, "reboot failed: %s", osErr.Error())
+				}
+			} else {
+				logger.Info(8055, "initiating shutdown after pre-shutdown sync", logFields)
+				if osErr := a.Shutdown(); osErr != nil {
+					logger.Errorf(8073, "shutdown failed: %s", osErr.Error())
+				}
+			}
+		}
+
 		return nil
 	}
 	return errors.New("no response from command")
@@ -645,6 +712,83 @@ func sendServiceCredentials() {
 	// Queue the response for transmission
 	responseQueue.Add(response)
 	logger.Info(8118, "service credentials queued for transmission", nil)
+}
+
+// prepareRecoveryInfo builds, encrypts, and queues recovery info for transmission
+// Returns true if recovery info was prepared, false if skipped
+func prepareRecoveryInfo() bool {
+	// Check if recovery info is enabled in agent config
+	if !conf.AC.Get(schema.ConfigAgentRecoveryInfo).Bool() {
+		return false
+	}
+
+	// Check if recovery public key is available
+	recoveryPublicKey := conf.AP.Get(global.ConfigRecoveryPublicKey).String()
+	if recoveryPublicKey == "" {
+		return false
+	}
+
+	// Re-send if recovery public key has changed OR a resend is pending (e.g. credentials updated)
+	keyHash := recoveryKeyHash(recoveryPublicKey)
+	storedHash := conf.AP.Get(global.ConfigRecoveryPublicKeyHash).String()
+	if keyHash == storedHash && !conf.RecoveryInfoPending() {
+		return false
+	}
+
+	// Build recovery info
+	info := buildRecoveryInfo()
+
+	// Marshal to JSON
+	jsonBytes, err := json.Marshal(info)
+	if err != nil {
+		logger.Errorf(8070, "failed to marshal recovery info: %s", err.Error())
+		return false
+	}
+
+	// Encrypt with recovery public key
+	blob, err := crypto.Encrypt(jsonBytes, recoveryPublicKey)
+	if err != nil {
+		logger.Errorf(8071, "failed to encrypt recovery info: %s", err.Error())
+		return false
+	}
+
+	// Queue for next sync
+	communication.SetPendingRecoveryInfo(blob)
+
+	// Update stored hash and clear pending flag so we don't re-send unless key changes or flag is set again
+	conf.AP.Set(global.ConfigRecoveryPublicKeyHash, keyHash)
+	conf.SetRecoveryInfoPending(false)
+	_ = conf.Checkpoint()
+
+	logger.Info(8072, "recovery info prepared for transmission", nil)
+	return true
+}
+
+// buildRecoveryInfo collects OS-neutral recovery information
+func buildRecoveryInfo() schema.RecoveryInfo {
+	hostname, _ := os.Hostname()
+	info := schema.RecoveryInfo{
+		Timestamp: time.Now(),
+		OS:        runtime.GOOS,
+		Hostname:  hostname,
+	}
+
+	info.BitLockerInfo = getBitLockerInfo()
+
+	// Attempt to get service credentials (succeeds on macOS when configured)
+	username, password, err := conf.GetServiceCredentials()
+	if err == nil {
+		info.ServiceAccount = username
+		info.ServicePassword = password
+	}
+
+	return info
+}
+
+// recoveryKeyHash returns a hex SHA-256 hash of the given key string
+func recoveryKeyHash(key string) string {
+	h := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(h[:])
 }
 
 // simulateService runs the service in the foreground for testing. This is particularly useful on Windows.

@@ -35,7 +35,6 @@ func (d *DB) SetAgentRequest(request schema.AgentRequestRecord) error {
 	if err != nil {
 		return fmt.Errorf("failed to store agent agent: %w", err)
 	}
-
 	return nil
 }
 
@@ -77,12 +76,9 @@ func (d *DB) DeleteAgentRequest(requestKey string) error {
 
 // DeleteAgentRequests deletes all requests for the specified agent
 func (d *DB) DeleteAgentRequests(agentID string) error {
-	//prefix := validateKey(agentID) + ":"
-
 	// Iterate over all requests and delete those that match the agentID
+	// TODO: optimize with prefix scan when request keys include agentID prefix
 	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
-		//if len(key) > len(prefix) {
-		//	if string(key[:len(prefix)]) == prefix {
 		var request schema.AgentRequestRecord
 		err := d.deserialize(value, &request)
 		if err != nil {
@@ -97,6 +93,45 @@ func (d *DB) DeleteAgentRequests(agentID string) error {
 
 		return nil
 
+	})
+	return err
+}
+
+// CancelAgentRequest cancels an agent request
+func (d *DB) CancelAgentRequest(requestKey string) error {
+	var err error
+
+	result := schema.NewDBAgentRequest()
+	err = d.GetData(BucketAgentRequests, requestKey, &result)
+	if err != nil {
+		return fmt.Errorf("failed to get agent request: %w", err)
+	}
+
+	if result.Status == schema.RequestStatusNew || result.Status == schema.RequestStatusPending {
+		result.Status = schema.RequestStatusCancelled
+		return d.SetAgentRequest(result)
+
+	}
+	return nil
+}
+
+// CancelAgentRequests sets status to cancelled for all pending requests for the specified agent
+func (d *DB) CancelAgentRequests(agentID string) error {
+	// Iterate over all requests and cancel those that match the agentID
+	// TODO: optimize with prefix scan when request keys include agentID prefix
+	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
+		var request schema.AgentRequestRecord
+		err := d.deserialize(value, &request)
+		if err != nil {
+			return fmt.Errorf("failed to deserialize agent request: %w", err)
+		}
+		if request.AgentID == agentID {
+			err = d.CancelAgentRequest(string(key))
+			if err != nil {
+				return fmt.Errorf("failed to cancel agent request: %w", err)
+			}
+		}
+		return nil
 	})
 	return err
 }

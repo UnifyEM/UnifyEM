@@ -8,6 +8,11 @@
 package main
 
 import (
+	"context"
+	"os/exec"
+	"strings"
+	"time"
+
 	"github.com/UnifyEM/UnifyEM/agent/userdata"
 	"github.com/UnifyEM/UnifyEM/common/interfaces"
 )
@@ -30,4 +35,17 @@ func cleanupUserDataListener(_ interfaces.Logger) {
 // getUserDataSource returns nil on Windows
 func getUserDataSource() *userdata.UserDataListener {
 	return nil
+}
+
+func getBitLockerInfo() string {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "manage-bde", "-protectors", "-get", "C:").CombinedOutput()
+	if err != nil {
+		if logger != nil {
+			logger.Warningf(8608, "failed to retrieve BitLocker info: %s", err.Error())
+		}
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }

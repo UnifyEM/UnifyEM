@@ -82,6 +82,9 @@ func (d *Data) Register(regRequest schema.AgentRegisterRequest, remoteIP string)
 	meta.Build = regRequest.Build
 	meta.ClientPublicSig = regRequest.ClientPublicSig
 	meta.ClientPublicEnc = regRequest.ClientPublicEnc
+	if regRequest.FriendlyName != "" {
+		meta.FriendlyName = regRequest.FriendlyName
+	}
 
 	// Log key receipt during registration
 	if regRequest.ClientPublicSig != "" {

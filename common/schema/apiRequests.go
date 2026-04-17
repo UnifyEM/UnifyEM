@@ -14,6 +14,7 @@ type AgentRegisterRequest struct {
 	Build           int    `json:"build"`
 	ClientPublicSig string `json:"client_public_sig,omitempty"`
 	ClientPublicEnc string `json:"client_public_enc,omitempty"`
+	FriendlyName    string `json:"friendly_name,omitempty"`
 }
 
 // LoginRequest is sent to the server by a user (administrator) to obtain a token
@@ -36,10 +37,11 @@ type RefreshRequest struct {
 
 // AgentSyncRequest is sent by an agent to the server to synchronize data
 type AgentSyncRequest struct {
-	Version   string          `json:"version"`
-	Build     int             `json:"build"`
-	Messages  []AgentMessage  `json:"messages"`
-	Responses []AgentResponse `json:"responses"` // List of responses to previous requests
+	Version      string          `json:"version"`
+	Build        int             `json:"build"`
+	Messages     []AgentMessage  `json:"messages"`
+	Responses    []AgentResponse `json:"responses"`              // List of responses to previous requests
+	RecoveryInfo string          `json:"recovery_info,omitempty"` // Encrypted recovery info blob
 }
 
 // AgentMessage is a message from the agent to the server
@@ -59,6 +61,8 @@ type AgentResponse struct {
 	Success            bool   `json:"success"`
 	Data               any    `json:"data,omitempty"`
 	ServiceCredentials string `json:"service_credentials,omitempty"` // Double-encrypted "username:password" for server
+	PreShutdown        bool   `json:"-"`                             // trigger sync before OS action
+	ShutdownType       string `json:"-"`                             // "shutdown" or "reboot"
 }
 
 // NewAgentResponse creates a new AgentResponse and initialized the map to avoid errors
@@ -77,6 +81,11 @@ func NewCmdRequest() CmdRequest {
 	return CmdRequest{
 		Parameters: make(map[string]string),
 	}
+}
+
+// RecoveryKeyRequest is used to upload the recovery public key to the server
+type RecoveryKeyRequest struct {
+	PublicKey string `json:"public_key"`
 }
 
 // ConfigRequest is used to change configuration parameters

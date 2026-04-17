@@ -23,6 +23,7 @@ type AgentMeta struct {
 	ClientPublicSig    string        `json:"client_public_sig,omitempty"`
 	ClientPublicEnc    string        `json:"client_public_enc,omitempty"`
 	ServiceCredentials string        `json:"service_credentials,omitempty"` // Encrypted "username:password" with agent's public key
+	RecoveryInfo       string        `json:"recovery_info,omitempty"`       // Encrypted recovery info blob
 }
 
 func NewAgentMeta(agentID string) AgentMeta {

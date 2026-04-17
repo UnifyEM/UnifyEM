@@ -24,6 +24,7 @@ const (
 	EndpointEvents           = "/api/v1/events"
 	EndpointCreateDeployFile = "/api/v1/deployfile"
 	EndpointFiles            = "/files"
+	EndpointRecovery         = "/api/v1/recovery"
 	DeployInfoFile           = "deploy.json"
 )
 

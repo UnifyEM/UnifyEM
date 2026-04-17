@@ -25,6 +25,7 @@ type SyncData struct {
 	RequestCount  int
 	ResponseCount int
 	Responses     []schema.AgentResponse
+	RecoveryInfo  string
 }
 
 // AgentSync updates metadata about the agent, sends responses for processing, and returns any triggers
@@ -73,6 +74,24 @@ func (d *Data) AgentSync(data SyncData) schema.AgentTriggers {
 					fields.NewField("requestID", response.RequestID)))
 		}
 	}
+
+	// Store recovery info if provided
+	if data.RecoveryInfo != "" {
+		meta, err := d.database.GetAgentMeta(data.AgentID)
+		if err == nil {
+			meta.RecoveryInfo = data.RecoveryInfo
+			if setErr := d.database.SetAgentMeta(meta); setErr != nil {
+				d.logger.Error(2711, "failed to store recovery info",
+					fields.NewFields(
+						fields.NewField("error", setErr.Error()),
+						fields.NewField("id", data.AgentID)))
+			} else {
+				d.logger.Info(2712, "recovery info stored",
+					fields.NewFields(fields.NewField("id", data.AgentID)))
+			}
+		}
+	}
+
 	return triggers
 }
 

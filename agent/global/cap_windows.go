@@ -6,5 +6,5 @@
 package global
 
 const (
-	HaveServiceAccount = false
+	HaveServiceAccount = true
 )

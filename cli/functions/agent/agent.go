@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -41,6 +42,15 @@ func Register() *cobra.Command {
 		Long:  "request a list of agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agentList(args, util.NewNVPairs(args))
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "status",
+		Short: "list agent check-in status",
+		Long:  "list all agents with days since last check-in (0 = today)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return agentStatus(args, util.NewNVPairs(args))
 		},
 	})
 
@@ -165,6 +175,34 @@ func Register() *cobra.Command {
 func agentList(_ []string, _ *util.NVPairs) error {
 	c := communications.New(login.Login())
 	display.ErrorWrapper(display.AnyResp(c.Get(schema.EndpointAgent)))
+	return nil
+}
+
+func agentStatus(_ []string, _ *util.NVPairs) error {
+	c := communications.New(login.Login())
+	statusCode, data, err := c.Get(schema.EndpointAgent)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve agent list: %w", err)
+	}
+
+	var resp schema.APIAgentInfoResponse
+	if err = json.Unmarshal(data, &resp); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
+
+	if len(resp.Data.Agents) == 0 {
+		fmt.Printf("No agents found\n")
+	} else {
+		fmt.Println()
+		// No column headers by design — output is intended for scripting and parsing
+		for _, agent := range resp.Data.Agents {
+			days := int(time.Since(agent.LastSeen).Hours() / 24)
+			fmt.Printf("%-30s %-36s %3d %s-%03d\n", agent.FriendlyName, agent.AgentID, days, agent.Version, agent.Build)
+		}
+	}
+
 	return nil
 }
 

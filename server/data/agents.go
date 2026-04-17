@@ -6,6 +6,8 @@
 package data
 
 import (
+	"fmt"
+
 	"github.com/UnifyEM/UnifyEM/common/schema"
 )
 
@@ -40,6 +42,25 @@ func (d *Data) GetServiceCredentials(agentID string) string {
 		return ""
 	}
 	return meta.ServiceCredentials
+}
+
+// SetAgentRecoveryInfo stores the encrypted recovery info blob for an agent
+func (d *Data) SetAgentRecoveryInfo(agentID string, info string) error {
+	meta, err := d.database.GetAgentMeta(agentID)
+	if err != nil {
+		return fmt.Errorf("failed to get agent metadata: %w", err)
+	}
+	meta.RecoveryInfo = info
+	return d.database.SetAgentMeta(meta)
+}
+
+// GetAgentRecoveryInfo returns the encrypted recovery info blob for an agent
+func (d *Data) GetAgentRecoveryInfo(agentID string) string {
+	meta, err := d.database.GetAgentMeta(agentID)
+	if err != nil {
+		return ""
+	}
+	return meta.RecoveryInfo
 }
 
 // AgentDelete removes an agent from the database including any requests
