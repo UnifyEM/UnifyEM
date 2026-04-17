@@ -57,6 +57,24 @@ func Register() *cobra.Command {
 		},
 	})
 
+	cmd.AddCommand(&cobra.Command{
+		Use:   "check <agent_id>",
+		Short: "check if recovery info exists for agent",
+		Long:  "check whether recovery information has been received for the specified agent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return recoveryCheck(args, util.NewNVPairs(args))
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "list recovery info status for all agents",
+		Long:  "list all agents with their friendly name, agent ID, and recovery info status",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return recoveryList(args, util.NewNVPairs(args))
+		},
+	})
+
 	return cmd
 }
 
@@ -164,6 +182,67 @@ func recoveryGet(args []string, _ *util.NVPairs) error {
 
 	fmt.Println("\nRecovery Information:")
 	global.Pretty(info)
+	return nil
+}
+
+func recoveryCheck(args []string, _ *util.NVPairs) error {
+	if len(args) == 0 {
+		return errors.New("agent ID is required\n")
+	}
+
+	agentID := args[0]
+
+	c := communications.New(login.Login())
+	statusCode, data, err := c.Get(schema.EndpointAgent + "/" + agentID + "/recovery")
+	if err != nil {
+		return fmt.Errorf("failed to retrieve recovery info: %w", err)
+	}
+
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
+
+	var resp schema.APIRecoveryResponse
+	if err = json.Unmarshal(data, &resp); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if resp.RecoveryInfo != "" {
+		fmt.Printf("Recovery info available\n")
+	} else {
+		fmt.Printf("No recovery info available\n")
+	}
+
+	return nil
+}
+
+func recoveryList(_ []string, _ *util.NVPairs) error {
+	c := communications.New(login.Login())
+	statusCode, data, err := c.Get(schema.EndpointAgent)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve agent list: %w", err)
+	}
+
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
+
+	var resp schema.APIAgentInfoResponse
+	if err = json.Unmarshal(data, &resp); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if len(resp.Data.Agents) == 0 {
+		fmt.Printf("No agents found\n")
+		return nil
+	}
+
+	fmt.Printf("\n%-30s %-36s %s\n", "Friendly Name", "Agent ID", "Recovery Info")
+	fmt.Printf("%s\n", strings.Repeat("-", 75))
+	for _, agent := range resp.Data.Agents {
+		recoveryStatus := "No"
+		if agent.RecoveryInfo != "" {
+			recoveryStatus = "Yes"
+		}
+		fmt.Printf("%-30s %-36s %s\n", agent.FriendlyName, agent.AgentID, recoveryStatus)
+	}
+
 	return nil
 }
 
