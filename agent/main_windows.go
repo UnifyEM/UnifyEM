@@ -38,7 +38,7 @@ func getUserDataSource() *userdata.UserDataListener {
 }
 
 func getBitLockerInfo() string {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "manage-bde", "-protectors", "-get", "C:").CombinedOutput()
 	if err != nil {
