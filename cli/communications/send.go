@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,7 +49,7 @@ func (c *Communications) sendRequest(method, endpoint string, payload []byte) (i
 	if err != nil {
 		// Check if this is an untrusted certificate error
 		var certErr *UntrustedCertError
-		if matchUntrustedCertError(err, &certErr) {
+		if errors.As(err, &certErr) {
 			// Prompt the user to accept the certificate
 			accepted, promptErr := promptUserForCert(certErr.Cert, certErr.Host)
 			if promptErr != nil {
@@ -182,45 +183,6 @@ func promptUserForCert(cert *x509.Certificate, host string) (bool, error) {
 
 	answer = strings.TrimSpace(strings.ToLower(answer))
 	return answer == "yes" || answer == "y", nil
-}
-
-// matchUntrustedCertError unwraps err to find an *UntrustedCertError.
-// Returns true if found, setting target to the matched error.
-func matchUntrustedCertError(err error, target **UntrustedCertError) bool {
-	if err == nil {
-		return false
-	}
-	// The error is typically wrapped by net/http and tls layers, so we
-	// need to walk the chain. errors.As won't always work because
-	// some wrapping in net/url uses opaque string formatting. We do a
-	// recursive unwrap plus a type-switch approach.
-	type unwrapper interface {
-		Unwrap() error
-	}
-	type unwrapperSlice interface {
-		Unwrap() []error
-	}
-
-	switch e := err.(type) {
-	case *UntrustedCertError:
-		*target = e
-		return true
-	case unwrapper:
-		return matchUntrustedCertError(e.Unwrap(), target)
-	case unwrapperSlice:
-		for _, inner := range e.Unwrap() {
-			if matchUntrustedCertError(inner, target) {
-				return true
-			}
-		}
-	}
-
-	// Last resort: check if it's a *url.Error wrapping our error
-	if urlErr, ok := err.(*url.Error); ok {
-		return matchUntrustedCertError(urlErr.Err, target)
-	}
-
-	return false
 }
 
 // hostFromURL extracts the host:port from a URL string.

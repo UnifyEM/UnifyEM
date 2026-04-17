@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -76,7 +77,7 @@ func TestFormatCertDetails(t *testing.T) {
 
 	// Check that key fields are present
 	for _, expected := range []string{"Subject:", "Issuer:", "Fingerprint:", "Not Before:", "Not After:", "DNS Names:"} {
-		if !containsString(details, expected) {
+		if !strings.Contains(details, expected) {
 			t.Errorf("expected %q in cert details", expected)
 		}
 	}
@@ -186,15 +187,3 @@ func TestStoreMultiple(t *testing.T) {
 	}
 }
 
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstring(s, substr))
-}
-
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
