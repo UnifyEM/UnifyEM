@@ -15,6 +15,7 @@ import (
 func (d *DB) GetAgentRequestRecords(agentID string) (schema.AgentRequestRecordList, error) {
 	var result schema.AgentRequestRecordList
 
+	// TODO: optimize with prefix scan when request keys include agentID prefix
 	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
 		var request schema.AgentRequestRecord
 		err := d.deserialize(value, &request)
@@ -39,6 +40,7 @@ func (d *DB) GetAllRequestRecords() (schema.AgentRequestRecordList, error) {
 	var allRequests schema.AgentRequestRecordList
 
 	// Iterate over all keys in the bucket
+	// TODO: optimize with prefix scan when request keys include agentID prefix
 	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
 		var request schema.AgentRequestRecord
 		err := d.deserialize(value, &request)

@@ -163,7 +163,7 @@ func (a *API) cancelRequest(req *http.Request) userver.JResponse {
 	// Cancel the request in the database
 	err := a.data.CancelAgentRequest(requestID)
 	if err != nil {
-		a.logger.Info(2848, fmt.Sprintf("error cancelling agent request: %s", err.Error()), logFields)
+		a.logger.Error(2848, fmt.Sprintf("error cancelling agent request: %s", err.Error()), logFields)
 		return userver.JResponse{
 			HTTPCode: http.StatusNotFound,
 			JSONData: schema.API404{Details: "request not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}
@@ -271,7 +271,7 @@ func (a *API) cancelAgentRequests(req *http.Request) userver.JResponse {
 	// Cancel all requests for the agent in the database
 	err := a.data.CancelAgentRequests(agentID)
 	if err != nil {
-		a.logger.Info(2868, fmt.Sprintf("error cancelling agent requests: %s", err.Error()), logFields)
+		a.logger.Error(2868, fmt.Sprintf("error cancelling agent requests: %s", err.Error()), logFields)
 		return userver.JResponse{
 			HTTPCode: http.StatusNotFound,
 			JSONData: schema.API404{Details: "agent not found", Status: schema.APIStatusError, Code: http.StatusNotFound}}

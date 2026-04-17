@@ -234,4 +234,5 @@ func (c *AgentConfig) RecoveryInfoPending() bool {
 // SetRecoveryInfoPending sets the persistent flag controlling recovery info resend
 func (c *AgentConfig) SetRecoveryInfoPending(pending bool) {
 	c.AP.Set(ConfigRecoveryInfoPending, pending)
+	_ = c.Checkpoint()
 }

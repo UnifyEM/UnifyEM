@@ -126,13 +126,13 @@ func console() int {
 
 		switch len(os.Args) {
 		case 4:
-			// friendly name only (non-macOS platforms)
+			// friendly name only
 			ops = append(ops, install.WithFriendlyName(os.Args[3]))
 		case 5:
-			// credentials only (macOS)
+			// credentials only
 			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
 		case 6:
-			// credentials + friendly name (macOS)
+			// credentials + friendly name
 			ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
 			ops = append(ops, install.WithFriendlyName(os.Args[5]))
 		}

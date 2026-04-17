@@ -26,9 +26,9 @@ func Register() *cobra.Command {
 		Long:    "query, delete, and cancel agent requests",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("A subcommand is required\n")
+				return fmt.Errorf("a subcommand is required")
 			}
-			return fmt.Errorf("Unknown subcommand: %s\n", args[0])
+			return fmt.Errorf("unknown subcommand: %s", args[0])
 		},
 	}
 
@@ -93,7 +93,7 @@ func requestList(args []string, _ *util.NVPairs) error {
 
 func requestGet(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Request ID is required\n")
+		return errors.New("request ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -103,7 +103,7 @@ func requestGet(args []string, _ *util.NVPairs) error {
 
 func requestDelete(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Request ID is required\n")
+		return errors.New("request ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -113,7 +113,7 @@ func requestDelete(args []string, _ *util.NVPairs) error {
 
 func requestCancel(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Request ID is required\n")
+		return errors.New("request ID is required")
 	}
 
 	c := communications.New(login.Login())
@@ -123,7 +123,7 @@ func requestCancel(args []string, _ *util.NVPairs) error {
 
 func requestCancelAgent(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
-		return errors.New("Agent ID is required\n")
+		return errors.New("agent ID is required")
 	}
 
 	c := communications.New(login.Login())

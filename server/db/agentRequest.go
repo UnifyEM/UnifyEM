@@ -76,12 +76,9 @@ func (d *DB) DeleteAgentRequest(requestKey string) error {
 
 // DeleteAgentRequests deletes all requests for the specified agent
 func (d *DB) DeleteAgentRequests(agentID string) error {
-	//prefix := validateKey(agentID) + ":"
-
 	// Iterate over all requests and delete those that match the agentID
+	// TODO: optimize with prefix scan when request keys include agentID prefix
 	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
-		//if len(key) > len(prefix) {
-		//	if string(key[:len(prefix)]) == prefix {
 		var request schema.AgentRequestRecord
 		err := d.deserialize(value, &request)
 		if err != nil {
@@ -120,9 +117,8 @@ func (d *DB) CancelAgentRequest(requestKey string) error {
 
 // CancelAgentRequests sets status to cancelled for all pending requests for the specified agent
 func (d *DB) CancelAgentRequests(agentID string) error {
-	//prefix := validateKey(agentID) + ":"
-
-	// Iterate over all requests and delete those that match the agentID
+	// Iterate over all requests and cancel those that match the agentID
+	// TODO: optimize with prefix scan when request keys include agentID prefix
 	err := d.ForEach(BucketAgentRequests, func(key, value []byte) error {
 		var request schema.AgentRequestRecord
 		err := d.deserialize(value, &request)

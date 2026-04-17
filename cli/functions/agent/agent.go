@@ -190,16 +190,19 @@ func agentStatus(_ []string, _ *util.NVPairs) error {
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
+
 	if len(resp.Data.Agents) == 0 {
 		fmt.Printf("No agents found\n")
 	} else {
+		fmt.Println()
+		// No column headers by design — output is intended for scripting and parsing
 		for _, agent := range resp.Data.Agents {
 			days := int(time.Since(agent.LastSeen).Hours() / 24)
 			fmt.Printf("%-30s %-36s %3d %s-%03d\n", agent.FriendlyName, agent.AgentID, days, agent.Version, agent.Build)
 		}
 	}
 
-	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
 	return nil
 }
 

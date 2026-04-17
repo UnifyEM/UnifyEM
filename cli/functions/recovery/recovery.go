@@ -119,6 +119,19 @@ func recoveryKeygen(args []string, _ *util.NVPairs) error {
 	return nil
 }
 
+func fetchRecoveryInfo(agentID string) (schema.APIRecoveryResponse, int, error) {
+	c := communications.New(login.Login())
+	statusCode, data, err := c.Get(schema.EndpointAgent + "/" + agentID + "/recovery")
+	if err != nil {
+		return schema.APIRecoveryResponse{}, statusCode, fmt.Errorf("failed to retrieve recovery info: %w", err)
+	}
+	var resp schema.APIRecoveryResponse
+	if err = json.Unmarshal(data, &resp); err != nil {
+		return schema.APIRecoveryResponse{}, statusCode, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	return resp, statusCode, nil
+}
+
 func recoveryGet(args []string, _ *util.NVPairs) error {
 	if len(args) == 0 {
 		return errors.New("agent ID is required")
@@ -130,19 +143,12 @@ func recoveryGet(args []string, _ *util.NVPairs) error {
 		keyPath = args[1]
 	}
 
-	// Fetch encrypted blob from server
-	c := communications.New(login.Login())
-	statusCode, data, err := c.Get(schema.EndpointAgent + "/" + agentID + "/recovery")
+	resp, statusCode, err := fetchRecoveryInfo(agentID)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve recovery info: %w", err)
+		return err
 	}
 
 	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
-
-	var resp schema.APIRecoveryResponse
-	if err = json.Unmarshal(data, &resp); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
 
 	if resp.RecoveryInfo == "" {
 		global.Pretty(resp)
@@ -191,18 +197,12 @@ func recoveryCheck(args []string, _ *util.NVPairs) error {
 
 	agentID := args[0]
 
-	c := communications.New(login.Login())
-	statusCode, data, err := c.Get(schema.EndpointAgent + "/" + agentID + "/recovery")
+	resp, statusCode, err := fetchRecoveryInfo(agentID)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve recovery info: %w", err)
+		return err
 	}
 
 	fmt.Printf("\nServer response: HTTP %d\n", statusCode)
-
-	var resp schema.APIRecoveryResponse
-	if err = json.Unmarshal(data, &resp); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
 
 	if resp.RecoveryInfo != "" {
 		fmt.Printf("Recovery info available\n")
