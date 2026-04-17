@@ -125,11 +125,12 @@ func console() int {
 		}
 
 		if runtime.GOOS == "darwin" {
-			// macOS requires admin credentials to create the service account
+			// macOS: credentials are optional on the command line; if omitted the
+			// installer will prompt interactively. Friendly name is always optional.
 			switch len(os.Args) {
 			case 4:
-				fmt.Println("Usage: install <token> [<admin-username> <admin-password> [<friendly-name>]]")
-				return 1
+				// friendly name only; credentials will be prompted
+				ops = append(ops, install.WithFriendlyName(os.Args[3]))
 			case 5:
 				// credentials only
 				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
@@ -137,9 +138,14 @@ func console() int {
 				// credentials + friendly name
 				ops = append(ops, install.WithCredentials(os.Args[3], os.Args[4]))
 				ops = append(ops, install.WithFriendlyName(os.Args[5]))
+			default:
+				if len(os.Args) > 6 {
+					fmt.Println("Usage: install <token> [<admin-username> <admin-password> [<friendly-name>]]")
+					return 1
+				}
 			}
 		} else {
-			// Linux/Windows: no credentials required
+			// Linux/Windows: no credentials required or accepted
 			switch len(os.Args) {
 			case 4:
 				// friendly name only
