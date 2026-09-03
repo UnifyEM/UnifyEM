@@ -5,11 +5,16 @@
 
 package global
 
-import "github.com/UnifyEM/UnifyEM/common"
+import "github.com/UnifyEM/UnifyEM/app"
+
+// Version and Build come from app so protocol call sites stay unchanged.
+// Version is the parseable release number; Build is the YYYYMMDD day as an int.
+var (
+	Version = app.SemVer()
+	Build   = app.BuildDate()
+)
 
 const (
-	Version           = common.Version
-	Build             = common.Build
 	Name              = "UEMServer"
 	LogName           = "uem-server"
 	Description       = "UnifyEM Server"

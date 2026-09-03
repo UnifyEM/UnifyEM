@@ -48,7 +48,7 @@ func main() {
 	// Check for version request
 	if len(os.Args) == 2 {
 		if strings.ToLower(os.Args[1]) == "version" {
-			common.Banner(global.Description, global.Version, global.Build)
+			common.Banner(global.Description)
 			exit(0, false)
 		}
 	}
