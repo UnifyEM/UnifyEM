@@ -17,8 +17,14 @@ HTTP_DIR="/tmp/uem-test-build"
 # Folder to build into ($REPO/bin is excluded in .gitignore)
 BUILD_DIR="/tmp/uem-test-build"
 #
-# Build options
-BOPTS="-ldflags=\"-s -w\""
+# Build metadata. The version itself is the const in app/app.go.
+# Assigned once so every binary in this run shares the same build number.
+GIT_COMMIT=$(git rev-parse --short=8 HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(date +%FT%T%z)
+GO_VERSION=$(go version | awk '{print $3}')
+BUILD_NUMBER=$(date -u +%Y%m%d%H%M%S)
+APP_PKG=github.com/UnifyEM/UnifyEM/app
+LDFLAGS="-s -w -X ${APP_PKG}.gitCommit=${GIT_COMMIT} -X ${APP_PKG}.buildTime=${BUILD_TIME} -X ${APP_PKG}.goVersion=${GO_VERSION} -X ${APP_PKG}.buildNumber=${BUILD_NUMBER}"
 #
 # Required minimum version
 GO_MIN_VERSION="1.25"
@@ -68,7 +74,7 @@ build() {
     BIN="${BIN}.exe"
   fi
   echo "Compiling for $os $arch to $BUILD_DIR..."
-  CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build $BOPS -o $BUILD_DIR/$BIN
+  CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o $BUILD_DIR/$BIN
 }
 
 #

@@ -9,12 +9,24 @@ BUILD_DIR=bin
 # Go variables. CGO is disabled so every target cross-compiles from any host.
 GO?=CGO_ENABLED=0 go
 GOFLAGS?=
-LDFLAGS=-ldflags "-s -w"
-
-# The version is NOT injected here. It is the Version/Build const pair in
-# common/version.go and is a property of the source, not of the machine that
-# compiled it. b9 reads that same file to name the release, so a binary can
-# never disagree with the release it ships in.
+# Build metadata. The VERSION itself is NOT injected: it is the const in
+# app/app.go and is a property of the source, not of the machine that
+# compiled it. Only the commit, timestamp, toolchain and build number are
+# stamped in. Injecting a git-describe string here would make a binary
+# disagree with its own source.
+GIT_COMMIT=$(shell git rev-parse --short=8 HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(shell date +%FT%T%z)
+GO_VERSION=$(shell go version | awk '{print $$3}')
+# BUILD_NUMBER orders builds; GIT_COMMIT identifies their source. The commit
+# cannot answer "is the copy I am running newer than the one I just built?" —
+# a hash has no order — so a rebuild of the same commit is indistinguishable
+# without this. UTC, because local time repeats an hour twice a year and a
+# newer build would sort older. Assigned with := so one multi-target build
+# stamps ONE number across every platform: with a recursive `=` the shell
+# re-runs per expansion and each target would land a second or two apart.
+BUILD_NUMBER:=$(shell date -u +%Y%m%d%H%M%S)
+APP_PKG=github.com/UnifyEM/UnifyEM/app
+LDFLAGS=-ldflags "-X $(APP_PKG).gitCommit=$(GIT_COMMIT) -X $(APP_PKG).buildTime=$(BUILD_TIME) -X $(APP_PKG).goVersion=$(GO_VERSION) -X $(APP_PKG).buildNumber=$(BUILD_NUMBER) -s -w"
 
 GOLANGCI_LINT?=golangci-lint
 

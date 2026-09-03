@@ -5,17 +5,21 @@
 
 package common
 
-import "fmt"
+import (
+	"fmt"
+	"os"
 
-func Banner(program, version string, build int) {
-	fmt.Printf("%s version %s (build %d)\n", program, version, build)
-	fmt.Printf("Copyright 2024-2026 Tenebris Technologies Inc.\n")
-	fmt.Printf("\nLicense:\n")
-	fmt.Printf("  This software is licenced under the Apache License, Version 2.0.\n")
-	fmt.Printf("  A copy of the license can be found in the LICENSE file.\n")
-	fmt.Printf("\nOpen Source:\n")
-	fmt.Printf("  This software is open source and relies upon third-party open source\n")
-	fmt.Printf("  packages. If you received this software in binary form, please\n")
-	fmt.Printf("  refer to the accompanying documentation for full information.\n")
-	fmt.Printf("\n")
+	"github.com/UnifyEM/UnifyEM/app"
+)
+
+func Banner(program string) {
+	fmt.Fprintf(os.Stderr, "%s %s\n%s\n", program, app.Version(), app.Copyright())
+	fmt.Fprintf(os.Stderr, "\nLicense:\n")
+	fmt.Fprintf(os.Stderr, "  This software is licenced under the Apache License, Version 2.0.\n")
+	fmt.Fprintf(os.Stderr, "  A copy of the license can be found in the LICENSE file.\n")
+	fmt.Fprintf(os.Stderr, "\nOpen Source:\n")
+	fmt.Fprintf(os.Stderr, "  This software is open source and relies upon third-party open source\n")
+	fmt.Fprintf(os.Stderr, "  packages. If you received this software in binary form, please\n")
+	fmt.Fprintf(os.Stderr, "  refer to the accompanying documentation for full information.\n")
+	fmt.Fprintf(os.Stderr, "\n")
 }

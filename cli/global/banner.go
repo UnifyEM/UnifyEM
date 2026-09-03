@@ -10,5 +10,5 @@ import (
 )
 
 func Banner() {
-	common.Banner(Description, Version, Build)
+	common.Banner(Description)
 }

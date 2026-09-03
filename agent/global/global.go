@@ -7,13 +7,18 @@
 package global
 
 import (
-	"github.com/UnifyEM/UnifyEM/common"
+	"github.com/UnifyEM/UnifyEM/app"
+)
+
+// Version and Build come from app so protocol call sites stay unchanged.
+// Version is the parseable release number; Build is the YYYYMMDD day as an int.
+var (
+	Version = app.SemVer()
+	Build   = app.BuildDate()
 )
 
 // These constants are used throughout the agent
 const (
-	Version                   = common.Version
-	Build                     = common.Build
 	Name                      = "UEMAgent"
 	LogName                   = "uem-agent"
 	Description               = "UnifyEM Agent"
