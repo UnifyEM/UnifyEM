@@ -87,8 +87,8 @@ func (a *API) postSync(req *http.Request) userver.JResponse {
 		queue.Add(message)
 	}
 
-	// Check for missing required fields
-	if syncRequest.Version == "" || syncRequest.Build < 1 {
+	// Version is required. Build may be 0 (unstamped local build).
+	if !syncHasRequiredFields(syncRequest) {
 		a.logger.Error(2803, "syn request missing required fields", logFields)
 		return userver.JResponse{
 			HTTPCode: http.StatusBadRequest,

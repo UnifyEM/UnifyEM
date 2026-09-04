@@ -16,13 +16,24 @@ UnifyEM is free, open-source, self-hosted endpoint management software for monit
 
 ## Build Commands
 
-### Building all components (development/testing script)
-```bash
-./test.sh
-```
-This builds server, CLI, and agents for all platforms to `bin/` directory.
+Link-time metadata (`gitCommit`, `buildTime`, `goVersion`, `buildNumber`) is
+stamped only when you build through `make` or `uem-build-*.sh`. Those binaries
+report a YYYYMMDD `Build` to the server. Plain `go build` / `go run` / an IDE
+build leave the stamp empty (`Build` 0). The server accepts that so local
+agents can still register and sync. Deployed or fleet agents should always be
+stamped.
 
-### Building individual components
+### Stamped builds (deploy, release, anything talking to a real server)
+
+```bash
+make
+# or
+./uem-build-all.sh
+./uem-build-test.sh
+```
+
+### Compile checks (unstamped)
+
 ```bash
 # Server
 cd server && go build -o ../bin/uem-server
@@ -30,7 +41,7 @@ cd server && go build -o ../bin/uem-server
 # CLI
 cd cli && go build -o ../bin/uem-cli
 
-# Agent (example for specific platform)
+# Agent (example for a specific platform)
 cd agent && GOOS=linux GOARCH=amd64 go build -o ../bin/uem-agent-linux-amd64
 ```
 
@@ -38,8 +49,9 @@ cd agent && GOOS=linux GOARCH=amd64 go build -o ../bin/uem-agent-linux-amd64
 - Go 1.24 or later
 - govulncheck (install: `go install golang.org/x/vuln/cmd/govulncheck@latest`)
 
-### Production deployment script (Ubuntu server example)
-See `uem-build.sh` - stops service, builds, deploys, restarts, and runs govulncheck
+### Production deployment
+`uem-build-all.sh` stops the service, builds with ldflags, deploys, restarts,
+and runs govulncheck.
 
 ## Testing & Quality
 

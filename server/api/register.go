@@ -54,8 +54,8 @@ func (a *API) postRegister(req *http.Request) userver.JResponse {
 		fields.NewField("version", regRequest.Version),
 		fields.NewField("build", regRequest.Build))
 
-	// Check for missing required fields
-	if regRequest.Token == "" || regRequest.Version == "" || regRequest.Build < 1 {
+	// Token and version are required. Build may be 0 (unstamped local build).
+	if !registerHasRequiredFields(regRequest) {
 		a.logger.Error(2813, "registration request missing required fields", logInfo)
 		return failureResponse
 	}
