@@ -21,7 +21,7 @@ const (
 	copyright = "Copyright (c) 2024-2026 Tenebris Technologies Inc."
 
 	// Keep this a single assignment on one line: build tooling reads it.
-	version = "0.0.62"
+	version = "0.0.63"
 )
 
 // Injected via ldflags. Do not put these in a struct: -X cannot write a field

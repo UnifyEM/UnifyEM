@@ -1,0 +1,73 @@
+#
+# B9 build and release config
+#
+
+name:   UnifyEM
+module: github.com/UnifyEM/UnifyEM
+github: UnifyEM/UnifyEM
+
+# Reads common/version.go until UnifyEM gains an app/ package; that migration
+# then changes the two lines below and nothing else.
+version:
+  file:    common/version.go
+  pattern: 'Version\s*=\s*"([^"]+)"'
+  extra:
+    build: 'Build\s*=\s*([0-9]+)'
+  format:  '{1}-{build}'
+
+go_min:      "1.26"
+govulncheck: true
+
+licenses:
+  enabled:  true
+  template: license.tmpl
+  ignore:   github.com/UnifyEM/UnifyEM
+  out:      OPEN-SOURCE-LICENSES.txt
+
+build:
+  clean_once: true
+  command: 'make build PLATFORM={os} ARCH={arch}'
+  targets:
+    - windows/386
+    - windows/amd64
+    - windows/arm64
+    - darwin/amd64
+    - darwin/arm64
+    - linux/386
+    - linux/amd64
+    - linux/arm64
+
+artifacts:
+  - name: uem-server
+    from: 'bin/uem-server-{os}-{arch}{exe}'
+    macos_bundle_id: com.tenebris.uem-server
+    windows_sign: true
+    bundle_dir: server
+  - name: uem-cli
+    from: 'bin/uem-cli-{os}-{arch}{exe}'
+    macos_bundle_id: com.tenebris.uem-cli
+    windows_sign: true
+    bundle_dir: cli
+  - name: uem-agent
+    from: 'bin/uem-agent-{os}-{arch}{exe}'
+    macos_bundle_id: com.tenebris.uem-agent
+    windows_sign: true
+    bundle_dir: agent
+
+package:
+  extra_files:
+    - {from: LICENSE, as: LICENSE.txt}
+    - {from: '{staging}/OPEN-SOURCE-LICENSES.txt', as: OPEN-SOURCE-LICENSES.txt}
+  per_platform:
+    enabled: false
+  bundle:
+    enabled: true
+    # CONTRACT: deployed update scripts depend on this exact name.
+    asset:    'uem-latest-bin.tar.gz'
+    root_dir: uem
+    # No versioned duplicate: pinning works via releases/download/<tag>/.
+
+release:
+  tag:   '{version}'
+  title: 'v{tag}'
+  notes: 'Linux, macOS and Windows binaries (macOS and Windows are signed)'
