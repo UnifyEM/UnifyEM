@@ -9,11 +9,9 @@ github: UnifyEM/UnifyEM
 # Reads common/version.go until UnifyEM gains an app/ package; that migration
 # then changes the two lines below and nothing else.
 version:
-  file:    common/version.go
-  pattern: 'Version\s*=\s*"([^"]+)"'
-  extra:
-    build: 'Build\s*=\s*([0-9]+)'
-  format:  '{1}-{build}'
+  file:    app/app.go
+  pattern: 'version\s*=\s*"([^"]+)"'
+  format:  '{1}'
 
 go_min:      "1.26"
 govulncheck: true
