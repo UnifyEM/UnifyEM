@@ -77,7 +77,7 @@ build:
 	@for c in $(COMPONENTS); do \
 		out=$(BUILD_DIR)/uem-$$c-$(PLATFORM)-$(ARCH)$(EXE); \
 		echo "Building uem-$$c for $(PLATFORM)/$(ARCH)..."; \
-		$(BUILD_ENV) $(GO) build $(GOFLAGS) $(LDFLAGS) -o $$out ./$$c || exit 1; \
+		$(BUILD_ENV) $(GO) build -trimpath $(GOFLAGS) $(LDFLAGS) -o $$out ./$$c || exit 1; \
 		echo "Build complete: $$out"; \
 	done
 
