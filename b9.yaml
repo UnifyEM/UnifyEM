@@ -6,8 +6,6 @@ name:   UnifyEM
 module: github.com/UnifyEM/UnifyEM
 github: UnifyEM/UnifyEM
 
-# Reads common/version.go until UnifyEM gains an app/ package; that migration
-# then changes the two lines below and nothing else.
 version:
   file:    app/app.go
   pattern: 'version\s*=\s*"([^"]+)"'
